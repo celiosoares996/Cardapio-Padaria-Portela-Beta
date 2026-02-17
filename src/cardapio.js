@@ -33,15 +33,11 @@ function calcularDistancia(lat1, lon1, lat2, lon2) {
 window.mascaraCEP = (input) => {
     let v = input.value.replace(/\D/g, '');
     if (v.length > 8) v = v.substring(0, 8);
-    
-    // Aplica a máscara visual
     if (v.length > 5) {
         input.value = v.substring(0, 5) + '-' + v.substring(5, 8);
     } else {
         input.value = v;
     }
-
-    // Dispara a busca apenas quando completar 8 dígitos
     if (v.length === 8) window.buscarCEP();
 };
 
@@ -75,7 +71,6 @@ window.buscarCEP = async () => {
             return;
         }
 
-        // --- PREENCHIMENTO DOS CAMPOS NO SEU HTML ---
         if(camposEndereco) camposEndereco.classList.remove('hidden');
         if(textoEnderecoAuto) {
             textoEnderecoAuto.innerText = `${data.logradouro}, ${data.bairro} - ${data.localidade}/${data.uf}`;
@@ -88,48 +83,53 @@ window.buscarCEP = async () => {
             cep: cep 
         };
 
-        // Busca Coordenadas Nominatim para cálculo de frete
-        const geoResp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&postalcode=${cep}&country=Brazil`, {
-            headers: { 'User-Agent': 'CardapioVacy/1.0' }
-        });
-        const geoData = await geoResp.json();
+        // Libera o botão primeiro para evitar travamentos
+        if(btnProx2) {
+            btnProx2.disabled = false;
+            btnProx2.classList.replace('bg-slate-200', 'bg-brand');
+        }
 
-        if (geoData.length > 0) {
-            const latCli = parseFloat(geoData[0].lat);
-            const lonCli = parseFloat(geoData[0].lon);
+        // --- CÁLCULO DE FRETE ---
+        try {
+            const geoResp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&postalcode=${cep}&country=Brazil`, {
+                headers: { 'User-Agent': 'CardapioVacy/1.0' }
+            });
+            const geoData = await geoResp.json();
 
-            const distancia = calcularDistancia(
-                configEntrega.coords.lat,
-                configEntrega.coords.log,
-                latCli,
-                lonCli
-            );
+            if (geoData.length > 0) {
+                const latCli = parseFloat(geoData[0].lat);
+                const lonCli = parseFloat(geoData[0].lon);
 
-            // Validação de Raio Máximo
-            if (configEntrega.raioMaximo > 0 && distancia > configEntrega.raioMaximo) {
-                alert(`Ops! Não entregamos nesta distância (${distancia.toFixed(1)}km). Nosso limite é ${configEntrega.raioMaximo}km.`);
-                if(btnProx2) btnProx2.disabled = true;
-            } else {
+                const distancia = calcularDistancia(
+                    configEntrega.coords.lat,
+                    configEntrega.coords.log,
+                    latCli,
+                    lonCli
+                );
+
                 distanciaCliente = distancia;
+
                 if (configEntrega.tipo === 'km') {
-                    taxaEntregaAtual = parseFloat((distancia * configEntrega.valorKm).toFixed(2));
+                    const precoKm = Number(configEntrega.valorKm) || 0;
+                    taxaEntregaAtual = parseFloat((distancia * precoKm).toFixed(2));
                 } else {
                     taxaEntregaAtual = Number(configEntrega.taxaFixa) || 0;
                 }
-                
-                if(btnProx2) {
-                    btnProx2.disabled = false;
-                    btnProx2.classList.replace('bg-slate-200', 'bg-brand');
+
+                if (configEntrega.raioMaximo > 0 && distancia > configEntrega.raioMaximo) {
+                    alert(`Atenção: Estamos a ${distancia.toFixed(1)}km. Verifique se entregamos em sua região.`);
                 }
-                renderizarCarrinho();
+            } else {
+                // Plano B: Se o Nominatim não achar coordenadas, usa taxa fixa
+                taxaEntregaAtual = Number(configEntrega.taxaFixa) || 0;
             }
-        } else {
-            // Se o Nominatim falhar mas o CEP existir, libera o botão para não perder a venda
-            if(btnProx2) {
-                btnProx2.disabled = false;
-                btnProx2.classList.replace('bg-slate-200', 'bg-brand');
-            }
+        } catch (err) {
+            console.warn("Erro ao calcular distância, usando taxa fixa padrão.");
+            taxaEntregaAtual = Number(configEntrega.taxaFixa) || 0;
         }
+
+        renderizarCarrinho();
+
     } catch (error) {
         console.error("Erro na busca do CEP:", error);
     } finally {
@@ -146,8 +146,10 @@ window.atualizarModoPedidoJS = (modo) => {
     if (modo === 'retirada') {
         taxaEntregaAtual = 0;
         distanciaCliente = 0;
-    } else if (configEntrega && configEntrega.tipo === 'fixo') {
-        taxaEntregaAtual = Number(configEntrega.taxaFixa) || 0;
+    } else {
+        if (configEntrega && configEntrega.tipo === 'fixo') {
+            taxaEntregaAtual = Number(configEntrega.taxaFixa) || 0;
+        }
     }
     if(btnProx1) {
         btnProx1.disabled = false;
@@ -171,7 +173,7 @@ function atualizarBadgeCarrinho() {
     const badge = document.getElementById('qtdItensCarrinho');
     if (carrinho.length > 0) {
         btn.classList.remove('hidden');
-        if(badge) badge.innerText = carrinho.length;
+        if(badge) badge.innerText = parseInt(carrinho.length);
     }
 }
 
@@ -207,7 +209,10 @@ function renderizarCarrinho() {
         resumoF.innerHTML = `
             <div class="space-y-2 text-[11px]">
                 <div class="flex justify-between opacity-70"><span>Subtotal:</span><span>R$ ${subtotal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span></div>
-                <div class="flex justify-between opacity-70"><span>Frete:</span><span>${taxaEntregaAtual > 0 ? 'R$ ' + taxaEntregaAtual.toLocaleString('pt-BR', {minimumFractionDigits: 2}) : 'Grátis'}</span></div>
+                <div class="flex justify-between opacity-70">
+                    <span>Frete ${distanciaCliente > 0 ? '(' + distanciaCliente.toFixed(1) + 'km)' : ''}:</span>
+                    <span>${taxaEntregaAtual > 0 ? 'R$ ' + taxaEntregaAtual.toLocaleString('pt-BR', {minimumFractionDigits: 2}) : 'Grátis'}</span>
+                </div>
                 <div class="flex justify-between text-base font-black border-t border-white/20 pt-2 mt-2">
                     <span>TOTAL:</span><span>R$ ${totalGeral.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
                 </div>
@@ -256,8 +261,7 @@ window.enviarWhatsApp = () => {
     if(modoPedido === 'entrega') {
         texto += `*ENDEREÇO:* ${enderecoCompleto.rua}, ${numero}\n`;
         texto += `*BAIRRO:* ${enderecoCompleto.bairro}\n`;
-        texto += `*CIDADE:* ${enderecoCompleto.cidade}\n`;
-        texto += `*FRETE:* R$ ${taxaEntregaAtual.toLocaleString('pt-BR', {minimumFractionDigits: 2})}\n`;
+        texto += `*FRETE:* R$ ${taxaEntregaAtual.toLocaleString('pt-BR', {minimumFractionDigits: 2})} (${distanciaCliente.toFixed(1)}km)\n`;
     }
 
     texto += `*PAGAMENTO:* ${formaPagamento}\n`;
