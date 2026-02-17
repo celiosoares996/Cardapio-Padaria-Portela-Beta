@@ -10,7 +10,7 @@
     
     <style>
         :root {
-            --cor-primaria: #2563eb; /* Azul profissional padrão */
+            --cor-primaria: #2563eb; 
             --cor-primaria-dark: #1d4ed8;
         }
         .bg-brand { background-color: var(--cor-primaria) !important; }
@@ -77,12 +77,23 @@
 
                 <button type="submit" id="btnEntrar"
                     class="bg-brand w-full text-white font-black py-5 rounded-2xl shadow-xl shadow-blue-500/20 transform transition active:scale-[0.98] hover:brightness-110 hover:shadow-2xl flex items-center justify-center gap-3">
-                    <span class="tracking-widest">ENTRAR NO PAINEL</span>
+                    <span class="tracking-widest uppercase">Entrar no Painel</span>
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
                     </svg>
                 </button>
             </form>
+
+            <div class="flex items-center my-6">
+                <div class="flex-1 border-t border-slate-100"></div>
+                <span class="px-4 text-[10px] font-black text-gray-300 uppercase tracking-widest">Ou</span>
+                <div class="flex-1 border-t border-slate-100"></div>
+            </div>
+
+            <button type="button" id="btnGoogle" class="w-full bg-white border border-slate-200 text-slate-600 font-bold py-4 rounded-2xl shadow-sm hover:bg-slate-50 transition-all flex items-center justify-center gap-3 active:scale-[0.98]">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" class="w-5 h-5" alt="Google Logo">
+                <span class="text-sm tracking-tight">Continuar com Google</span>
+            </button>
 
             <div class="mt-10 text-center pt-6 border-t border-slate-50">
                 <p class="text-[10px] font-bold text-gray-300 uppercase tracking-[0.2em] mb-4">
