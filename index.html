@@ -3,72 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MyCake | Gestão para Padarias</title>
+    <title>Acesso Restrito | MyCake</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --cor-primaria: #f59e0b; 
-            --cor-primaria-dark: #d97706;
-        }
+        body { font-family: 'Inter', sans-serif; }
+        :root { --cor-primaria: #f59e0b; }
         .bg-brand { background-color: var(--cor-primaria) !important; }
         .text-brand { color: var(--cor-primaria) !important; }
-        .focus-ring-brand:focus { border-color: var(--cor-primaria) !important; --tw-ring-color: var(--cor-primaria) !important; }
+        .border-brand { border-color: var(--cor-primaria) !important; }
         
-        /* Suaviza a transição de cor caso o tema mude */
-        .transition-theme { transition: background-color 0.5s ease, color 0.5s ease; }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .loader {
+            border-top-color: var(--cor-primaria);
+            animation: spinner 1.5s linear infinite;
+        }
+        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="bg-amber-50 min-h-screen flex items-center justify-center p-4 transition-theme">
+<body class="bg-slate-50 min-h-screen flex items-center justify-center p-6 relative overflow-hidden">
+    
+    <div class="absolute top-[-10%] left-[-10%] w-72 h-72 bg-brand opacity-10 rounded-full blur-3xl"></div>
+    <div class="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-brand opacity-10 rounded-full blur-3xl"></div>
 
-    <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-amber-100 transform transition hover:scale-[1.01]">
-        
-        <div id="headerLogin" class="bg-brand p-10 text-center text-white transition-theme">
-            <div class="text-5xl mb-2 animate-bounce">🥖</div>
-            <h1 class="text-3xl font-black tracking-tighter uppercase">MyCake SaaS</h1>
-            <p class="text-white/80 text-sm italic">Gestão inteligente para Padaria Portela</p>
+    <div class="w-full max-w-[420px] z-10">
+        <div class="text-center mb-8">
+            <div id="containerLogo" class="inline-flex items-center justify-center w-20 h-20 bg-white rounded-3xl shadow-xl mb-4 p-2 border border-slate-100">
+                <span id="logoEmoji" class="text-4xl">🥖</span>
+                <img id="logoImg" src="" class="hidden w-full h-full object-contain rounded-2xl">
+            </div>
+            <h1 class="text-2xl font-800 text-slate-800 tracking-tight uppercase">Painel <span class="text-brand">MyCake</span></h1>
+            <p class="text-slate-500 text-sm mt-1" id="subtituloLogin">Gestão inteligente para o seu negócio</p>
         </div>
 
-        <div class="p-8">
-            <form id="loginForm" class="space-y-5">
+        <div class="glass-card p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)]">
+            <form id="loginForm" class="space-y-6">
                 <div>
-                    <label for="email" class="block text-sm font-bold text-gray-700">E-mail de Acesso</label>
-                    <input type="email" id="email" required
-                        class="mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus-ring-brand outline-none transition-all"
-                        placeholder="exemplo@padaria.com">
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest ml-1 mb-2">E-mail de Acesso</label>
+                    <input type="email" id="email" required 
+                        class="w-full px-5 py-4 bg-slate-100/50 border border-transparent rounded-2xl outline-none focus:border-brand focus:bg-white transition-all text-slate-700"
+                        placeholder="seu@email.com">
                 </div>
 
                 <div>
-                    <div class="flex justify-between">
-                        <label for="senha" class="block text-sm font-bold text-gray-700">Senha</label>
-                        <a href="#" class="text-xs text-brand font-bold hover:underline">Esqueci a senha</a>
-                    </div>
-                    <input type="password" id="senha" required
-                        class="mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus-ring-brand outline-none transition-all"
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest ml-1 mb-2">Sua Senha</label>
+                    <input type="password" id="senha" required 
+                        class="w-full px-5 py-4 bg-slate-100/50 border border-transparent rounded-2xl outline-none focus:border-brand focus:bg-white transition-all text-slate-700"
                         placeholder="••••••••">
                 </div>
 
-                <button type="submit" id="btnEntrar"
-                    class="bg-brand w-full text-white font-black py-4 rounded-xl shadow-lg transform transition active:scale-95 hover:brightness-110">
-                    ENTRAR NO SISTEMA
+                <button type="submit" id="btnEntrar" 
+                    class="bg-brand w-full text-white font-bold py-5 rounded-2xl shadow-lg shadow-amber-500/20 hover:shadow-amber-500/40 hover:-translate-y-0.5 active:scale-95 transition-all flex items-center justify-center gap-3">
+                    <span>ACESSAR SISTEMA</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
                 </button>
             </form>
 
-            <div class="mt-8 text-center pt-6 border-t border-gray-100">
-                <p class="text-sm text-gray-500">
-                    Ainda não tem acesso? 
-                    <a href="#" class="text-brand font-extrabold hover:underline">Falar com suporte</a>
-                </p>
+            <div class="mt-8 text-center">
+                <a href="#" class="text-xs font-semibold text-slate-400 hover:text-brand transition-colors uppercase tracking-widest">Esqueci minha senha</a>
             </div>
         </div>
+
+        <p class="text-center mt-10 text-slate-400 text-[10px] uppercase tracking-[0.2em]">
+            &copy; 2024 MyCake SaaS - Tecnologia para Alimentos
+        </p>
     </div>
 
     <script type="module" src="./src/script.js"></script>
     <script>
-        // Script rápido para aplicar a cor salva antes mesmo do Firebase carregar
-        const corSalva = localStorage.getItem('tema-cor');
-        if (corSalva) {
-            document.documentElement.style.setProperty('--cor-primaria', corSalva);
+        // Carregamento instantâneo da marca do cliente (se já logou antes)
+        const cor = localStorage.getItem('tema-cor');
+        const logo = localStorage.getItem('estab-logo');
+        const nome = localStorage.getItem('estab-nome');
+        
+        if (cor) document.documentElement.style.setProperty('--cor-primaria', cor);
+        if (logo) {
+            document.getElementById('logoEmoji').classList.add('hidden');
+            document.getElementById('logoImg').src = logo;
+            document.getElementById('logoImg').classList.remove('hidden');
         }
+        if (nome) document.getElementById('subtituloLogin').innerText = `Gestão para ${nome}`;
     </script>
 </body>
 </html>
