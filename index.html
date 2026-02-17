@@ -1,74 +1,64 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MyCake | Gestão para Padarias</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        :root {
-            --cor-primaria: #f59e0b; 
-            --cor-primaria-dark: #d97706;
+import { db } from './firebase-config.js';
+// Importamos o Auth do Firebase para o login
+import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+const auth = getAuth();
+const loginForm = document.getElementById('loginForm');
+const btnEntrar = document.getElementById('btnEntrar');
+
+if (loginForm) {
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const email = document.getElementById('email').value;
+        const senha = document.getElementById('senha').value;
+
+        // Visual de carregamento
+        btnEntrar.disabled = true;
+        btnEntrar.innerText = "AUTENTICANDO...";
+
+        try {
+            // 1. Tenta fazer o login no Firebase Auth
+            const userCredential = await signInWithEmailAndPassword(auth, email, senha);
+            const user = userCredential.user;
+
+            // 2. Busca os dados do usuário no Firestore para pegar a cor do tema
+            const userDoc = await getDoc(doc(db, "usuarios", user.uid));
+            
+            if (userDoc.exists()) {
+                const dados = userDoc.data();
+                // Salva a cor no localStorage para o login brilhar na cor certa na próxima vez
+                if (dados.corTema) {
+                    localStorage.setItem('tema-cor', dados.corTema);
+                }
+                
+                // 3. Redireciona para o painel administrativo
+                // Altere 'painel.html' para o nome do seu arquivo de administração
+                window.location.href = `painel.html?id=${user.uid}`;
+            } else {
+                alert("Perfil não encontrado no banco de dados.");
+            }
+
+        } catch (error) {
+            console.error("Erro ao entrar:", error);
+            btnEntrar.disabled = false;
+            btnEntrar.innerText = "ENTRAR NO SISTEMA";
+
+            // Tratamento de erros amigável
+            switch (error.code) {
+                case 'auth/invalid-credential':
+                    alert("E-mail ou senha incorretos.");
+                    break;
+                case 'auth/user-not-found':
+                    alert("Usuário não cadastrado.");
+                    break;
+                case 'auth/wrong-password':
+                    alert("Senha incorreta.");
+                    break;
+                default:
+                    alert("Erro ao acessar o sistema. Verifique sua conexão.");
+            }
         }
-        .bg-brand { background-color: var(--cor-primaria) !important; }
-        .text-brand { color: var(--cor-primaria) !important; }
-        .focus-ring-brand:focus { border-color: var(--cor-primaria) !important; --tw-ring-color: var(--cor-primaria) !important; }
-        
-        /* Suaviza a transição de cor caso o tema mude */
-        .transition-theme { transition: background-color 0.5s ease, color 0.5s ease; }
-    </style>
-</head>
-<body class="bg-amber-50 min-h-screen flex items-center justify-center p-4 transition-theme">
-
-    <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-amber-100 transform transition hover:scale-[1.01]">
-        
-        <div id="headerLogin" class="bg-brand p-10 text-center text-white transition-theme">
-            <div class="text-5xl mb-2 animate-bounce">🥖</div>
-            <h1 class="text-3xl font-black tracking-tighter uppercase">MyCake SaaS</h1>
-            <p class="text-white/80 text-sm italic">Gestão inteligente para Padaria Portela</p>
-        </div>
-
-        <div class="p-8">
-            <form id="loginForm" class="space-y-5">
-                <div>
-                    <label for="email" class="block text-sm font-bold text-gray-700">E-mail de Acesso</label>
-                    <input type="email" id="email" required
-                        class="mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus-ring-brand outline-none transition-all"
-                        placeholder="exemplo@padaria.com">
-                </div>
-
-                <div>
-                    <div class="flex justify-between">
-                        <label for="senha" class="block text-sm font-bold text-gray-700">Senha</label>
-                        <a href="#" class="text-xs text-brand font-bold hover:underline">Esqueci a senha</a>
-                    </div>
-                    <input type="password" id="senha" required
-                        class="mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus-ring-brand outline-none transition-all"
-                        placeholder="••••••••">
-                </div>
-
-                <button type="submit" id="btnEntrar"
-                    class="bg-brand w-full text-white font-black py-4 rounded-xl shadow-lg transform transition active:scale-95 hover:brightness-110">
-                    ENTRAR NO SISTEMA
-                </button>
-            </form>
-
-            <div class="mt-8 text-center pt-6 border-t border-gray-100">
-                <p class="text-sm text-gray-500">
-                    Ainda não tem acesso? 
-                    <a href="#" class="text-brand font-extrabold hover:underline">Falar com suporte</a>
-                </p>
-            </div>
-        </div>
-    </div>
-
-    <script type="module" src="./src/script.js"></script>
-    <script>
-        // Script rápido para aplicar a cor salva antes mesmo do Firebase carregar
-        const corSalva = localStorage.getItem('tema-cor');
-        if (corSalva) {
-            document.documentElement.style.setProperty('--cor-primaria', corSalva);
-        }
-    </script>
-</body>
-</html>
+    });
+}
