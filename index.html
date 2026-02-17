@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MyCake | Acesso ao Sistema</title>
+    <title>Digitaliza Menu | Acesso ao Sistema</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <style>
         :root {
-            --cor-primaria: #f59e0b; 
-            --cor-primaria-dark: #d97706;
+            --cor-primaria: #2563eb; /* Azul profissional por padrão para o SaaS */
+            --cor-primaria-dark: #1d4ed8;
         }
         .bg-brand { background-color: var(--cor-primaria) !important; }
         .text-brand { color: var(--cor-primaria) !important; }
@@ -21,27 +21,26 @@
         }
         .transition-theme { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
         
-        /* Efeito de vidro suave */
         .glass-effect {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
         }
     </style>
 </head>
-<body class="bg-amber-50 min-h-screen flex items-center justify-center p-4 transition-theme font-sans">
+<body class="bg-slate-50 min-h-screen flex items-center justify-center p-4 transition-theme font-sans">
 
-    <div class="glass-effect w-full max-w-md rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] overflow-hidden border border-white transform transition hover:scale-[1.005]">
+    <div class="glass-effect w-full max-w-md rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.08)] overflow-hidden border border-white transform transition hover:scale-[1.005]">
         
         <div id="headerLogin" class="bg-brand p-12 text-center text-white transition-theme relative">
-            <div class="absolute inset-0 opacity-10 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+            <div class="absolute inset-0 opacity-10 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
             
             <div id="logoContainer" class="relative z-10 flex justify-center mb-4">
-                <div id="logoPlaceholder" class="text-6xl animate-bounce">🥖</div>
+                <div id="logoPlaceholder" class="text-6xl">📱</div>
                 <img id="logoEstabelecimento" src="" alt="Logo" class="hidden w-24 h-24 rounded-2xl object-cover shadow-lg border-2 border-white/20">
             </div>
             
-            <h1 class="text-3xl font-black tracking-tighter uppercase relative z-10">MyCake SaaS</h1>
-            <p id="subtituloLoja" class="text-white/90 text-sm font-medium italic relative z-10">Gestão Inteligente</p>
+            <h1 class="text-3xl font-black tracking-tighter uppercase relative z-10">Digitaliza <span class="text-white/80">Menu</span></h1>
+            <p id="subtituloLoja" class="text-white/90 text-sm font-medium relative z-10">Cresça o seu pequeno negócio</p>
         </div>
 
         <div class="p-10">
@@ -50,7 +49,7 @@
                     <label for="email" class="block text-xs font-black text-gray-400 uppercase tracking-widest ml-1 mb-2 transition-all group-focus-within:text-brand">E-mail de Acesso</label>
                     <input type="email" id="email" required
                         class="mt-1 block w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus-ring-brand outline-none transition-all focus:bg-white"
-                        placeholder="seu@email.com">
+                        placeholder="seu@estabelecimento.com">
                 </div>
 
                 <div class="group">
@@ -64,8 +63,8 @@
                 </div>
 
                 <button type="submit" id="btnEntrar"
-                    class="bg-brand w-full text-white font-black py-5 rounded-2xl shadow-xl shadow-amber-500/20 transform transition active:scale-[0.98] hover:brightness-110 hover:shadow-2xl flex items-center justify-center gap-2">
-                    <span>ENTRAR NO SISTEMA</span>
+                    class="bg-brand w-full text-white font-black py-5 rounded-2xl shadow-xl shadow-blue-500/20 transform transition active:scale-[0.98] hover:brightness-110 hover:shadow-2xl flex items-center justify-center gap-2">
+                    <span>ENTRAR NO PAINEL</span>
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
                     </svg>
@@ -74,8 +73,9 @@
 
             <div class="mt-10 text-center pt-6 border-t border-gray-50">
                 <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">
-                    Não tem acesso? 
-                    <a href="#" class="text-brand font-black hover:underline ml-1">Suporte</a>
+                    Digitaliza Menu &copy; 2024
+                    <br>
+                    <a href="#" class="text-brand font-black hover:underline mt-2 inline-block">Falar com Suporte</a>
                 </p>
             </div>
         </div>
@@ -89,6 +89,7 @@
             const logoSalva = localStorage.getItem('estab-logo');
             const nomeSalvo = localStorage.getItem('estab-nome');
 
+            // Se o cliente já logou antes, a página assume a cara dele
             if (corSalva) {
                 document.documentElement.style.setProperty('--cor-primaria', corSalva);
             }
