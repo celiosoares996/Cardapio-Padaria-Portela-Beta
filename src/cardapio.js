@@ -88,43 +88,41 @@ window.buscarCEP = async () => {
             btnProx2.classList.replace('bg-slate-200', 'bg-brand');
         }
 
-        // --- LÓGICA DE FRETE ---
+        // --- CÁLCULO DE FRETE ---
         if (configEntrega && configEntrega.tipo === 'km') {
             try {
-                // Nominatim API com Cache Busting para o Netlify
-                const geoResp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&postalcode=${cep}&country=Brazil&v=${Date.now()}`, {
-                    headers: { 'User-Agent': 'CardapioVacy/1.1' }
+                // Nominatim com cache busting para evitar erro no Netlify
+                const geoResp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&postalcode=${cep}&country=Brazil&limit=1&v=${Date.now()}`, {
+                    headers: { 'User-Agent': 'CardapioDigitalVacy/1.1' }
                 });
                 const geoData = await geoResp.json();
 
-                if (geoData.length > 0) {
+                if (geoData && geoData.length > 0) {
                     const latCli = parseFloat(geoData[0].lat);
                     const lonCli = parseFloat(geoData[0].lon);
 
-                    const distancia = calcularDistancia(
-                        parseFloat(configEntrega.coords.lat),
-                        parseFloat(configEntrega.coords.log),
-                        latCli,
-                        lonCli
-                    );
+                    // Pega lat/log da loja garantindo que são números
+                    const latLoja = parseFloat(configEntrega.coords.lat);
+                    const lonLoja = parseFloat(configEntrega.coords.log || configEntrega.coords.lng);
 
+                    const distancia = calcularDistancia(latLoja, lonLoja, latCli, lonCli);
                     distanciaCliente = distancia;
-                    const precoKm = parseFloat(configEntrega.valorKm) || 0;
+
+                    const precoKm = Number(configEntrega.valorKm) || 0;
                     taxaEntregaAtual = parseFloat((distancia * precoKm).toFixed(2));
 
-                    if (configEntrega.raioMaximo > 0 && distancia > parseFloat(configEntrega.raioMaximo)) {
-                        alert(`Atenção: Estamos a ${distancia.toFixed(1)}km. Verifique se entregamos em sua região.`);
+                    if (configEntrega.raioMaximo > 0 && distancia > Number(configEntrega.raioMaximo)) {
+                        alert(`Atenção: Estamos a ${distancia.toFixed(1)}km. Verifique se atendemos sua região.`);
                     }
                 } else {
-                    // Fallback para taxa fixa se o mapa falhar
-                    taxaEntregaAtual = parseFloat(configEntrega.taxaFixa) || 0;
+                    taxaEntregaAtual = Number(configEntrega.taxaFixa) || 0;
                 }
             } catch (err) {
-                console.warn("Erro no cálculo por KM, aplicando taxa fixa.");
-                taxaEntregaAtual = parseFloat(configEntrega.taxaFixa) || 0;
+                console.warn("Erro no Nominatim, usando taxa fixa.");
+                taxaEntregaAtual = Number(configEntrega.taxaFixa) || 0;
             }
         } else {
-            taxaEntregaAtual = parseFloat(configEntrega?.taxaFixa) || 0;
+            taxaEntregaAtual = Number(configEntrega?.taxaFixa) || 0;
         }
 
         renderizarCarrinho();
@@ -145,7 +143,7 @@ window.atualizarModoPedidoJS = (modo) => {
         distanciaCliente = 0;
     } else {
         if (configEntrega && configEntrega.tipo === 'fixo') {
-            taxaEntregaAtual = parseFloat(configEntrega.taxaFixa) || 0;
+            taxaEntregaAtual = Number(configEntrega.taxaFixa) || 0;
         }
     }
     if(btnProx1) {
@@ -159,7 +157,7 @@ window.adicionarAoCarrinho = (nome, preco) => {
     if(!verificarSeEstaAberto(configHorario.abertura, configHorario.fechamento)) {
         alert("Loja Fechada!"); return;
     }
-    carrinho.push({ nome, preco: parseFloat(preco) });
+    carrinho.push({ nome, preco: Number(preco) });
     atualizarBadgeCarrinho();
 };
 
@@ -168,7 +166,7 @@ function atualizarBadgeCarrinho() {
     const badge = document.getElementById('qtdItensCarrinho');
     if (carrinho.length > 0) {
         btn.classList.remove('hidden');
-        if(badge) badge.innerText = carrinho.length;
+        if(badge) badge.innerText = parseInt(carrinho.length);
     }
 }
 
@@ -201,16 +199,15 @@ function renderizarCarrinho() {
     }
 
     if(resumoF) {
-        const freteTexto = taxaEntregaAtual > 0 
-            ? `R$ ${taxaEntregaAtual.toLocaleString('pt-BR', {minimumFractionDigits: 2})}` 
-            : (modoPedido === 'entrega' && configEntrega?.tipo === 'km' && distanciaCliente === 0 ? 'Calculando...' : 'Grátis');
-
+        const textoFrete = (modoPedido === 'retirada') ? 'Grátis (Retirada)' : 
+                          (taxaEntregaAtual > 0 ? `R$ ${taxaEntregaAtual.toLocaleString('pt-BR', {minimumFractionDigits: 2})}` : 'Grátis');
+        
         resumoF.innerHTML = `
             <div class="space-y-2 text-[11px]">
                 <div class="flex justify-between opacity-70"><span>Subtotal:</span><span>R$ ${subtotal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span></div>
                 <div class="flex justify-between opacity-70">
                     <span>Frete ${distanciaCliente > 0 ? '(' + distanciaCliente.toFixed(1) + 'km)' : ''}:</span>
-                    <span class="font-bold text-brand">${freteTexto}</span>
+                    <span class="font-bold">${textoFrete}</span>
                 </div>
                 <div class="flex justify-between text-base font-black border-t border-white/20 pt-2 mt-2">
                     <span>TOTAL:</span><span>R$ ${totalGeral.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
@@ -288,6 +285,8 @@ async function inicializar() {
             const d = userSnap.data();
             whatsappLoja = d.whatsapp || "";
             configHorario = { abertura: d.horarioAbertura || "", fechamento: d.horarioFechamento || "" };
+            
+            // GARANTE QUE configEntrega NÃO SEJA NULO E CONVERTE VALORES
             configEntrega = d.configEntrega || { coords: {lat:0, log:0}, raioMaximo: 0, valorKm: 0, tipo: 'fixo' };
 
             document.getElementById('nomeLoja').innerText = d.nomeNegocio || "Minha Loja";
