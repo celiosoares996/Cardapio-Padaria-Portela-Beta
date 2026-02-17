@@ -9,45 +9,23 @@
     <style>
         :root { --cor-primaria: #f59e0b; }
         body { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
-        
         .bg-brand { background-color: var(--cor-primaria) !important; }
         .text-brand { color: var(--cor-primaria) !important; }
         .border-brand { border-color: var(--cor-primaria) !important; }
-        
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-        .category-tab.active {
-            color: var(--cor-primaria);
-            border-bottom: 3px solid var(--cor-primaria);
-        }
-
+        .category-tab.active { color: var(--cor-primaria); border-bottom: 3px solid var(--cor-primaria); }
         .product-card:active { transform: scale(0.97); }
-        
-        .ping-aberto {
-            animation: pulse-green 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-        @keyframes pulse-green {
-            0%, 100% { opacity: 1; }
-            50% { opacity: .4; }
-        }
-
-        #loading-overlay {
-            transition: opacity 0.5s ease, visibility 0.5s;
-        }
-        .loader-hidden {
-            opacity: 0;
-            visibility: hidden;
-        }
-
+        .ping-aberto { animation: pulse-green 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse-green { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+        #loading-overlay { transition: opacity 0.5s ease, visibility 0.5s; }
+        .loader-hidden { opacity: 0; visibility: hidden; }
         html { scroll-behavior: smooth; }
-        
-        .banner-overlay {
-            background: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.4) 100%);
-        }
-
-        /* Ajuste para o conteúdo não ficar escondido atrás do footer fixo */
+        .banner-overlay { background: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.4) 100%); }
         .content-wrapper { padding-bottom: 120px; }
+        .step-content { display: none; animation: fadeIn 0.3s ease; }
+        .step-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen">
@@ -63,11 +41,10 @@
     <div class="content-wrapper">
         <div id="bannerLoja" class="relative h-44 bg-slate-200 w-full bg-center bg-cover transition-all duration-700">
             <div class="absolute inset-0 banner-overlay"></div>
-            
             <div class="absolute -bottom-10 left-1/2 -translate-x-1/2 z-10">
                 <div class="w-24 h-24 bg-white rounded-3xl shadow-xl p-1.5">
-                    <div id="wrapperLogo" class="w-full h-full bg-slate-200 rounded-[1.4rem] flex items-center justify-center overflow-hidden transition-all duration-500">
-                        <span id="emojiLoja" class="text-4xl text-white">🍞</span>
+                    <div id="wrapperLogo" class="w-full h-full bg-slate-200 rounded-[1.4rem] flex items-center justify-center overflow-hidden">
+                        <span id="emojiLoja" class="text-4xl">🍞</span>
                         <img id="fotoLoja" class="hidden w-full h-full object-cover">
                     </div>
                 </div>
@@ -76,53 +53,22 @@
 
         <section class="mt-14 px-6 text-center">
             <h1 id="nomeLoja" class="text-2xl font-extrabold text-slate-800 tracking-tight leading-tight uppercase italic text-brand">Carregando...</h1>
-            
-            <div id="containerCidade" class="hidden flex items-center justify-center gap-1 mt-1 text-slate-400">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
-                </svg>
-                <span id="cidadeLoja" class="text-[11px] font-semibold tracking-wide capitalize"></span>
-            </div>
-
             <div id="horarioLoja" class="flex items-center justify-center gap-2 mt-2">
                 <span id="dotStatus" class="w-2 h-2 rounded-full bg-slate-300"></span>
-                <p id="labelStatus" class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Verificando horário...</p>
+                <p id="labelStatus" class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Verificando...</p>
             </div>
         </section>
 
         <nav class="sticky top-0 z-50 bg-white/90 backdrop-blur-lg border-b border-slate-100 mt-6 overflow-x-auto no-scrollbar flex items-center px-4 shadow-sm">
-            <div id="navCategorias" class="flex gap-8 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">
-            </div>
+            <div id="navCategorias" class="flex gap-8 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest"></div>
         </nav>
 
-        <main id="mainContainer" class="p-4 space-y-8">
-            <div class="animate-pulse space-y-6">
-                <div class="h-4 w-32 bg-slate-200 rounded"></div>
-                <div class="h-28 w-full bg-white rounded-2xl border border-slate-100 shadow-sm"></div>
-                <div class="h-28 w-full bg-white rounded-2xl border border-slate-100 shadow-sm"></div>
-            </div>
-        </main>
+        <main id="mainContainer" class="p-4 space-y-8"></main>
     </div>
 
-    <footer class="fixed bottom-0 left-0 right-0 z-40 bg-white/80 backdrop-blur-md border-t border-slate-100 py-3 px-6 shadow-[0_-10px_20px_rgba(0,0,0,0.02)]">
-        <div class="flex flex-col items-center justify-center">
-            <p class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                Desenvolvido com ❤️ pela <span class="text-brand">Vacy Sistemas</span>
-            </p>
-            <p class="text-[8px] font-bold text-slate-300 uppercase tracking-widest mt-0.5">
-                © <span id="anoAtual"></span> <span id="nomeLojaRodape"></span> • Direitos Reservados
-            </p>
-        </div>
-    </footer>
-
-    <div id="btnCarrinho" class="fixed bottom-16 left-0 right-0 px-6 z-50 hidden transition-all duration-300">
+    <div id="btnCarrinho" class="fixed bottom-16 left-0 right-0 px-6 z-50 hidden">
         <button onclick="abrirCarrinho()" class="w-full bg-brand text-white h-14 rounded-2xl shadow-2xl flex items-center justify-between px-6 active:scale-95 transition-all">
             <div class="flex items-center gap-3">
-                <div class="bg-white/20 p-2 rounded-lg">
-                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                   </svg>
-                </div>
                 <span class="font-black uppercase tracking-widest text-[10px]">Revisar Pedido</span>
             </div>
             <span id="qtdItensCarrinho" class="bg-white text-brand font-black px-2.5 py-0.5 rounded-full text-[10px]">0</span>
@@ -130,61 +76,122 @@
     </div>
 
     <div id="modalCarrinho" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] hidden flex items-end md:items-center justify-center">
-        <div class="bg-white w-full max-w-lg rounded-t-[2.5rem] md:rounded-[2.5rem] p-6 shadow-2xl max-h-[90vh] flex flex-col transition-transform duration-300 translate-y-0">
+        <div class="bg-white w-full max-w-lg rounded-t-[2.5rem] md:rounded-[2.5rem] p-6 shadow-2xl max-h-[90vh] flex flex-col transition-all">
             
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-lg font-black text-slate-800 uppercase italic tracking-tighter">Sua Sacola</h2>
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h2 class="text-lg font-black text-slate-800 uppercase italic leading-none">Minha Sacola</h2>
+                    <p id="subtituloModal" class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Passo 1 de 3</p>
+                </div>
                 <button onclick="fecharCarrinho()" class="bg-slate-100 text-slate-400 w-8 h-8 rounded-full flex items-center justify-center font-bold">✕</button>
             </div>
 
-            <div id="listaItensCarrinho" class="flex-1 overflow-y-auto space-y-3 no-scrollbar mb-4">
+            <div id="passo1" class="step-content active flex-1 overflow-y-auto no-scrollbar">
+                <div id="listaItensCarrinho" class="space-y-3 mb-6"></div>
+                
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Como deseja receber?</p>
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <button onclick="definirModo('entrega')" id="optEntrega" class="flex flex-col items-center justify-center p-4 rounded-2xl border-2 border-slate-100 bg-slate-50 gap-2 transition-all">
+                        <span class="text-xl">🛵</span>
+                        <span class="text-[10px] font-black uppercase">Entrega</span>
+                    </button>
+                    <button onclick="definirModo('retirada')" id="optRetirada" class="flex flex-col items-center justify-center p-4 rounded-2xl border-2 border-slate-100 bg-slate-50 gap-2 transition-all">
+                        <span class="text-xl">🛍️</span>
+                        <span class="text-[10px] font-black uppercase">Retirada</span>
+                    </button>
                 </div>
-
-            <div id="secaoEntrega" class="bg-slate-50 p-4 rounded-3xl mb-4 border border-slate-100">
-                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Logística de Entrega</p>
-                <button id="btnCalcularFrete" 
-                        onclick="obterLocalizacaoECalcularFrete()" 
-                        class="hidden w-full bg-white border-2 border-dashed border-slate-200 text-slate-600 py-3 rounded-2xl font-bold text-[11px] flex items-center justify-center gap-2 hover:border-brand hover:text-brand transition-all">
-                    📍 Calcular Frete por Localização
-                </button>
+                <div id="totalPasso1" class="mb-4"></div>
+                <button onclick="irParaPasso(2)" id="btnProximo1" disabled class="w-full bg-slate-200 text-white py-4 rounded-2xl font-black uppercase text-[11px] transition-all">Continuar</button>
             </div>
 
-            <div class="border-t border-slate-100 pt-4">
-                <div id="totalCarrinho" class="mb-6">
+            <div id="passo2" class="step-content flex-1 overflow-y-auto no-scrollbar">
+                <div id="blocoEntrega" class="space-y-4">
+                    <div class="bg-slate-50 p-5 rounded-3xl border border-slate-100">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2 px-1">Seu CEP</label>
+                        <input type="text" id="inputCEP" maxlength="9" oninput="window.mascaraCEP(this)" placeholder="00000-000" 
+                               class="w-full p-4 rounded-xl bg-white text-sm border border-slate-200 outline-brand font-bold text-center">
+                        
+                        <div id="statusCEP" class="mt-2 text-[10px] font-bold px-1 hidden"></div>
+
+                        <div id="camposEndereco" class="hidden space-y-3 mt-4">
+                            <div class="p-4 bg-white rounded-xl border border-slate-200">
+                                <p id="textoEnderecoAuto" class="text-xs font-bold text-slate-700"></p>
+                            </div>
+                            <input type="text" id="inputNumero" placeholder="Número da Casa / Apto / Complemento" 
+                                   class="w-full p-4 rounded-xl bg-white text-sm border border-slate-200 outline-brand font-bold">
+                        </div>
                     </div>
-                
-                <button onclick="enviarWhatsApp()" class="w-full bg-brand text-white py-4 rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.72.937 3.659 1.432 5.628 1.433h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
-                    </svg>
-                    Finalizar no WhatsApp
-                </button>
+                </div>
+
+                <div id="blocoRetirada" class="hidden text-center py-10">
+                    <div class="text-4xl mb-4">🏠</div>
+                    <p class="font-bold text-slate-700">Tudo pronto para retirada!</p>
+                </div>
+
+                <div class="flex gap-3 mt-6">
+                    <button onclick="irParaPasso(1)" class="w-1/3 bg-slate-100 text-slate-500 py-4 rounded-2xl font-black uppercase text-[10px]">Voltar</button>
+                    <button onclick="irParaPasso(3)" id="btnProximo2" disabled class="w-2/3 bg-slate-200 text-white py-4 rounded-2xl font-black uppercase text-[11px]">Pagamento</button>
+                </div>
+            </div>
+
+            <div id="passo3" class="step-content flex-1 overflow-y-auto no-scrollbar">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 px-1">Escolha como pagar</p>
+                <div class="space-y-3 mb-6">
+                    <label class="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100 cursor-pointer">
+                        <input type="radio" name="pagamento" value="Pix" class="w-4 h-4 accent-brand">
+                        <span class="text-sm font-bold text-slate-700">PIX</span>
+                    </label>
+                    <label class="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100 cursor-pointer">
+                        <input type="radio" name="pagamento" value="Cartão" class="w-4 h-4 accent-brand">
+                        <span class="text-sm font-bold text-slate-700">Cartão na Entrega</span>
+                    </label>
+                    <label class="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100 cursor-pointer">
+                        <input type="radio" name="pagamento" value="Dinheiro" class="w-4 h-4 accent-brand">
+                        <span class="text-sm font-bold text-slate-700">Dinheiro</span>
+                    </label>
+                </div>
+                <div id="resumoFinal" class="bg-slate-900 text-white p-5 rounded-3xl mb-6 shadow-xl"></div>
+                <div class="flex gap-3">
+                    <button onclick="irParaPasso(2)" class="w-1/3 bg-slate-100 text-slate-500 py-4 rounded-2xl font-black uppercase text-[10px]">Voltar</button>
+                    <button onclick="window.enviarWhatsApp()" class="w-2/3 bg-brand text-white py-4 rounded-2xl font-black uppercase text-[11px] shadow-xl">Finalizar Pedido</button>
+                </div>
             </div>
         </div>
     </div>
 
+    <footer class="fixed bottom-0 left-0 right-0 z-40 bg-white py-3 px-6 text-center border-t border-slate-100">
+        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Desenvolvido por <span class="text-brand">Vacy Sistemas</span></p>
+        <p class="text-[8px] font-bold text-slate-300 mt-0.5">© <span id="anoAtual"></span> <span id="nomeLojaRodape"></span></p>
+    </footer>
+
     <script type="module" src="./src/cardapio.js"></script>
     <script>
-        // Atualiza ano automaticamente
-        document.getElementById('anoAtual').innerText = new Date().getFullYear();
-        
-        // Observer para capturar o nome da loja quando carregado pelo Firebase
-        const observer = new MutationObserver(() => {
-            const nomeHeader = document.getElementById('nomeLoja').innerText;
-            if(nomeHeader && nomeHeader !== "Carregando...") {
-                document.getElementById('nomeLojaRodape').innerText = nomeHeader;
-                // Opcional: Para o observer após capturar
-                // observer.disconnect();
+        let modoEscolhido = null;
+        window.definirModo = (modo) => {
+            modoEscolhido = modo;
+            document.getElementById('optEntrega').classList.toggle('border-brand', modo === 'entrega');
+            document.getElementById('optRetirada').classList.toggle('border-brand', modo === 'retirada');
+            const btnProx = document.getElementById('btnProximo1');
+            btnProx.disabled = false;
+            btnProx.classList.replace('bg-slate-200', 'bg-brand');
+            if(window.atualizarModoPedidoJS) window.atualizarModoPedidoJS(modo);
+        };
+        window.irParaPasso = (n) => {
+            document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
+            document.getElementById(`passo${n}`).classList.add('active');
+            document.getElementById('subtituloModal').innerText = `Passo ${n} de 3`;
+            if(n === 2) {
+                const isRetirada = modoEscolhido === 'retirada';
+                document.getElementById('blocoRetirada').classList.toggle('hidden', !isRetirada);
+                document.getElementById('blocoEntrega').classList.toggle('hidden', isRetirada);
+                if(isRetirada) {
+                    const b = document.getElementById('btnProximo2');
+                    b.disabled = false; b.classList.replace('bg-slate-200', 'bg-brand');
+                }
             }
-        });
-
-        observer.observe(document.getElementById('nomeLoja'), { childList: true });
-
-        // Fechar modal ao clicar fora (no overlay)
-        window.onclick = function(event) {
-            const modal = document.getElementById('modalCarrinho');
-            if (event.target == modal) fecharCarrinho();
-        }
+        };
+        document.getElementById('anoAtual').innerText = new Date().getFullYear();
+        window.onclick = function(e) { if (e.target.id == 'modalCarrinho') fecharCarrinho(); }
     </script>
 </body>
 </html>
