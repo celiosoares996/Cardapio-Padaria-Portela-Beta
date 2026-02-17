@@ -3,91 +3,123 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard | Painel de Controle</title>
+    <title>Dashboard | Digitaliza Menu</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
     <style>
-        :root { --cor-primaria: #2563eb; } /* Azul padrão inicial */
+        :root { --cor-primaria: #2563eb; } /* Azul padrão Digitaliza Menu */
         .bg-brand { background-color: var(--cor-primaria) !important; }
         .text-brand { color: var(--cor-primaria) !important; }
         .border-brand { border-color: var(--cor-primaria) !important; }
-        .shadow-brand { --tw-shadow-color: var(--cor-primaria); --tw-shadow: var(--tw-shadow-lookup, 0 10px 15px -3px var(--tw-shadow-color), 0 4px 6px -4px var(--tw-shadow-color)); shadow: var(--tw-shadow); }
+        .shadow-brand { 
+            --tw-shadow-color: var(--cor-primaria); 
+            --tw-shadow: 0 10px 15px -3px rgba(var(--cor-primaria), 0.3);
+            box-shadow: var(--tw-shadow);
+        }
         
+        /* Layout Mobile Friendly */
         body { padding-bottom: 90px; } 
         @media (min-width: 768px) { 
             body { padding-bottom: 0; padding-left: 260px; } 
         }
+
+        /* Skeleton Loading Animation */
+        .loading-skeleton {
+            background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+            background-size: 200% 100%;
+            animation: skeleton-loading 1.5s infinite;
+        }
+        @keyframes skeleton-loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen transition-all">
+<body class="bg-slate-50 min-h-screen transition-all font-sans">
 
     <aside class="hidden md:flex fixed left-0 top-0 h-full w-64 bg-white border-r border-slate-100 flex-col p-6 z-50">
         <div class="flex items-center gap-3 mb-10 px-2">
-            <span id="emojiSidebar" class="text-3xl">🥖</span>
-            <h2 id="sideNomeNegocio" class="text-xl font-black text-slate-800 tracking-tighter uppercase italic leading-none">Carregando...</h2>
+            <div id="logoContainerSide" class="w-10 h-10 rounded-xl bg-brand flex items-center justify-center text-white text-xl shadow-lg">
+                <span id="emojiSidebar">📱</span>
+            </div>
+            <div class="flex flex-col">
+                <h2 id="sideNomeNegocio" class="text-lg font-black text-slate-800 tracking-tighter uppercase leading-none">Carregando...</h2>
+                <span class="text-[10px] font-bold text-slate-400 tracking-widest uppercase mt-1">Painel Gestão</span>
+            </div>
         </div>
 
         <nav class="flex-1 space-y-2">
-            <a href="dashboard.html" class="flex items-center gap-3 p-4 rounded-2xl bg-brand text-white font-bold shadow-lg shadow-blue-100 transition-all">
-                <span>🏠</span> Início
+            <a href="dashboard.html" class="flex items-center gap-3 p-4 rounded-2xl bg-brand text-white font-bold shadow-brand transition-all">
+                <span class="text-lg">🏠</span> Início
             </a>
-            <a href="estoque.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:bg-slate-50 hover:text-slate-600 font-bold transition-all">
-                <span>📦</span> Estoque
+            <a href="estoque.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:bg-slate-50 hover:text-brand font-bold transition-all group">
+                <span class="group-hover:scale-110 transition-transform">📦</span> Estoque
             </a>
-            <a href="produtos.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:bg-slate-50 hover:text-slate-600 font-bold transition-all">
-                <span>🛍️</span> Produtos
+            <a href="produtos.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:bg-slate-50 hover:text-brand font-bold transition-all group">
+                <span class="group-hover:scale-110 transition-transform">🛍️</span> Produtos
             </a>
-            <a href="pedidos.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:bg-slate-50 hover:text-slate-600 font-bold transition-all">
-                <span>📋</span> Pedidos
+            <a href="pedidos.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:bg-slate-50 hover:text-brand font-bold transition-all group">
+                <span class="group-hover:scale-110 transition-transform">📋</span> Pedidos
             </a>
-            <a href="perfil.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:bg-slate-50 hover:text-slate-600 font-bold transition-all">
-                <span>⚙️</span> Perfil
+            <a href="perfil.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:bg-slate-50 hover:text-brand font-bold transition-all group">
+                <span class="group-hover:scale-110 transition-transform">⚙️</span> Perfil
             </a>
         </nav>
 
-        <button id="btnSairDesktop" class="flex items-center gap-3 p-4 rounded-2xl text-red-400 hover:bg-red-50 font-bold transition-all mt-auto">
+        <button id="btnSairDesktop" class="flex items-center gap-3 p-4 rounded-2xl text-red-400 hover:bg-red-50 font-black transition-all mt-auto uppercase text-xs tracking-widest">
             <span>🚪</span> Sair do Sistema
         </button>
     </aside>
 
     <nav class="md:hidden bg-white shadow-sm p-4 sticky top-0 z-40 flex justify-between items-center border-b border-gray-100">
-        <div class="flex items-center gap-2">
-            <span class="text-2xl">🏠</span>
-            <h2 id="navNomeNegocio" class="text-lg font-black text-slate-800 tracking-tighter uppercase italic">Carregando...</h2>
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-brand flex items-center justify-center text-white text-sm shadow-md">
+                <span>📱</span>
+            </div>
+            <h2 id="navNomeNegocio" class="text-sm font-black text-slate-800 tracking-tighter uppercase">Carregando...</h2>
         </div>
+        <button id="btnNotificacao" class="p-2 bg-slate-50 rounded-full text-slate-400 relative">
+            <span>🔔</span>
+            <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+        </button>
     </nav>
 
     <main class="max-w-5xl mx-auto p-4 md:p-10">
         <header class="mb-8 mt-4 md:mt-0">
-            <h1 class="text-3xl md:text-4xl font-black text-slate-800 tracking-tight">Olá, <span class="text-brand" id="boasVindasNome">...</span> 👋</h1>
-            <p class="text-slate-500 font-medium">Aqui está o resumo do seu negócio hoje.</p>
+            <h1 class="text-3xl md:text-4xl font-black text-slate-800 tracking-tight">
+                Olá, <span class="text-brand" id="boasVindasNome">...</span> 👋
+            </h1>
+            <p class="text-slate-500 font-medium mt-1">Bem-vindo ao seu Digitaliza Menu. Veja como estão as coisas hoje:</p>
         </header>
 
         <div class="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 mb-10">
-            <div class="bg-white p-6 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-gray-50">
+            <div class="bg-white p-6 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-gray-50 transform transition hover:translate-y-[-4px]">
                 <div class="bg-blue-50 w-12 h-12 flex items-center justify-center rounded-2xl mb-4 text-xl">📋</div>
                 <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pedidos Hoje</h3>
-                <p id="totalPedidos" class="text-3xl font-black text-slate-800 tracking-tighter">0</p>
+                <p id="totalPedidos" class="text-3xl font-black text-slate-800 tracking-tighter mt-1">0</p>
             </div>
             
-            <div class="bg-white p-6 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-gray-50">
+            <div class="bg-white p-6 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-gray-50 transform transition hover:translate-y-[-4px]">
                 <div class="bg-green-50 w-12 h-12 flex items-center justify-center rounded-2xl mb-4 text-xl">💰</div>
                 <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Valor Estoque</h3>
-                <p id="totalEstoque" class="text-xl md:text-2xl font-black text-green-600 tracking-tighter">R$ 0</p>
+                <p id="totalEstoque" class="text-xl md:text-2xl font-black text-green-600 tracking-tighter mt-1">R$ 0,00</p>
             </div>
 
-            <div class="bg-white p-6 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-gray-50 col-span-2 md:col-span-1">
+            <div class="bg-white p-6 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-gray-50 col-span-2 md:col-span-1 transform transition hover:translate-y-[-4px]">
                 <div class="bg-purple-50 w-12 h-12 flex items-center justify-center rounded-2xl mb-4 text-xl">🛍️</div>
                 <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Produtos Ativos</h3>
-                <p id="totalProdutos" class="text-3xl font-black text-slate-800 tracking-tighter">0</p>
+                <p id="totalProdutos" class="text-3xl font-black text-slate-800 tracking-tighter mt-1">0</p>
             </div>
         </div>
 
-        <h2 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-4 ml-1">Ações Rápidas</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <a href="pedidos.html" class="bg-brand text-white p-8 rounded-[2.5rem] font-black shadow-xl shadow-blue-200/50 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-between group">
+        <h2 class="text-sm font-black text-slate-400 uppercase tracking-[0.2em] mb-4 ml-1">Ações Rápidas</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            <a href="pedidos.html" class="bg-brand text-white p-8 rounded-[2.5rem] font-black shadow-xl shadow-blue-500/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-between group">
                 <div class="flex items-center text-sm md:text-base uppercase tracking-widest">
                     <span class="bg-white/20 p-4 rounded-2xl mr-4 group-hover:rotate-12 transition-transform text-xl">➕</span>
-                    Nova Encomenda
+                    Novo Pedido
                 </div>
                 <span class="text-2xl opacity-50">→</span>
             </a>
@@ -95,31 +127,31 @@
             <a href="produtos.html" class="bg-slate-800 text-white p-8 rounded-[2.5rem] font-black shadow-xl shadow-slate-300 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-between group">
                 <div class="flex items-center text-sm md:text-base uppercase tracking-widest">
                     <span class="bg-white/10 p-4 rounded-2xl mr-4 group-hover:rotate-12 transition-transform text-xl">✨</span>
-                    Cadastrar Produto
+                    Novo Produto
                 </div>
                 <span class="text-2xl opacity-30">→</span>
             </a>
         </div>
     </main>
 
-    <div id="tabBarMobile" class="md:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-lg border-t border-gray-100 px-6 py-3 flex justify-between items-center z-50">
+    <div id="tabBarMobile" class="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-gray-100 px-6 py-4 flex justify-between items-center z-50 rounded-t-[2rem] shadow-[0_-10px_25px_rgba(0,0,0,0.05)]">
         <a href="dashboard.html" class="flex flex-col items-center text-brand">
             <span class="text-xl">🏠</span>
             <span class="text-[9px] font-black uppercase mt-1">Início</span>
         </a>
-        <a href="estoque.html" class="flex flex-col items-center text-slate-300">
+        <a href="estoque.html" class="flex flex-col items-center text-slate-300 hover:text-brand transition-colors">
             <span class="text-xl">📦</span>
             <span class="text-[9px] font-black uppercase mt-1">Estoque</span>
         </a>
-        <a href="produtos.html" class="flex flex-col items-center text-slate-300">
+        <a href="produtos.html" class="flex flex-col items-center text-slate-300 hover:text-brand transition-colors">
             <span class="text-xl">🛍️</span>
             <span class="text-[9px] font-black uppercase mt-1">Produtos</span>
         </a>
-        <a href="pedidos.html" class="flex flex-col items-center text-slate-300">
+        <a href="pedidos.html" class="flex flex-col items-center text-slate-300 hover:text-brand transition-colors">
             <span class="text-xl">📋</span>
             <span class="text-[9px] font-black uppercase mt-1">Pedidos</span>
         </a>
-        <a href="perfil.html" class="flex flex-col items-center text-slate-300">
+        <a href="perfil.html" class="flex flex-col items-center text-slate-300 hover:text-brand transition-colors">
             <span class="text-xl">⚙️</span>
             <span class="text-[9px] font-black uppercase mt-1">Perfil</span>
         </a>
