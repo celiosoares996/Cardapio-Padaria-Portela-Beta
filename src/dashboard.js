@@ -1,59 +1,45 @@
 import { db, auth } from './firebase-config.js';
-import { collection, getDocs, query, where, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import { signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { collection, query, where, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-auth.onAuthStateChanged(async (user) => {
-    if (user) {
-        try {
-            // --- 1. BUSCAR DADOS DO PERFIL (COR E NOME) ---
-            const userDoc = await getDoc(doc(db, "usuarios", user.uid));
-            if (userDoc.exists()) {
-                const data = userDoc.data();
-                
-                // Aplica a cor do dono em todo o dashboard
-                const corTema = data.corTema || "#2563eb"; // Azul oficial como reserva
-                document.documentElement.style.setProperty('--cor-primaria', corTema);
-                
-                // Atualiza os nomes na tela
-                const nome = data.nomeNegocio || "Meu Negócio";
-                if(document.getElementById('sideNomeNegocio')) document.getElementById('sideNomeNegocio').innerText = nome;
-                if(document.getElementById('navNomeNegocio')) document.getElementById('navNomeNegocio').innerText = nome;
-                if(document.getElementById('boasVindasNome')) document.getElementById('boasVindasNome').innerText = nome.split(' ')[0] + "!";
-            }
+// Função para carregar os dados
+async function carregarDashboard(user) {
+    try {
+        // 1. Carregar dados do perfil (Nome, Logo, Cor)
+        const userRef = doc(db, "usuarios", user.uid);
+        const userSnap = await getDoc(userRef);
 
-            // --- 2. CONTAR PEDIDOS ---
-            const qPedidos = query(collection(db, "pedidos"), where("userId", "==", user.uid));
-            const snapPedidos = await getDocs(qPedidos);
-            document.getElementById('totalPedidos').innerText = snapPedidos.size;
-
-            // --- 3. CALCULAR VALOR DO ESTOQUE ---
-            const qEstoque = query(collection(db, "estoque"), where("userId", "==", user.uid));
-            const snapEstoque = await getDocs(qEstoque);
-            let custoTotal = 0;
-            snapEstoque.forEach(doc => {
-                const item = doc.data();
-                // Ajustado para multiplicar quantidade por preço se houver
-                const qtd = Number(item.quantidade) || 0;
-                const preco = Number(item.preco) || 0;
-                custoTotal += (qtd > 0) ? (qtd * preco) : preco; 
-            });
-            document.getElementById('totalEstoque').innerText = custoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-
-            // --- 4. CONTAR PRODUTOS (AJUSTADO) ---
-            const qProdutos = query(collection(db, "produtos"), where("userId", "==", user.uid));
-            const snapProdutos = await getDocs(qProdutos);
-            if(document.getElementById('totalProdutos')) {
-                document.getElementById('totalProdutos').innerText = snapProdutos.size;
-            }
-
-        } catch (error) {
-            console.error("Erro ao carregar dashboard:", error);
+        if (userSnap.exists()) {
+            const dados = userSnap.data();
+            document.getElementById('headerNomeLoja').innerText = dados.nomeNegocio || "Meu Negócio";
+            document.getElementById('headerLogo').src = dados.fotoPerfil || 'default-logo.png';
+            // Aplica a cor do tema
+            if(dados.corTema) document.documentElement.style.setProperty('--cor-primaria', dados.corTema);
         }
+
+        // 2. Carregar produtos filtrando pelo UID do dono
+        const produtosRef = collection(db, "produtos");
+        // IMPORTANTE: Seus produtos precisam ter o campo 'userId' salvo neles!
+        const q = query(produtosRef, where("userId", "==", user.uid));
+        const querySnapshot = await getDocs(q);
+        
+        console.log(`Sucesso! Encontrados ${querySnapshot.size} produtos.`);
+        
+        // Atualiza o contador no HTML
+        const totalProdutosElem = document.getElementById('totalProdutos');
+        if(totalProdutosElem) totalProdutosElem.innerText = querySnapshot.size;
+
+    } catch (error) {
+        console.error("Erro detalhado ao carregar dashboard:", error);
+    }
+}
+
+// 3. SEGURANÇA: Só carrega os dados se o Firebase confirmar que o usuário está logado
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        carregarDashboard(user);
     } else {
-        window.location.href = "index.html";
+        // Se não houver usuário logado, expulsa para o login
+        window.location.href = 'index.html';
     }
 });
-
-// Lógica de Sair
-const sair = () => confirm("Deseja realmente sair?") && signOut(auth).then(() => window.location.href="index.html");
-document.getElementById('btnSairDesktop')?.addEventListener('click', sair);
