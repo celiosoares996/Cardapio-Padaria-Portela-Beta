@@ -83,49 +83,48 @@ window.buscarCEP = async () => {
             cep: cep 
         };
 
-        // Libera o botão primeiro para evitar travamentos
         if(btnProx2) {
             btnProx2.disabled = false;
             btnProx2.classList.replace('bg-slate-200', 'bg-brand');
         }
 
-        // --- CÁLCULO DE FRETE ---
-        try {
-            const geoResp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&postalcode=${cep}&country=Brazil`, {
-                headers: { 'User-Agent': 'CardapioVacy/1.0' }
-            });
-            const geoData = await geoResp.json();
+        // --- LÓGICA DE FRETE ---
+        if (configEntrega && configEntrega.tipo === 'km') {
+            try {
+                // Nominatim API com Cache Busting para o Netlify
+                const geoResp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&postalcode=${cep}&country=Brazil&v=${Date.now()}`, {
+                    headers: { 'User-Agent': 'CardapioVacy/1.1' }
+                });
+                const geoData = await geoResp.json();
 
-            if (geoData.length > 0) {
-                const latCli = parseFloat(geoData[0].lat);
-                const lonCli = parseFloat(geoData[0].lon);
+                if (geoData.length > 0) {
+                    const latCli = parseFloat(geoData[0].lat);
+                    const lonCli = parseFloat(geoData[0].lon);
 
-                const distancia = calcularDistancia(
-                    configEntrega.coords.lat,
-                    configEntrega.coords.log,
-                    latCli,
-                    lonCli
-                );
+                    const distancia = calcularDistancia(
+                        parseFloat(configEntrega.coords.lat),
+                        parseFloat(configEntrega.coords.log),
+                        latCli,
+                        lonCli
+                    );
 
-                distanciaCliente = distancia;
-
-                if (configEntrega.tipo === 'km') {
-                    const precoKm = Number(configEntrega.valorKm) || 0;
+                    distanciaCliente = distancia;
+                    const precoKm = parseFloat(configEntrega.valorKm) || 0;
                     taxaEntregaAtual = parseFloat((distancia * precoKm).toFixed(2));
-                } else {
-                    taxaEntregaAtual = Number(configEntrega.taxaFixa) || 0;
-                }
 
-                if (configEntrega.raioMaximo > 0 && distancia > configEntrega.raioMaximo) {
-                    alert(`Atenção: Estamos a ${distancia.toFixed(1)}km. Verifique se entregamos em sua região.`);
+                    if (configEntrega.raioMaximo > 0 && distancia > parseFloat(configEntrega.raioMaximo)) {
+                        alert(`Atenção: Estamos a ${distancia.toFixed(1)}km. Verifique se entregamos em sua região.`);
+                    }
+                } else {
+                    // Fallback para taxa fixa se o mapa falhar
+                    taxaEntregaAtual = parseFloat(configEntrega.taxaFixa) || 0;
                 }
-            } else {
-                // Plano B: Se o Nominatim não achar coordenadas, usa taxa fixa
-                taxaEntregaAtual = Number(configEntrega.taxaFixa) || 0;
+            } catch (err) {
+                console.warn("Erro no cálculo por KM, aplicando taxa fixa.");
+                taxaEntregaAtual = parseFloat(configEntrega.taxaFixa) || 0;
             }
-        } catch (err) {
-            console.warn("Erro ao calcular distância, usando taxa fixa padrão.");
-            taxaEntregaAtual = Number(configEntrega.taxaFixa) || 0;
+        } else {
+            taxaEntregaAtual = parseFloat(configEntrega?.taxaFixa) || 0;
         }
 
         renderizarCarrinho();
@@ -138,8 +137,6 @@ window.buscarCEP = async () => {
     }
 };
 
-// --- LOGICA DE NAVEGAÇÃO E MODOS ---
-
 window.atualizarModoPedidoJS = (modo) => {
     modoPedido = modo;
     const btnProx1 = document.getElementById('btnProximo1');
@@ -148,7 +145,7 @@ window.atualizarModoPedidoJS = (modo) => {
         distanciaCliente = 0;
     } else {
         if (configEntrega && configEntrega.tipo === 'fixo') {
-            taxaEntregaAtual = Number(configEntrega.taxaFixa) || 0;
+            taxaEntregaAtual = parseFloat(configEntrega.taxaFixa) || 0;
         }
     }
     if(btnProx1) {
@@ -158,13 +155,11 @@ window.atualizarModoPedidoJS = (modo) => {
     renderizarCarrinho();
 };
 
-// --- RENDERIZAÇÃO ---
-
 window.adicionarAoCarrinho = (nome, preco) => {
     if(!verificarSeEstaAberto(configHorario.abertura, configHorario.fechamento)) {
         alert("Loja Fechada!"); return;
     }
-    carrinho.push({ nome, preco });
+    carrinho.push({ nome, preco: parseFloat(preco) });
     atualizarBadgeCarrinho();
 };
 
@@ -173,7 +168,7 @@ function atualizarBadgeCarrinho() {
     const badge = document.getElementById('qtdItensCarrinho');
     if (carrinho.length > 0) {
         btn.classList.remove('hidden');
-        if(badge) badge.innerText = parseInt(carrinho.length);
+        if(badge) badge.innerText = carrinho.length;
     }
 }
 
@@ -206,12 +201,16 @@ function renderizarCarrinho() {
     }
 
     if(resumoF) {
+        const freteTexto = taxaEntregaAtual > 0 
+            ? `R$ ${taxaEntregaAtual.toLocaleString('pt-BR', {minimumFractionDigits: 2})}` 
+            : (modoPedido === 'entrega' && configEntrega?.tipo === 'km' && distanciaCliente === 0 ? 'Calculando...' : 'Grátis');
+
         resumoF.innerHTML = `
             <div class="space-y-2 text-[11px]">
                 <div class="flex justify-between opacity-70"><span>Subtotal:</span><span>R$ ${subtotal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span></div>
                 <div class="flex justify-between opacity-70">
                     <span>Frete ${distanciaCliente > 0 ? '(' + distanciaCliente.toFixed(1) + 'km)' : ''}:</span>
-                    <span>${taxaEntregaAtual > 0 ? 'R$ ' + taxaEntregaAtual.toLocaleString('pt-BR', {minimumFractionDigits: 2}) : 'Grátis'}</span>
+                    <span class="font-bold text-brand">${freteTexto}</span>
                 </div>
                 <div class="flex justify-between text-base font-black border-t border-white/20 pt-2 mt-2">
                     <span>TOTAL:</span><span>R$ ${totalGeral.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
@@ -231,8 +230,6 @@ window.fecharCarrinho = () => {
     const modal = document.getElementById('modalCarrinho');
     if(modal) modal.classList.add('hidden');
 };
-
-// --- FINALIZAÇÃO ---
 
 window.enviarWhatsApp = () => {
     const radios = document.getElementsByName('pagamento');
@@ -270,8 +267,6 @@ window.enviarWhatsApp = () => {
     
     window.open(`https://wa.me/${whatsappLoja.replace(/\D/g,'')}?text=${encodeURIComponent(texto)}`);
 };
-
-// --- FIREBASE E STATUS ---
 
 function verificarSeEstaAberto(abertura, fechamento) {
     if (!abertura || !fechamento) return true;
