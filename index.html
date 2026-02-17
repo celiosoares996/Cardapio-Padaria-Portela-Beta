@@ -10,7 +10,7 @@
     
     <style>
         :root {
-            --cor-primaria: #2563eb; /* Azul profissional por padrão para o SaaS */
+            --cor-primaria: #2563eb; /* Azul profissional padrão */
             --cor-primaria-dark: #1d4ed8;
         }
         .bg-brand { background-color: var(--cor-primaria) !important; }
@@ -25,6 +25,16 @@
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
         }
+
+        /* Animação suave para o ícone */
+        .float-icon {
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen flex items-center justify-center p-4 transition-theme font-sans">
@@ -34,49 +44,55 @@
         <div id="headerLogin" class="bg-brand p-12 text-center text-white transition-theme relative">
             <div class="absolute inset-0 opacity-10 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
             
-            <div id="logoContainer" class="relative z-10 flex justify-center mb-4">
-                <div id="logoPlaceholder" class="text-6xl">📱</div>
-                <img id="logoEstabelecimento" src="" alt="Logo" class="hidden w-24 h-24 rounded-2xl object-cover shadow-lg border-2 border-white/20">
+            <div id="logoContainer" class="relative z-10 flex justify-center mb-6">
+                <div id="logoPlaceholder" class="text-6xl float-icon drop-shadow-lg">📱</div>
+                <img id="logoEstabelecimento" src="" alt="Logo" class="hidden w-24 h-24 rounded-2xl object-cover shadow-lg border-2 border-white/40">
             </div>
             
-            <h1 class="text-3xl font-black tracking-tighter uppercase relative z-10">Digitaliza <span class="text-white/80">Menu</span></h1>
-            <p id="subtituloLoja" class="text-white/90 text-sm font-medium relative z-10">Cresça o seu pequeno negócio</p>
+            <h1 class="text-3xl font-black tracking-tighter uppercase relative z-10 text-white drop-shadow-md">
+                Digitaliza Menu
+            </h1>
+            <p id="subtituloLoja" class="text-white/90 text-sm font-medium relative z-10 mt-2 tracking-wide">
+                Gestão para pequenos negócios
+            </p>
         </div>
 
         <div class="p-10">
             <form id="loginForm" class="space-y-6">
                 <div class="group">
-                    <label for="email" class="block text-xs font-black text-gray-400 uppercase tracking-widest ml-1 mb-2 transition-all group-focus-within:text-brand">E-mail de Acesso</label>
+                    <label for="email" class="block text-xs font-black text-gray-400 uppercase tracking-[0.15em] ml-1 mb-2 transition-all group-focus-within:text-brand">E-mail de Acesso</label>
                     <input type="email" id="email" required
-                        class="mt-1 block w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus-ring-brand outline-none transition-all focus:bg-white"
+                        class="mt-1 block w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus-ring-brand outline-none transition-all focus:bg-white text-slate-700"
                         placeholder="seu@estabelecimento.com">
                 </div>
 
                 <div class="group">
                     <div class="flex justify-between items-center mb-2">
-                        <label for="senha" class="block text-xs font-black text-gray-400 uppercase tracking-widest ml-1 transition-all group-focus-within:text-brand">Senha</label>
+                        <label for="senha" class="block text-xs font-black text-gray-400 uppercase tracking-[0.15em] ml-1 transition-all group-focus-within:text-brand">Senha</label>
                         <a href="#" class="text-[10px] text-brand font-black hover:underline uppercase tracking-tighter">Esqueci a senha</a>
                     </div>
                     <input type="password" id="senha" required
-                        class="mt-1 block w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus-ring-brand outline-none transition-all focus:bg-white"
+                        class="mt-1 block w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus-ring-brand outline-none transition-all focus:bg-white text-slate-700"
                         placeholder="••••••••">
                 </div>
 
                 <button type="submit" id="btnEntrar"
-                    class="bg-brand w-full text-white font-black py-5 rounded-2xl shadow-xl shadow-blue-500/20 transform transition active:scale-[0.98] hover:brightness-110 hover:shadow-2xl flex items-center justify-center gap-2">
-                    <span>ENTRAR NO PAINEL</span>
+                    class="bg-brand w-full text-white font-black py-5 rounded-2xl shadow-xl shadow-blue-500/20 transform transition active:scale-[0.98] hover:brightness-110 hover:shadow-2xl flex items-center justify-center gap-3">
+                    <span class="tracking-widest">ENTRAR NO PAINEL</span>
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
                     </svg>
                 </button>
             </form>
 
-            <div class="mt-10 text-center pt-6 border-t border-gray-50">
-                <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">
-                    Digitaliza Menu &copy; 2024
-                    <br>
-                    <a href="#" class="text-brand font-black hover:underline mt-2 inline-block">Falar com Suporte</a>
+            <div class="mt-10 text-center pt-6 border-t border-slate-50">
+                <p class="text-[10px] font-bold text-gray-300 uppercase tracking-[0.2em] mb-4">
+                    Digitaliza Menu &copy; 2026
                 </p>
+                <a href="#" class="inline-flex items-center gap-2 text-brand font-black text-xs hover:underline uppercase tracking-widest">
+                    <span>Falar com Suporte</span>
+                    <span class="text-lg">💬</span>
+                </a>
             </div>
         </div>
     </div>
@@ -89,17 +105,21 @@
             const logoSalva = localStorage.getItem('estab-logo');
             const nomeSalvo = localStorage.getItem('estab-nome');
 
-            // Se o cliente já logou antes, a página assume a cara dele
             if (corSalva) {
                 document.documentElement.style.setProperty('--cor-primaria', corSalva);
             }
             if (logoSalva) {
-                document.getElementById('logoPlaceholder').classList.add('hidden');
-                document.getElementById('logoEstabelecimento').src = logoSalva;
-                document.getElementById('logoEstabelecimento').classList.remove('hidden');
+                const placeholder = document.getElementById('logoPlaceholder');
+                const img = document.getElementById('logoEstabelecimento');
+                if(placeholder) placeholder.classList.add('hidden');
+                if(img) {
+                    img.src = logoSalva;
+                    img.classList.remove('hidden');
+                }
             }
             if (nomeSalvo) {
-                document.getElementById('subtituloLoja').innerText = `Gestão para ${nomeSalvo}`;
+                const subtitulo = document.getElementById('subtituloLoja');
+                if(subtitulo) subtitulo.innerText = `Gestão para ${nomeSalvo}`;
             }
         })();
     </script>
