@@ -180,7 +180,6 @@ window.enviarWhatsApp = async () => {
 
     if(!pag || !nome || !zapCli) return alert("Preencha nome, whatsapp e pagamento!");
 
-    // Salva cliente
     await setDoc(doc(db, "clientes", zapCli), {
         nome, whatsapp: zapCli, cep: enderecoCompleto.cep, 
         rua: enderecoCompleto.rua, bairro: enderecoCompleto.bairro,
@@ -214,16 +213,49 @@ async function inicializar() {
         const userSnap = await getDoc(doc(db, "usuarios", userId));
         if (userSnap.exists()) {
             const d = userSnap.data();
+            
+            // 1. DADOS BÁSICOS
             whatsappLoja = d.whatsapp || "";
-            configHorario = { abertura: d.horarioAbertura, fechamento: d.horarioFechamento };
-            configEntrega = d.configEntrega || configEntrega;
             document.getElementById('nomeLoja').innerText = d.nomeNegocio || "Loja";
+            if(document.getElementById('nomeLojaRodape')) document.getElementById('nomeLojaRodape').innerText = d.nomeNegocio || "";
+
+            // 2. COR DO TEMA
+            if (d.corTema) {
+                document.documentElement.style.setProperty('--cor-primaria', d.corTema);
+            }
+
+            // 3. HORÁRIOS E STATUS
+            configHorario = { abertura: d.horarioAbertura || "", fechamento: d.horarioFechamento || "" };
+            const aberto = verificarSeEstaAberto(configHorario.abertura, configHorario.fechamento);
+            const dot = document.getElementById('dotStatus');
+            const label = document.getElementById('labelStatus');
+            if(dot && label) {
+                dot.className = aberto ? "w-2 h-2 rounded-full bg-green-500 ping-aberto" : "w-2 h-2 rounded-full bg-red-500";
+                label.innerText = aberto ? "Aberto Agora" : "Fechado no Momento";
+            }
+
+            // 4. CONFIG DE ENTREGA
+            configEntrega = d.configEntrega || configEntrega;
+
+            // 5. VISUAL (BANNER E LOGO)
+            if (d.bannerUrl) {
+                document.getElementById('bannerLoja').style.backgroundImage = `url('${d.bannerUrl}')`;
+            }
+            if (d.logoUrl) {
+                const foto = document.getElementById('fotoLoja');
+                foto.src = d.logoUrl;
+                foto.classList.remove('hidden');
+                document.getElementById('emojiLoja').classList.add('hidden');
+            }
         }
 
+        // 6. PRODUTOS E CATEGORIAS
         const q = query(collection(db, "produtos"), where("userId", "==", userId));
         const snap = await getDocs(q);
         const container = document.getElementById('mainContainer');
         const nav = document.getElementById('navCategorias');
+        container.innerHTML = "";
+        nav.innerHTML = "";
         
         let produtosPorCat = {};
         snap.forEach(doc => {
@@ -237,16 +269,22 @@ async function inicializar() {
             let html = `<section id="cat-${cat}"><h2 class="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">${cat}</h2><div class="grid gap-3">`;
             produtosPorCat[cat].forEach(p => {
                 html += `
-                <div class="bg-white p-4 rounded-3xl shadow-sm flex justify-between items-center" onclick="adicionarAoCarrinho('${p.nome}', ${p.preco})">
-                    <div><h3 class="font-bold text-slate-800">${p.nome}</h3><p class="text-brand font-black">R$ ${Number(p.preco).toFixed(2)}</p></div>
+                <div class="bg-white p-4 rounded-3xl shadow-sm flex justify-between items-center product-card transition-all" onclick="adicionarAoCarrinho('${p.nome}', ${p.preco})">
+                    <div class="flex gap-4 items-center">
+                        ${p.imagemUrl ? `<img src="${p.imagemUrl}" class="w-16 h-16 rounded-2xl object-cover">` : ''}
+                        <div><h3 class="font-bold text-slate-800">${p.nome}</h3><p class="text-brand font-black">R$ ${Number(p.preco).toFixed(2)}</p></div>
+                    </div>
                     <button class="w-10 h-10 bg-slate-50 rounded-2xl text-brand font-bold">+</button>
                 </div>`;
             });
             container.innerHTML += html + `</div></section>`;
         });
 
-    } catch (e) { console.error(e); }
-    finally { document.getElementById('loading-overlay').classList.add('loader-hidden'); }
+    } catch (e) { console.error("Erro na inicialização:", e); }
+    finally { 
+        const loader = document.getElementById('loading-overlay');
+        if(loader) loader.classList.add('loader-hidden'); 
+    }
 }
 
 inicializar();
