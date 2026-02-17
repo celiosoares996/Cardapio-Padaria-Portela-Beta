@@ -3,21 +3,21 @@ import { collection, query, where, getDocs, doc, getDoc, setDoc } from "https://
 
 const params = new URLSearchParams(window.location.search);
 const userId = params.get('id');
-
-// --- ESTADO GLOBAL ---
 let whatsappLoja = ""; 
+let lojaAberta = true; 
 let configHorario = { abertura: "", fechamento: "" };
-let configEntrega = { coords: {lat: 0, log: 0}, raioMaximo: 0, valorKm: 0, tipo: 'fixo', taxaFixa: 0 }; 
+let configEntrega = null; 
 
+// --- ESTADO GLOBAL DO PEDIDO ---
 let carrinho = [];
 let taxaEntregaAtual = 0;
 let distanciaCliente = 0; 
 let modoPedido = 'entrega'; 
 let formaPagamento = '';
 let enderecoCompleto = { rua: "", bairro: "", cidade: "", cep: "" };
-let clienteLogado = null; 
+let clienteLogado = null; // Armazena dados do cliente recuperados
 
-// --- FUNÇÃO: CÁLCULO DE DISTÂNCIA ---
+// --- FUNÇÃO: CÁLCULO DE DISTÂNCIA (HAVERSINE) ---
 function calcularDistancia(lat1, lon1, lat2, lon2) {
     const R = 6371; 
     const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -29,7 +29,8 @@ function calcularDistancia(lat1, lon1, lat2, lon2) {
     return R * c;
 }
 
-// --- IDENTIFICAÇÃO DO CLIENTE ---
+// --- LÓGICA DE IDENTIFICAÇÃO E CADASTRO ---
+
 window.verificarCliente = async (valor) => {
     const whatsapp = valor.replace(/\D/g, '');
     if (whatsapp.length < 10) return;
@@ -38,71 +39,101 @@ window.verificarCliente = async (valor) => {
     if(status) status.innerText = "Buscando seu cadastro...";
 
     try {
-        const docSnap = await getDoc(doc(db, "clientes", whatsapp));
+        const docRef = doc(db, "clientes", whatsapp);
+        const docSnap = await getDoc(docRef);
+
         if (docSnap.exists()) {
             const d = docSnap.data();
             clienteLogado = d;
+
+            // Preenche os campos automaticamente no HTML
             if(document.getElementById('inputNome')) document.getElementById('inputNome').value = d.nome || "";
             if(document.getElementById('inputCEP')) document.getElementById('inputCEP').value = d.cep || "";
             if(document.getElementById('inputNumero')) document.getElementById('inputNumero').value = d.numero || "";
-            if(status) status.innerHTML = `<span class="text-green-600 font-bold">Olá, ${d.nome}! Dados carregados.</span>`;
+            
+            if(status) status.innerHTML = `<span class="text-green-600 font-bold">Olá, ${d.nome}! Seus dados foram carregados.</span>`;
 
+            // Se tem CEP e distância salva, já calcula o frete sem usar API externa
             if (d.cep && d.distanciaSalva) {
                 distanciaCliente = d.distanciaSalva;
                 recalcularTaxaEntrega();
             }
         } else {
-            if(status) status.innerText = "Primeira compra? Preencha os dados abaixo:";
+            if(status) status.innerText = "Não encontramos cadastro. Preencha abaixo para a primeira compra!";
         }
-    } catch (e) { console.error("Erro cliente:", e); }
+    } catch (e) { console.error("Erro ao verificar cliente:", e); }
 };
 
-// --- BUSCA DE CEP ---
+// --- LÓGICA DE MÁSCARA E BUSCA DE CEP ---
+
 window.mascaraCEP = (input) => {
     let v = input.value.replace(/\D/g, '');
     if (v.length > 8) v = v.substring(0, 8);
-    input.value = v.length > 5 ? v.substring(0, 5) + '-' + v.substring(5, 8) : v;
+    if (v.length > 5) {
+        input.value = v.substring(0, 5) + '-' + v.substring(5, 8);
+    } else {
+        input.value = v;
+    }
     if (v.length === 8) window.buscarCEP();
 };
 
 window.buscarCEP = async () => {
     const cepInput = document.getElementById('inputCEP');
+    const status = document.getElementById('statusCEP');
+    const btnProx2 = document.getElementById('btnProximo2');
     const camposEndereco = document.getElementById('camposEndereco');
     const textoEnderecoAuto = document.getElementById('textoEnderecoAuto');
-    const btnProx2 = document.getElementById('btnProximo2');
 
+    if (!cepInput) return;
     const cep = cepInput.value.replace(/\D/g, '');
     if (cep.length !== 8) return;
 
+    // ECONOMIA DE API: Se for o mesmo CEP do cliente logado, pula a busca no mapa
     if (clienteLogado && clienteLogado.cep === cep && clienteLogado.distanciaSalva) {
         distanciaCliente = clienteLogado.distanciaSalva;
         recalcularTaxaEntrega();
-        camposEndereco?.classList.remove('hidden');
+        if(camposEndereco) camposEndereco.classList.remove('hidden');
         return;
     }
 
+    cepInput.classList.add('animate-pulse');
+    
     try {
-        const resp = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-        const data = await resp.json();
-        if (data.erro) return alert("CEP não encontrado");
+        const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+        const data = await response.json();
 
-        camposEndereco?.classList.remove('hidden');
-        if(textoEnderecoAuto) textoEnderecoAuto.innerText = `${data.logradouro}, ${data.bairro}`;
-        enderecoCompleto = { rua: data.logradouro, bairro: data.bairro, cidade: data.localidade, cep: cep };
+        if (data.erro) {
+            if(status) status.innerText = "CEP não encontrado!";
+            return;
+        }
 
-        const geo = await fetch(`https://nominatim.openstreetmap.org/search?format=json&postalcode=${cep}&country=Brazil`);
-        const geoData = await geo.json();
+        if(camposEndereco) camposEndereco.classList.remove('hidden');
+        if(textoEnderecoAuto) {
+            textoEnderecoAuto.innerText = `${data.logradouro}, ${data.bairro} - ${data.localidade}/${data.uf}`;
+        }
 
-        if (geoData.length > 0 && configEntrega.coords) {
+        enderecoCompleto = { rua: data.logradouro || "", bairro: data.bairro || "", cidade: data.localidade || "", cep: cep };
+
+        // BUSCA NO MAPA (LOCATION IQ ou NOMINATIM)
+        const userAgent = `CardapioVacy_User_${userId}`;
+        const geoResp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&postalcode=${cep}&country=Brazil&v=${Date.now()}`, {
+            headers: { 'User-Agent': userAgent }
+        });
+        const geoData = await geoResp.json();
+
+        if (geoData.length > 0) {
+            const latCli = parseFloat(geoData[0].lat);
+            const lonCli = parseFloat(geoData[0].lon);
+
             const dist = calcularDistancia(
                 parseFloat(configEntrega.coords.lat),
                 parseFloat(configEntrega.coords.log || configEntrega.coords.lng),
-                parseFloat(geoData[0].lat),
-                parseFloat(geoData[0].lon)
+                latCli,
+                lonCli
             );
-            
+
             if (configEntrega.raioMaximo > 0 && dist > configEntrega.raioMaximo) {
-                alert(`Fora da área de entrega (${dist.toFixed(1)}km)`);
+                alert(`Não entregamos nesta distância (${dist.toFixed(1)}km). Limite: ${configEntrega.raioMaximo}km.`);
                 if(btnProx2) btnProx2.disabled = true;
             } else {
                 distanciaCliente = dist;
@@ -113,46 +144,61 @@ window.buscarCEP = async () => {
                 }
             }
         }
-    } catch (e) { console.error("Erro CEP:", e); }
+    } catch (error) {
+        console.error("Erro no cálculo de frete:", error);
+    } finally {
+        cepInput.classList.remove('animate-pulse');
+        renderizarCarrinho();
+    }
 };
 
 function recalcularTaxaEntrega() {
     if (modoPedido === 'retirada') {
         taxaEntregaAtual = 0;
-    } else if (configEntrega.tipo === 'km') {
+    } else if (configEntrega && configEntrega.tipo === 'km') {
         taxaEntregaAtual = parseFloat((distanciaCliente * configEntrega.valorKm).toFixed(2));
-    } else {
+    } else if (configEntrega) {
         taxaEntregaAtual = Number(configEntrega.taxaFixa) || 0;
     }
     renderizarCarrinho();
 }
 
-// --- CARRINHO E RENDERIZAÇÃO ---
+// --- LOGICA DE NAVEGAÇÃO E MODOS ---
+
 window.atualizarModoPedidoJS = (modo) => {
     modoPedido = modo;
+    const btnProx1 = document.getElementById('btnProximo1');
     recalcularTaxaEntrega();
-    const btn = document.getElementById('btnProximo1');
-    if(btn) { btn.disabled = false; btn.classList.replace('bg-slate-200', 'bg-brand'); }
+    if(btnProx1) {
+        btnProx1.disabled = false;
+        btnProx1.classList.replace('bg-slate-200', 'bg-brand');
+    }
 };
+
+// --- RENDERIZAÇÃO ---
 
 window.adicionarAoCarrinho = (nome, preco) => {
     if(!verificarSeEstaAberto(configHorario.abertura, configHorario.fechamento)) {
-        return alert("Desculpe, estamos fechados no momento!");
+        alert("Loja Fechada!"); return;
     }
     carrinho.push({ nome, preco: Number(preco) });
-    document.getElementById('btnCarrinho').classList.remove('hidden');
-    document.getElementById('qtdItensCarrinho').innerText = carrinho.length;
+    atualizarBadgeCarrinho();
 };
 
-window.abrirCarrinho = () => {
-    document.getElementById('modalCarrinho').classList.remove('hidden');
-    renderizarCarrinho();
-};
-
-window.fecharCarrinho = () => document.getElementById('modalCarrinho').classList.add('hidden');
+function atualizarBadgeCarrinho() {
+    const btn = document.getElementById('btnCarrinho');
+    const badge = document.getElementById('qtdItensCarrinho');
+    if (carrinho.length > 0) {
+        btn.classList.remove('hidden');
+        if(badge) badge.innerText = carrinho.length;
+    }
+}
 
 function renderizarCarrinho() {
     const container = document.getElementById('listaItensCarrinho');
+    const totalP1 = document.getElementById('totalPasso1');
+    const resumoF = document.getElementById('resumoFinal');
+    
     if(!container) return;
     container.innerHTML = "";
     let subtotal = 0;
@@ -162,49 +208,118 @@ function renderizarCarrinho() {
         container.innerHTML += `
             <div class="flex justify-between items-center p-3 bg-slate-50 rounded-2xl mb-1">
                 <span class="text-[11px] font-bold text-slate-700">${item.nome}</span>
-                <span class="text-[11px] font-black text-brand">R$ ${item.preco.toFixed(2)}</span>
+                <span class="text-[11px] font-black text-brand">R$ ${item.preco.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
             </div>`;
     });
 
     const totalGeral = subtotal + taxaEntregaAtual;
-    document.getElementById('totalPasso1').innerHTML = `<div class="p-4 bg-slate-900 rounded-2xl text-white flex justify-between"><span>Total</span><b>R$ ${totalGeral.toFixed(2)}</b></div>`;
-    document.getElementById('resumoFinal').innerHTML = `<div class="text-[11px] space-y-1"><div>Subtotal: R$ ${subtotal.toFixed(2)}</div><div>Frete: R$ ${taxaEntregaAtual.toFixed(2)}</div><div class="text-lg font-black border-t pt-2 mt-2">TOTAL: R$ ${totalGeral.toFixed(2)}</div></div>`;
+
+    if(totalP1) {
+        totalP1.innerHTML = `
+            <div class="flex justify-between items-center p-4 bg-slate-900 rounded-2xl text-white">
+                <span class="text-[9px] font-bold uppercase opacity-60 italic">Total</span>
+                <span class="font-black text-lg">R$ ${totalGeral.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+            </div>`;
+    }
+
+    if(resumoF) {
+        resumoF.innerHTML = `
+            <div class="space-y-2 text-[11px]">
+                <div class="flex justify-between opacity-70"><span>Subtotal:</span><span>R$ ${subtotal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span></div>
+                <div class="flex justify-between opacity-70">
+                    <span>Frete ${distanciaCliente > 0 ? '('+distanciaCliente.toFixed(1)+'km)' : ''}:</span>
+                    <span>${taxaEntregaAtual > 0 ? 'R$ ' + taxaEntregaAtual.toLocaleString('pt-BR', {minimumFractionDigits: 2}) : 'Grátis'}</span>
+                </div>
+                <div class="flex justify-between text-base font-black border-t border-white/20 pt-2 mt-2">
+                    <span>TOTAL:</span><span>R$ ${totalGeral.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                </div>
+            </div>`;
+    }
 }
 
-// --- FINALIZAÇÃO ---
-window.enviarWhatsApp = async () => {
-    const pag = document.querySelector('input[name="pagamento"]:checked')?.value;
-    const nome = document.getElementById('inputNome').value;
-    const zapCli = document.getElementById('inputWhatsApp').value.replace(/\D/g, '');
-    const num = document.getElementById('inputNumero').value;
-
-    if(!pag || !nome || !zapCli) return alert("Preencha nome, whatsapp e pagamento!");
-
-    await setDoc(doc(db, "clientes", zapCli), {
-        nome, whatsapp: zapCli, cep: enderecoCompleto.cep, 
-        rua: enderecoCompleto.rua, bairro: enderecoCompleto.bairro,
-        numero: num, distanciaSalva: distanciaCliente
-    }, { merge: true });
-
-    let msg = `*NOVO PEDIDO*\n------------------\n`;
-    carrinho.forEach(i => msg += `• ${i.nome}\n`);
-    msg += `------------------\n*Total:* R$ ${(carrinho.reduce((a,b)=>a+b.preco,0)+taxaEntregaAtual).toFixed(2)}\n`;
-    msg += `*Modo:* ${modoPedido}\n*Pagamento:* ${pag}`;
-    if(modoPedido === 'entrega') msg += `\n*Endereço:* ${enderecoCompleto.rua}, ${num}`;
-
-    window.open(`https://wa.me/${whatsappLoja.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`);
+window.abrirCarrinho = () => {
+    const modal = document.getElementById('modalCarrinho');
+    if(modal) modal.classList.remove('hidden');
+    if(window.irParaPasso) window.irParaPasso(1);
+    renderizarCarrinho();
 };
 
-// --- INICIALIZAÇÃO DO SISTEMA ---
-function verificarSeEstaAberto(abre, fecha) {
-    if (!abre || !fecha) return true;
+window.fecharCarrinho = () => {
+    const modal = document.getElementById('modalCarrinho');
+    if(modal) modal.classList.add('hidden');
+};
+
+// --- FINALIZAÇÃO E PERSISTÊNCIA ---
+
+async function salvarDadosCliente() {
+    const whatsapp = document.getElementById('inputWhatsApp').value.replace(/\D/g, '');
+    const nome = document.getElementById('inputNome').value;
+    const numero = document.getElementById('inputNumero').value;
+
+    if (!whatsapp || !nome) return;
+
+    const info = {
+        nome,
+        whatsapp,
+        cep: enderecoCompleto.cep,
+        rua: enderecoCompleto.rua,
+        bairro: enderecoCompleto.bairro,
+        cidade: enderecoCompleto.cidade,
+        numero,
+        distanciaSalva: distanciaCliente, // SALVA PARA NÃO CALCULAR NOVO FRETE NA PRÓXIMA
+        ultimaCompra: new Date()
+    };
+
+    try {
+        await setDoc(doc(db, "clientes", whatsapp), info, { merge: true });
+    } catch (e) { console.error("Erro ao salvar dados do cliente:", e); }
+}
+
+window.enviarWhatsApp = async () => {
+    const radios = document.getElementsByName('pagamento');
+    radios.forEach(r => { if(r.checked) formaPagamento = r.value; });
+
+    if(!formaPagamento) { alert("Selecione o pagamento!"); return; }
+
+    let numero = document.getElementById('inputNumero').value;
+    if(modoPedido === 'entrega' && !numero) { alert("Preencha o número/complemento."); return; }
+
+    // Salva o cadastro do cliente antes de sair
+    await salvarDadosCliente();
+
+    const subtotal = carrinho.reduce((a,b) => a + b.preco, 0);
+    const totalFinal = subtotal + taxaEntregaAtual;
+
+    let texto = `*NOVO PEDIDO - ${document.getElementById('nomeLoja').innerText}* 🛒\n`;
+    texto += `--------------------------------\n`;
+    carrinho.forEach(i => texto += `• ${i.nome} (R$ ${i.preco.toLocaleString('pt-BR', {minimumFractionDigits: 2})})\n`);
+    texto += `--------------------------------\n`;
+    texto += `*MODO:* ${modoPedido === 'entrega' ? '🛵 Entrega' : '🛍️ Retirada'}\n`;
+    
+    if(modoPedido === 'entrega') {
+        texto += `*ENDEREÇO:* ${enderecoCompleto.rua}, ${numero}\n`;
+        texto += `*BAIRRO:* ${enderecoCompleto.bairro}\n`;
+        texto += `*FRETE:* R$ ${taxaEntregaAtual.toLocaleString('pt-BR', {minimumFractionDigits: 2})} (${distanciaCliente.toFixed(1)}km)\n`;
+    }
+
+    texto += `*PAGAMENTO:* ${formaPagamento}\n`;
+    texto += `*TOTAL: R$ ${totalFinal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}*\n`;
+    
+    window.open(`https://wa.me/${whatsappLoja.replace(/\D/g,'')}?text=${encodeURIComponent(texto)}`);
+};
+
+// --- FIREBASE E INICIALIZAÇÃO ---
+
+function verificarSeEstaAberto(abertura, fechamento) {
+    if (!abertura || !fechamento) return true;
     const agora = new Date();
-    const minAtual = agora.getHours() * 60 + agora.getMinutes();
-    const [hA, mA] = abre.split(':').map(Number);
-    const [hF, mF] = fecha.split(':').map(Number);
-    const minA = hA * 60 + mA;
-    const minF = hF * 60 + mF;
-    return minF < minA ? (minAtual >= minA || minAtual <= minF) : (minAtual >= minA && minAtual <= minF);
+    const horaAtual = agora.getHours() * 60 + agora.getMinutes();
+    const [hAbre, mAbre] = abertura.split(':').map(Number);
+    const [hFecha, mFecha] = fechamento.split(':').map(Number);
+    const minAbre = hAbre * 60 + mAbre;
+    const minFecha = hFecha * 60 + mFecha;
+    if (minFecha < minAbre) return horaAtual >= minAbre || horaAtual <= minFecha;
+    return horaAtual >= minAbre && horaAtual <= minFecha;
 }
 
 async function inicializar() {
@@ -213,78 +328,76 @@ async function inicializar() {
         const userSnap = await getDoc(doc(db, "usuarios", userId));
         if (userSnap.exists()) {
             const d = userSnap.data();
-            
-            // 1. DADOS BÁSICOS
             whatsappLoja = d.whatsapp || "";
-            document.getElementById('nomeLoja').innerText = d.nomeNegocio || "Loja";
-            if(document.getElementById('nomeLojaRodape')) document.getElementById('nomeLojaRodape').innerText = d.nomeNegocio || "";
-
-            // 2. COR DO TEMA
-            if (d.corTema) {
-                document.documentElement.style.setProperty('--cor-primaria', d.corTema);
-            }
-
-            // 3. HORÁRIOS E STATUS
             configHorario = { abertura: d.horarioAbertura || "", fechamento: d.horarioFechamento || "" };
-            const aberto = verificarSeEstaAberto(configHorario.abertura, configHorario.fechamento);
-            const dot = document.getElementById('dotStatus');
-            const label = document.getElementById('labelStatus');
-            if(dot && label) {
-                dot.className = aberto ? "w-2 h-2 rounded-full bg-green-500 ping-aberto" : "w-2 h-2 rounded-full bg-red-500";
-                label.innerText = aberto ? "Aberto Agora" : "Fechado no Momento";
+            configEntrega = d.configEntrega || { coords: {lat:0, log:0}, raioMaximo: 0, valorKm: 0, tipo: 'fixo' };
+
+            document.getElementById('nomeLoja').innerText = d.nomeNegocio || "Minha Loja";
+            document.getElementById('nomeLojaRodape').innerText = d.nomeNegocio || "Minha Loja";
+            
+            if(d.corTema) document.documentElement.style.setProperty('--cor-primaria', d.corTema);
+            
+            // Usando os nomes originais dos campos do seu banco
+            const banner = document.getElementById('bannerLoja');
+            if(banner && d.fotoCapa) banner.style.backgroundImage = `url('${d.fotoCapa}')`;
+            
+            const img = document.getElementById('fotoLoja');
+            if(img && d.fotoPerfil) {
+                img.src = d.fotoPerfil;
+                img.classList.remove('hidden');
+                const emoji = document.getElementById('emojiLoja');
+                if(emoji) emoji.classList.add('hidden');
             }
 
-            // 4. CONFIG DE ENTREGA
-            configEntrega = d.configEntrega || configEntrega;
-
-            // 5. VISUAL (BANNER E LOGO)
-            if (d.bannerUrl) {
-                document.getElementById('bannerLoja').style.backgroundImage = `url('${d.bannerUrl}')`;
-            }
-            if (d.logoUrl) {
-                const foto = document.getElementById('fotoLoja');
-                foto.src = d.logoUrl;
-                foto.classList.remove('hidden');
-                document.getElementById('emojiLoja').classList.add('hidden');
+            const dotStatus = document.getElementById('dotStatus');
+            const labelStatus = document.getElementById('labelStatus');
+            lojaAberta = verificarSeEstaAberto(d.horarioAbertura, d.horarioFechamento);
+            
+            if (lojaAberta) {
+                if(dotStatus) dotStatus.className = "w-2 h-2 rounded-full bg-green-500 ping-aberto";
+                if(labelStatus) labelStatus.innerHTML = `<span class="text-green-600 font-bold">Aberto</span> até ${d.horarioFechamento}`;
+            } else {
+                if(dotStatus) dotStatus.className = "w-2 h-2 rounded-full bg-red-500";
+                if(labelStatus) labelStatus.innerHTML = `<span class="text-red-600 font-bold">Fechado</span> abre às ${d.horarioAbertura}`;
             }
         }
 
-        // 6. PRODUTOS E CATEGORIAS
         const q = query(collection(db, "produtos"), where("userId", "==", userId));
         const snap = await getDocs(q);
-        const container = document.getElementById('mainContainer');
-        const nav = document.getElementById('navCategorias');
-        container.innerHTML = "";
-        nav.innerHTML = "";
-        
-        let produtosPorCat = {};
+        const prods = {};
         snap.forEach(doc => {
             const p = doc.data();
-            if(!produtosPorCat[p.categoria]) produtosPorCat[p.categoria] = [];
-            produtosPorCat[p.categoria].push(p);
+            if(!prods[p.categoria]) prods[p.categoria] = [];
+            prods[p.categoria].push(p);
         });
 
-        Object.keys(produtosPorCat).forEach(cat => {
-            nav.innerHTML += `<a href="#cat-${cat}" class="category-tab">${cat}</a>`;
-            let html = `<section id="cat-${cat}"><h2 class="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">${cat}</h2><div class="grid gap-3">`;
-            produtosPorCat[cat].forEach(p => {
-                html += `
-                <div class="bg-white p-4 rounded-3xl shadow-sm flex justify-between items-center product-card transition-all" onclick="adicionarAoCarrinho('${p.nome}', ${p.preco})">
-                    <div class="flex gap-4 items-center">
-                        ${p.imagemUrl ? `<img src="${p.imagemUrl}" class="w-16 h-16 rounded-2xl object-cover">` : ''}
-                        <div><h3 class="font-bold text-slate-800">${p.nome}</h3><p class="text-brand font-black">R$ ${Number(p.preco).toFixed(2)}</p></div>
-                    </div>
-                    <button class="w-10 h-10 bg-slate-50 rounded-2xl text-brand font-bold">+</button>
-                </div>`;
+        const nav = document.getElementById('navCategorias');
+        const main = document.getElementById('mainContainer');
+        
+        if(main && nav) {
+            main.innerHTML = ""; nav.innerHTML = "";
+            Object.keys(prods).forEach((cat) => {
+                nav.innerHTML += `<a href="#${cat.replace(/\s/g, '')}" class="category-tab pb-2 whitespace-nowrap font-bold text-xs uppercase">${cat}</a>`;
+                let section = `<section id="${cat.replace(/\s/g, '')}" class="pt-4"><h2 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">${cat}</h2><div class="space-y-3">`;
+                prods[cat].forEach(p => {
+                    section += `
+                        <div class="bg-white p-3 rounded-3xl flex items-center justify-between shadow-sm border border-slate-50">
+                            <div class="flex-1 pr-4">
+                                <h3 class="text-sm font-bold text-slate-800">${p.nome}</h3>
+                                <p class="text-[10px] text-slate-400 mt-0.5 line-clamp-2">${p.descricao || ''}</p>
+                                <p class="text-brand font-black mt-2">R$ ${Number(p.preco).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
+                            </div>
+                            <div class="relative w-20 h-20">
+                                <img src="${p.foto}" class="w-full h-full object-cover rounded-2xl bg-slate-50">
+                                <button onclick="adicionarAoCarrinho('${p.nome}', ${p.preco})" class="absolute -bottom-1 -right-1 w-8 h-8 bg-brand text-white rounded-xl shadow-lg font-bold">+</button>
+                            </div>
+                        </div>`;
+                });
+                main.innerHTML += section + `</div></section>`;
             });
-            container.innerHTML += html + `</div></section>`;
-        });
-
-    } catch (e) { console.error("Erro na inicialização:", e); }
-    finally { 
-        const loader = document.getElementById('loading-overlay');
-        if(loader) loader.classList.add('loader-hidden'); 
-    }
+        }
+        document.getElementById('loading-overlay').classList.add('loader-hidden');
+    } catch (e) { console.error(e); }
 }
 
 inicializar();
