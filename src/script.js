@@ -1,10 +1,15 @@
 import { auth, db } from './firebase-config.js';
-import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { 
+    signInWithEmailAndPassword, 
+    sendPasswordResetEmail 
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const loginForm = document.getElementById('loginForm');
 const btnEntrar = document.getElementById('btnEntrar');
+const linkEsqueciSenha = document.getElementById('esqueciSenha');
 
+// --- 1. LÓGICA DE LOGIN ---
 if (loginForm) {
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -17,66 +22,49 @@ if (loginForm) {
         const originalContent = btnEntrar.innerHTML;
         btnEntrar.innerHTML = `
             <div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-            <span>AUTENTICANDO...</span>
+            <span class="ml-2">AUTENTICANDO...</span>
         `;
 
         try {
-            // 1. Autenticação no Firebase
             const userCredential = await signInWithEmailAndPassword(auth, email, senha);
             const user = userCredential.user;
 
-            // 2. Busca dados de branding no Firestore
             const userDoc = await getDoc(doc(db, "usuarios", user.uid));
             
             if (userDoc.exists()) {
                 const d = userDoc.data();
                 
-                // Salva preferências para o "Branding Instantâneo"
+                // Salva branding para carregamento instantâneo
                 if (d.corTema) localStorage.setItem('tema-cor', d.corTema);
                 if (d.fotoPerfil) localStorage.setItem('estab-logo', d.fotoPerfil);
                 if (d.nomeNegocio) localStorage.setItem('estab-nome', d.nomeNegocio);
                 
-                // Modal de Sucesso com SweetAlert2
                 Swal.fire({
                     icon: 'success',
                     title: 'Acesso Autorizado',
-                    text: `Bem-vindo, ${d.nomeNegocio || 'Administrador'}!`,
-                    timer: 1500,
+                    text: `Bem-vindo ao Digitaliza Menu, ${d.nomeNegocio || 'Administrador'}!`,
+                    timer: 1800,
                     showConfirmButton: false,
-                    timerProgressBar: true,
-                    didOpen: () => {
-                        const b = Swal.getHtmlContainer().querySelector('b');
-                        if (b) b.style.color = d.corTema || '#f59e0b';
-                    }
+                    timerProgressBar: true
                 }).then(() => {
                     window.location.href = `dashboard.html?id=${user.uid}`;
                 });
 
             } else {
-                // Caso o usuário exista no Auth mas não no Firestore
                 Swal.fire({
                     icon: 'warning',
-                    title: 'Perfil incompleto',
-                    text: 'Sua conta foi autenticada, mas não encontramos os dados da sua loja.',
-                    confirmButtonColor: localStorage.getItem('tema-cor') || '#f59e0b'
+                    title: 'Dados não encontrados',
+                    text: 'Sua conta existe, mas os dados da loja ainda não foram configurados.',
+                    confirmButtonColor: '#2563eb'
                 });
                 resetBotao(originalContent);
             }
         } catch (error) {
-            console.error("Erro de Login:", error.code);
+            console.error("Erro:", error.code);
+            let mensagem = "E-mail ou senha inválidos.";
             
-            let mensagem = "Verifique suas credenciais e tente novamente.";
-            
-            // Tratamento amigável de erros comuns
-            if (error.code === 'auth/invalid-credential') {
-                mensagem = "E-mail ou senha incorretos.";
-            } else if (error.code === 'auth/user-not-found') {
-                mensagem = "Este e-mail não está cadastrado no sistema.";
-            } else if (error.code === 'auth/wrong-password') {
-                mensagem = "Senha incorreta.";
-            } else if (error.code === 'auth/too-many-requests') {
-                mensagem = "Muitas tentativas falhas. Tente novamente em instantes.";
-            }
+            if (error.code === 'auth/too-many-requests') mensagem = "Muitas tentativas falhas. Aguarde um momento.";
+            if (error.code === 'auth/user-not-found') mensagem = "E-mail não cadastrado.";
 
             Swal.fire({
                 icon: 'error',
@@ -84,8 +72,48 @@ if (loginForm) {
                 text: mensagem,
                 confirmButtonColor: '#ef4444'
             });
-
             resetBotao(originalContent);
+        }
+    });
+}
+
+// --- 2. LÓGICA DE RECUPERAÇÃO DE SENHA ---
+if (linkEsqueciSenha) {
+    linkEsqueciSenha.addEventListener('click', async (e) => {
+        e.preventDefault();
+
+        const { value: email } = await Swal.fire({
+            title: 'Recuperar Senha',
+            text: 'Enviaremos um link de redefinição para o seu e-mail.',
+            input: 'email',
+            inputPlaceholder: 'Digite seu e-mail de acesso',
+            showCancelButton: true,
+            confirmButtonText: 'Enviar Link',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: localStorage.getItem('tema-cor') || '#2563eb',
+            inputAttributes: { autocapitalize: 'off' },
+            preConfirm: (value) => {
+                if (!value) return Swal.showValidationMessage('Por favor, digite o e-mail');
+            }
+        });
+
+        if (email) {
+            try {
+                await sendPasswordResetEmail(auth, email);
+                Swal.fire({
+                    icon: 'success',
+                    title: 'E-mail Enviado!',
+                    text: 'Verifique sua caixa de entrada (e spam) para redefinir sua senha.',
+                    confirmButtonColor: '#2563eb'
+                });
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Erro ao enviar',
+                    text: 'Não encontramos esse e-mail ou houve uma falha na conexão.',
+                    confirmButtonColor: '#ef4444'
+                });
+            }
         }
     });
 }
