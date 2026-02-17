@@ -2,7 +2,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-// 1. Importação do Storage adicionada abaixo:
 import { getStorage } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
 // Suas credenciais do projeto Padaria Portela
@@ -19,7 +18,10 @@ const firebaseConfig = {
 // Inicializa o Firebase
 const app = initializeApp(firebaseConfig);
 
-// 2. Exporta os serviços (Storage incluído agora)
+// Exporta os serviços para serem usados em outros arquivos
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-export const storage = getStorage(app); // Esta linha resolve o erro do "Uncaught SyntaxError"
+export const storage = getStorage(app);
+
+// Exporta o app caso algum módulo precise da instância principal
+export { app };
