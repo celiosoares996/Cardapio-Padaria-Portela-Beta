@@ -6,6 +6,8 @@
     <title>Estoque | Gestão Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
     <style>
         :root { --cor-primaria: #2563eb; }
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; }
@@ -15,11 +17,12 @@
         .border-brand { border-color: var(--cor-primaria) !important; }
         .focus-ring-brand:focus { ring-color: var(--cor-primaria) !important; outline: none; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2); }
 
-        /* Ajuste de Layout */
-        body { padding-bottom: 90px; } /* Aumentado para dar espaço ao menu com texto */
+        body { padding-bottom: 90px; } 
         @media (min-width: 768px) { body { padding-bottom: 0; padding-left: 280px; } }
 
-        /* Grid Mobile vs Tabela Desktop */
+        /* Ajuste fino Lucide */
+        i[data-lucide] { stroke-width: 2.5px; }
+
         @media (max-width: 767px) {
             .estoque-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; }
             .table-head-desktop { display: none; }
@@ -30,24 +33,40 @@
 
     <aside class="hidden md:flex fixed left-0 top-0 h-full w-72 bg-white border-r border-slate-200 flex-col p-8 z-50">
         <div class="flex items-center gap-3 mb-12">
-            <div class="w-10 h-10 bg-brand rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-200">📦</div>
+            <div class="w-10 h-10 bg-brand rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-200">
+                <i data-lucide="package" class="w-6 h-6"></i>
+            </div>
             <h2 id="sideNomeNegocio" class="text-lg font-extrabold tracking-tight text-slate-800 uppercase italic leading-tight">Carregando...</h2>
         </div>
 
         <nav class="flex-1 space-y-1">
-            <a href="dashboard.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:text-brand hover:bg-blue-50 transition-all font-semibold">🏠 Início</a>
-            <a href="estoque.html" class="flex items-center gap-3 p-4 rounded-2xl bg-brand text-white font-bold shadow-xl shadow-blue-100 transition-all">📦 Estoque</a>
-            <a href="produtos.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:text-brand hover:bg-blue-50 transition-all font-semibold">🛍️ Produtos</a>
-            <a href="pedidos.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:text-brand hover:bg-blue-50 transition-all font-semibold">📋 Pedidos</a>
-            <a href="perfil.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:text-brand hover:bg-blue-50 transition-all font-semibold">⚙️ Perfil</a>
+            <a href="dashboard.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:text-brand hover:bg-blue-50 transition-all font-semibold">
+                <i data-lucide="home" class="w-5 h-5"></i> Início
+            </a>
+            <a href="estoque.html" class="flex items-center gap-3 p-4 rounded-2xl bg-brand text-white font-bold shadow-xl shadow-blue-100 transition-all">
+                <i data-lucide="package" class="w-5 h-5"></i> Estoque
+            </a>
+            <a href="produtos.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:text-brand hover:bg-blue-50 transition-all font-semibold">
+                <i data-lucide="shopping-bag" class="w-5 h-5"></i> Produtos
+            </a>
+            <a href="pedidos.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:text-brand hover:bg-blue-50 transition-all font-semibold">
+                <i data-lucide="receipt" class="w-5 h-5"></i> Pedidos
+            </a>
+            <a href="perfil.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:text-brand hover:bg-blue-50 transition-all font-semibold">
+                <i data-lucide="settings" class="w-5 h-5"></i> Perfil
+            </a>
         </nav>
 
-        <button id="btnSairDesktop" class="flex items-center gap-3 p-4 rounded-2xl text-red-400 hover:bg-red-50 font-bold transition-all mt-auto">🚪 Sair</button>
+        <button id="btnSairDesktop" class="flex items-center gap-3 p-4 rounded-2xl text-red-400 hover:bg-red-50 font-bold transition-all mt-auto">
+            <i data-lucide="log-out" class="w-5 h-5"></i> Sair
+        </button>
     </aside>
 
     <nav class="md:hidden bg-white/80 backdrop-blur-md sticky top-0 z-40 p-5 flex justify-between items-center border-b border-slate-100">
         <h2 id="navNomeNegocio" class="text-lg font-black text-slate-800 uppercase italic">Estoque</h2>
-        <div class="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-sm">📦</div>
+        <div class="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-500">
+            <i data-lucide="box" class="w-4 h-4"></i>
+        </div>
     </nav>
 
     <main class="max-w-5xl mx-auto p-5 md:p-12">
@@ -57,7 +76,7 @@
                 <p class="text-slate-500 font-medium mt-1">Conferência e controle de quantidades.</p>
             </div>
             <button id="abrirModal" class="bg-brand text-white px-6 py-4 rounded-2xl font-bold shadow-2xl shadow-blue-200 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2">
-                <span class="text-xl">+</span> NOVO INSUMO
+                <i data-lucide="plus" class="w-5 h-5"></i> NOVO INSUMO
             </button>
         </div>
 
@@ -71,36 +90,30 @@
                     </tr>
                 </thead>
                 <tbody id="listaEstoque" class="divide-y divide-slate-50">
-                    <tr>
-                        <td colspan="3" class="p-20 text-center">
-                            <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-brand border-t-transparent"></div>
-                            <p class="mt-4 text-slate-400 font-bold uppercase tracking-widest text-[10px]">Sincronizando estoque...</p>
-                        </td>
-                    </tr>
-                </tbody>
+                    </tbody>
             </table>
         </div>
     </main>
 
     <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 px-4 py-3 flex justify-between items-center z-50 shadow-[0_-10px_30px_rgba(0,0,0,0.05)]">
-        <a href="dashboard.html" class="flex flex-col items-center gap-1 text-slate-300 hover:text-brand transition-all">
-            <span class="text-xl">🏠</span>
+        <a href="dashboard.html" class="flex flex-col items-center gap-1 text-slate-300">
+            <i data-lucide="home" class="w-6 h-6"></i>
             <span class="text-[10px] font-bold uppercase tracking-tighter">Início</span>
         </a>
-        <a href="estoque.html" class="flex flex-col items-center gap-1 text-brand transition-all">
-            <span class="text-xl">📦</span>
+        <a href="estoque.html" class="flex flex-col items-center gap-1 text-brand">
+            <i data-lucide="package" class="w-6 h-6"></i>
             <span class="text-[10px] font-black uppercase tracking-tighter">Estoque</span>
         </a>
-        <a href="produtos.html" class="flex flex-col items-center gap-1 text-slate-300 hover:text-brand transition-all">
-            <span class="text-xl">🛍️</span>
+        <a href="produtos.html" class="flex flex-col items-center gap-1 text-slate-300">
+            <i data-lucide="shopping-bag" class="w-6 h-6"></i>
             <span class="text-[10px] font-bold uppercase tracking-tighter">Produtos</span>
         </a>
-        <a href="pedidos.html" class="flex flex-col items-center gap-1 text-slate-300 hover:text-brand transition-all">
-            <span class="text-xl">📋</span>
+        <a href="pedidos.html" class="flex flex-col items-center gap-1 text-slate-300">
+            <i data-lucide="receipt" class="w-6 h-6"></i>
             <span class="text-[10px] font-bold uppercase tracking-tighter">Pedidos</span>
         </a>
-        <a href="perfil.html" class="flex flex-col items-center gap-1 text-slate-300 hover:text-brand transition-all">
-            <span class="text-xl">⚙️</span>
+        <a href="perfil.html" class="flex flex-col items-center gap-1 text-slate-300">
+            <i data-lucide="settings" class="w-6 h-6"></i>
             <span class="text-[10px] font-bold uppercase tracking-tighter">Perfil</span>
         </a>
     </div>
@@ -108,9 +121,14 @@
     <div id="modal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-6 z-[100]">
         <div class="bg-white w-full max-w-md rounded-t-[3rem] md:rounded-[3rem] shadow-2xl p-8 md:p-12 transition-all">
             <div class="w-16 h-1.5 bg-slate-100 rounded-full mx-auto mb-10 md:hidden"></div>
-            <div class="mb-8">
-                <h3 id="modalTitulo" class="text-2xl font-black text-slate-800 tracking-tight">Novo Insumo</h3>
-                <p class="text-slate-400 font-medium text-sm">Atualize a contagem do seu estoque.</p>
+            <div class="mb-8 flex items-center gap-4">
+                <div class="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-brand">
+                    <i data-lucide="edit-3" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h3 id="modalTitulo" class="text-2xl font-black text-slate-800 tracking-tight">Novo Insumo</h3>
+                    <p class="text-slate-400 font-medium text-sm">Atualize a contagem do estoque.</p>
+                </div>
             </div>
             <form id="formEstoque" class="space-y-6">
                 <input type="hidden" id="editId">
@@ -123,7 +141,7 @@
                         <label class="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Quantidade</label>
                         <input type="number" step="0.01" id="quantidadeItem" required placeholder="0.00" class="w-full p-5 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all font-black text-blue-600 text-xl outline-none">
                     </div>
-                    <div class="space-y-2">
+                    <div class="space-y-2 relative">
                         <label class="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Unidade</label>
                         <select id="unidadeItem" class="w-full p-5 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all font-bold text-slate-600 outline-none appearance-none">
                             <option value="un">Unid (un)</option>
@@ -136,7 +154,9 @@
                     </div>
                 </div>
                 <div class="pt-6 space-y-4">
-                    <button type="submit" class="w-full bg-brand text-white py-5 rounded-2xl font-black shadow-xl shadow-blue-100 hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-widest text-sm">Salvar no Estoque</button>
+                    <button type="submit" class="w-full bg-brand text-white py-5 rounded-2xl font-black shadow-xl shadow-blue-100 hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-widest text-sm flex items-center justify-center gap-2">
+                        <i data-lucide="save" class="w-4 h-4"></i> Salvar no Estoque
+                    </button>
                     <button type="button" id="fecharModal" class="w-full text-slate-400 font-bold py-2 hover:text-slate-600 transition-colors uppercase tracking-widest text-[10px]">Cancelar e Voltar</button>
                 </div>
             </form>
@@ -144,5 +164,9 @@
     </div>
 
     <script type="module" src="./src/estoque.js"></script>
+    <script>
+        // Inicializa ícones na carga da página
+        lucide.createIcons();
+    </script>
 </body>
 </html>
