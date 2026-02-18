@@ -50,7 +50,7 @@ window.verificarCliente = async (valor) => {
 
         if (docSnap.exists()) {
             const d = docSnap.data();
-            clienteLogado = d;
+            clienteLogado = { ...d, whatsapp: whatsapp };
             if(document.getElementById('inputNome')) document.getElementById('inputNome').value = d.nome || "";
             if(document.getElementById('inputCEP')) document.getElementById('inputCEP').value = d.cep || "";
             if(document.getElementById('inputNumero')) document.getElementById('inputNumero').value = d.numero || "";
@@ -255,7 +255,6 @@ window.enviarWhatsApp = async () => {
     const subtotal = carrinho.reduce((a,b) => a + b.preco, 0);
     const totalFinal = subtotal + taxaEntregaAtual;
 
-    // --- CORREÇÃO WHATSAPP ---
     let numDestino = whatsappLoja.replace(/\D/g,'');
     if (numDestino.length >= 10 && numDestino.length <= 11) {
         numDestino = '55' + numDestino;
@@ -279,9 +278,9 @@ window.enviarWhatsApp = async () => {
     try {
         await addDoc(collection(db, "pedidos"), dadosPedido);
 
-        const whatsLimpo = String(clienteLogado?.whatsapp || ""); 
-        if(whatsLimpo) {
-            await setDoc(doc(db, "clientes", whatsLimpo), {
+        const whatsCliente = document.getElementById('inputWhatsApp')?.value.replace(/\D/g,'');
+        if(whatsCliente) {
+            await setDoc(doc(db, "clientes", whatsCliente), {
                 nome: nomeCliente,
                 cep: enderecoCompleto.cep,
                 distanciaSalva: distanciaCliente,
@@ -336,11 +335,17 @@ async function inicializar() {
             configEntrega = d.configEntrega || { coords: {lat:0, log:0}, raioMaximo: 0, valorKm: 0, tipo: 'fixo' };
 
             document.getElementById('nomeLoja').innerText = d.nomeNegocio || "Loja";
+            document.getElementById('nomeLojaRodape').innerText = d.nomeNegocio || "";
             
-            // --- CORREÇÃO FOTO PERFIL ---
+            // --- CORREÇÃO ROBUSTA DA FOTO PERFIL ---
             const imgPerfil = document.getElementById('logoLoja');
-            if(imgPerfil) {
-                imgPerfil.src = d.fotoPerfil || localStorage.getItem('estab-logo') || 'assets/default-logo.png';
+            const emojiPerfil = document.getElementById('emojiLoja');
+            const urlFoto = d.fotoPerfil || d.fotoLogo;
+
+            if (urlFoto && imgPerfil) {
+                imgPerfil.src = urlFoto;
+                imgPerfil.classList.remove('hidden'); // MOSTRA A FOTO
+                if (emojiPerfil) emojiPerfil.classList.add('hidden'); // ESCONDE O EMOJI
             }
 
             if(d.corTema) document.documentElement.style.setProperty('--cor-primaria', d.corTema);
