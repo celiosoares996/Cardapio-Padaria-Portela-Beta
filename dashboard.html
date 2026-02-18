@@ -9,31 +9,27 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <style>
-        :root { --cor-primaria: #2563eb; } /* Azul padrão Digitaliza Menu */
+        :root { --cor-primaria: #2563eb; }
         .bg-brand { background-color: var(--cor-primaria) !important; }
         .text-brand { color: var(--cor-primaria) !important; }
         .border-brand { border-color: var(--cor-primaria) !important; }
         .shadow-brand { 
-            --tw-shadow-color: var(--cor-primaria); 
-            --tw-shadow: 0 10px 15px -3px rgba(var(--cor-primaria), 0.3);
-            box-shadow: var(--tw-shadow);
+            box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.2);
         }
         
-        /* Layout Mobile Friendly */
         body { padding-bottom: 90px; } 
         @media (min-width: 768px) { 
             body { padding-bottom: 0; padding-left: 260px; } 
         }
 
-        /* Skeleton Loading Animation */
-        .loading-skeleton {
-            background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
-            background-size: 200% 100%;
-            animation: skeleton-loading 1.5s infinite;
+        /* Estilo para a lista de notificações */
+        #listaNotificacoes {
+            display: none;
+            animation: fadeIn 0.3s ease-out;
         }
-        @keyframes skeleton-loading {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
@@ -52,24 +48,24 @@
 
         <nav class="flex-1 space-y-2">
             <a href="dashboard.html" class="flex items-center gap-3 p-4 rounded-2xl bg-brand text-white font-bold shadow-brand transition-all">
-                <span class="text-lg">🏠</span> Início
-            </a>
-            <a href="estoque.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:bg-slate-50 hover:text-brand font-bold transition-all group">
-                <span class="group-hover:scale-110 transition-transform">📦</span> Estoque
-            </a>
-            <a href="produtos.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:bg-slate-50 hover:text-brand font-bold transition-all group">
-                <span class="group-hover:scale-110 transition-transform">🛍️</span> Produtos
+                <span>🏠</span> Início
             </a>
             <a href="pedidos.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:bg-slate-50 hover:text-brand font-bold transition-all group">
-                <span class="group-hover:scale-110 transition-transform">📋</span> Pedidos
+                <span class="group-hover:scale-110">📋</span> Vendas/Pedidos
+            </a>
+            <a href="estoque.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:bg-slate-50 hover:text-brand font-bold transition-all group">
+                <span class="group-hover:scale-110">📦</span> Estoque
+            </a>
+            <a href="produtos.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:bg-slate-50 hover:text-brand font-bold transition-all group">
+                <span class="group-hover:scale-110">🛍️</span> Produtos
             </a>
             <a href="perfil.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:bg-slate-50 hover:text-brand font-bold transition-all group">
-                <span class="group-hover:scale-110 transition-transform">⚙️</span> Perfil
+                <span class="group-hover:scale-110">⚙️</span> Perfil
             </a>
         </nav>
 
         <button id="btnSairDesktop" class="flex items-center gap-3 p-4 rounded-2xl text-red-400 hover:bg-red-50 font-black transition-all mt-auto uppercase text-xs tracking-widest">
-            <span>🚪</span> Sair do Sistema
+            <span>🚪</span> Sair
         </button>
     </aside>
 
@@ -80,56 +76,91 @@
             </div>
             <h2 id="navNomeNegocio" class="text-sm font-black text-slate-800 tracking-tighter uppercase">Carregando...</h2>
         </div>
-        <button id="btnNotificacao" class="p-2 bg-slate-50 rounded-full text-slate-400 relative">
-            <span>🔔</span>
-            <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-        </button>
+        
+        <div class="relative">
+            <button id="btnNotificacao" class="p-2 bg-slate-50 rounded-full text-slate-400 relative">
+                <span class="text-xl">🔔</span>
+                <span id="badgeNotificacao" class="hidden absolute top-0 right-0 w-4 h-4 bg-red-500 text-white text-[8px] flex items-center justify-center rounded-full border-2 border-white font-bold">0</span>
+            </button>
+            
+            <div id="listaNotificacoes" class="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-slate-100 p-4 z-[100]">
+                <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Alertas Importantes</h4>
+                <div id="containerAlertas" class="space-y-3 max-h-60 overflow-y-auto">
+                    <p class="text-xs text-slate-400 italic">Nenhuma notificação agora.</p>
+                </div>
+            </div>
+        </div>
     </nav>
 
     <main class="max-w-5xl mx-auto p-4 md:p-10">
-        <header class="mb-8 mt-4 md:mt-0">
-            <h1 class="text-3xl md:text-4xl font-black text-slate-800 tracking-tight">
-                Olá, <span class="text-brand" id="boasVindasNome">...</span> 👋
-            </h1>
-            <p class="text-slate-500 font-medium mt-1">Bem-vindo ao seu Digitaliza Menu. Veja como estão as coisas hoje:</p>
+        <header class="mb-8 flex justify-between items-end">
+            <div>
+                <h1 class="text-3xl md:text-4xl font-black text-slate-800 tracking-tight">
+                    Olá, <span class="text-brand" id="boasVindasNome">...</span> 👋
+                </h1>
+                <p class="text-slate-500 font-medium mt-1">Resumão do seu negócio hoje:</p>
+            </div>
+            <button id="btnNotificacaoDesktop" class="hidden md:flex p-3 bg-white border border-slate-100 rounded-2xl text-slate-400 relative hover:bg-slate-50 transition-all">
+                <span>🔔</span>
+                <span id="badgeNotificacaoDesktop" class="hidden absolute top-2 right-2 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
+            </button>
         </header>
 
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 mb-10">
-            <div class="bg-white p-6 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-gray-50 transform transition hover:translate-y-[-4px]">
-                <div class="bg-blue-50 w-12 h-12 flex items-center justify-center rounded-2xl mb-4 text-xl">📋</div>
-                <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pedidos Hoje</h3>
-                <p id="totalPedidos" class="text-3xl font-black text-slate-800 tracking-tighter mt-1">0</p>
-            </div>
-            
-            <div class="bg-white p-6 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-gray-50 transform transition hover:translate-y-[-4px]">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+            <div class="bg-white p-6 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-gray-50">
                 <div class="bg-green-50 w-12 h-12 flex items-center justify-center rounded-2xl mb-4 text-xl">💰</div>
-                <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Valor Estoque</h3>
-                <p id="totalEstoque" class="text-xl md:text-2xl font-black text-green-600 tracking-tighter mt-1">R$ 0,00</p>
+                <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Faturamento (Mês)</h3>
+                <p id="faturamentoMes" class="text-3xl font-black text-slate-800 tracking-tighter mt-1">R$ 0,00</p>
+                <span class="text-[10px] font-bold text-green-500 uppercase mt-2 block">● Fluxo de Caixa</span>
             </div>
 
-            <div class="bg-white p-6 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-gray-50 col-span-2 md:col-span-1 transform transition hover:translate-y-[-4px]">
-                <div class="bg-purple-50 w-12 h-12 flex items-center justify-center rounded-2xl mb-4 text-xl">🛍️</div>
-                <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Produtos Ativos</h3>
-                <p id="totalProdutos" class="text-3xl font-black text-slate-800 tracking-tighter mt-1">0</p>
+            <div class="bg-white p-6 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-gray-50 relative overflow-hidden">
+                <div class="bg-orange-50 w-12 h-12 flex items-center justify-center rounded-2xl mb-4 text-xl">📦</div>
+                <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Alertas de Estoque</h3>
+                <p id="totalAlertasEstoque" class="text-3xl font-black text-slate-800 tracking-tighter mt-1">0</p>
+                <span id="statusEstoqueGeral" class="text-[10px] font-bold text-slate-400 uppercase mt-2 block">Tudo em dia</span>
+            </div>
+
+            <div class="bg-white p-6 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-gray-50">
+                <div class="bg-purple-50 w-12 h-12 flex items-center justify-center rounded-2xl mb-4 text-xl">👥</div>
+                <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Clientes Ativos</h3>
+                <p id="totalClientes" class="text-3xl font-black text-slate-800 tracking-tighter mt-1">0</p>
+                <span class="text-[10px] font-bold text-purple-500 uppercase mt-2 block">● Fidelização</span>
             </div>
         </div>
 
-        <h2 class="text-sm font-black text-slate-400 uppercase tracking-[0.2em] mb-4 ml-1">Ações Rápidas</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-            <a href="pedidos.html" class="bg-brand text-white p-8 rounded-[2.5rem] font-black shadow-xl shadow-blue-500/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-between group">
-                <div class="flex items-center text-sm md:text-base uppercase tracking-widest">
-                    <span class="bg-white/20 p-4 rounded-2xl mr-4 group-hover:rotate-12 transition-transform text-xl">➕</span>
-                    Novo Pedido
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+            <div class="bg-slate-900 p-8 rounded-[2.5rem] text-white">
+                <h3 class="text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-6">🏆 Top 3 Mais Vendidos</h3>
+                <div id="containerTopProdutos" class="space-y-4">
+                    <p class="text-sm text-slate-500 italic">Aguardando vendas...</p>
                 </div>
-                <span class="text-2xl opacity-50">→</span>
+            </div>
+
+            <div class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
+                <h3 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-6">💡 Insight do Dia</h3>
+                <div id="insightTexto" class="text-slate-600 font-medium">
+                    Carregando indicadores inteligentes...
+                </div>
+            </div>
+        </div>
+
+        <h2 class="text-sm font-black text-slate-400 uppercase tracking-[0.2em] mb-4 ml-1">Ações de Gestão</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <a href="pedidos.html" class="bg-brand text-white p-6 rounded-[2rem] font-black shadow-xl shadow-blue-500/20 hover:scale-[1.02] transition-all flex items-center justify-between group">
+                <div class="flex items-center uppercase tracking-widest text-sm">
+                    <span class="bg-white/20 p-3 rounded-xl mr-4 group-hover:rotate-12 transition-transform">💵</span>
+                    Registrar Venda
+                </div>
+                <span class="text-xl">→</span>
             </a>
             
-            <a href="produtos.html" class="bg-slate-800 text-white p-8 rounded-[2.5rem] font-black shadow-xl shadow-slate-300 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-between group">
-                <div class="flex items-center text-sm md:text-base uppercase tracking-widest">
-                    <span class="bg-white/10 p-4 rounded-2xl mr-4 group-hover:rotate-12 transition-transform text-xl">✨</span>
+            <a href="produtos.html" class="bg-white border border-slate-200 text-slate-800 p-6 rounded-[2rem] font-black hover:bg-slate-50 transition-all flex items-center justify-between group">
+                <div class="flex items-center uppercase tracking-widest text-sm">
+                    <span class="bg-slate-100 p-3 rounded-xl mr-4 group-hover:rotate-12 transition-transform">✨</span>
                     Novo Produto
                 </div>
-                <span class="text-2xl opacity-30">→</span>
+                <span class="text-xl text-slate-300">→</span>
             </a>
         </div>
     </main>
@@ -139,24 +170,33 @@
             <span class="text-xl">🏠</span>
             <span class="text-[9px] font-black uppercase mt-1">Início</span>
         </a>
-        <a href="estoque.html" class="flex flex-col items-center text-slate-300 hover:text-brand transition-colors">
+        <a href="pedidos.html" class="flex flex-col items-center text-slate-300">
+            <span class="text-xl">📋</span>
+            <span class="text-[9px] font-black uppercase mt-1">Vendas</span>
+        </a>
+        <a href="estoque.html" class="flex flex-col items-center text-slate-300">
             <span class="text-xl">📦</span>
             <span class="text-[9px] font-black uppercase mt-1">Estoque</span>
         </a>
-        <a href="produtos.html" class="flex flex-col items-center text-slate-300 hover:text-brand transition-colors">
-            <span class="text-xl">🛍️</span>
-            <span class="text-[9px] font-black uppercase mt-1">Produtos</span>
-        </a>
-        <a href="pedidos.html" class="flex flex-col items-center text-slate-300 hover:text-brand transition-colors">
-            <span class="text-xl">📋</span>
-            <span class="text-[9px] font-black uppercase mt-1">Pedidos</span>
-        </a>
-        <a href="perfil.html" class="flex flex-col items-center text-slate-300 hover:text-brand transition-colors">
+        <a href="perfil.html" class="flex flex-col items-center text-slate-300">
             <span class="text-xl">⚙️</span>
             <span class="text-[9px] font-black uppercase mt-1">Perfil</span>
         </a>
     </div>
 
     <script type="module" src="./src/dashboard.js"></script>
+    <script>
+        // Lógica simples para abrir/fechar o menu de notificações
+        const btnNotif = document.getElementById('btnNotificacao');
+        const lista = document.getElementById('listaNotificacoes');
+        
+        if(btnNotif) {
+            btnNotif.addEventListener('click', (e) => {
+                e.stopPropagation();
+                lista.style.display = lista.style.display === 'block' ? 'none' : 'block';
+            });
+            document.addEventListener('click', () => lista.style.display = 'none');
+        }
+    </script>
 </body>
 </html>
