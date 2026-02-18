@@ -63,7 +63,6 @@ window.verificarCliente = async (valor) => {
     } catch (e) { console.error("Erro ao verificar cliente:", e); }
 };
 
-// --- LÓGICA DE MÁSCARA E BUSCA DE CEP ---
 window.mascaraCEP = (input) => {
     let v = input.value.replace(/\D/g, '');
     if (v.length > 8) v = v.substring(0, 8);
@@ -276,6 +275,7 @@ window.enviarWhatsApp = async () => {
     };
 
     try {
+        // Mostra um loading ou feedback visual se desejar
         await addDoc(collection(db, "pedidos"), dadosPedido);
 
         const whatsCliente = document.getElementById('inputWhatsApp')?.value.replace(/\D/g,'');
@@ -299,8 +299,13 @@ window.enviarWhatsApp = async () => {
         msg += `*TOTAL: R$ ${totalFinal.toFixed(2)}*\n\n`;
         msg += `_Pedido registrado no sistema._`;
 
-        window.open(`https://wa.me/${numDestino}?text=${encodeURIComponent(msg)}`);
+        const linkWhats = `https://wa.me/${numDestino}?text=${encodeURIComponent(msg)}`;
+
+        // --- CORREÇÃO PARA IPHONE (SAFARI) ---
+        // O Safari bloqueia window.open após um await. Usamos location.href para redirecionar na mesma aba.
+        window.location.assign(linkWhats);
         
+        // Limpa o estado
         carrinho = [];
         fecharCarrinho();
         atualizarBadgeCarrinho();
@@ -337,15 +342,14 @@ async function inicializar() {
             document.getElementById('nomeLoja').innerText = d.nomeNegocio || "Loja";
             document.getElementById('nomeLojaRodape').innerText = d.nomeNegocio || "";
             
-            // --- CORREÇÃO ROBUSTA DA FOTO PERFIL ---
             const imgPerfil = document.getElementById('logoLoja');
             const emojiPerfil = document.getElementById('emojiLoja');
             const urlFoto = d.fotoPerfil || d.fotoLogo;
 
             if (urlFoto && imgPerfil) {
                 imgPerfil.src = urlFoto;
-                imgPerfil.classList.remove('hidden'); // MOSTRA A FOTO
-                if (emojiPerfil) emojiPerfil.classList.add('hidden'); // ESCONDE O EMOJI
+                imgPerfil.classList.remove('hidden');
+                if (emojiPerfil) emojiPerfil.classList.add('hidden');
             }
 
             if(d.corTema) document.documentElement.style.setProperty('--cor-primaria', d.corTema);
