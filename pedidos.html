@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pedidos | Agenda de Encomendas</title>
+    <title>Pedidos | Gestão de Vendas</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-        :root { --cor-primaria: #2563eb; } /* Azul oficial padrão */
+        :root { --cor-primaria: #2563eb; }
         .bg-brand { background-color: var(--cor-primaria) !important; }
         .text-brand { color: var(--cor-primaria) !important; }
         .border-brand { border-color: var(--cor-primaria) !important; }
@@ -16,6 +17,8 @@
         @media (min-width: 768px) { 
             body { padding-bottom: 0; padding-left: 260px; } 
         }
+        /* Estilo para scroll suave nos filtros */
+        .hide-scroll::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen transition-all">
@@ -57,20 +60,26 @@
     </nav>
 
     <main class="max-w-5xl mx-auto p-4 md:p-10">
-        <div class="flex justify-between items-end mb-10">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
             <div>
-                <p class="text-xs font-black text-brand uppercase tracking-widest mb-1">Agenda de Clientes</p>
-                <h1 class="text-3xl md:text-4xl font-black text-slate-800 tracking-tight">Encomendas</h1>
+                <p class="text-xs font-black text-brand uppercase tracking-widest mb-1">Central de Vendas</p>
+                <h1 class="text-3xl md:text-4xl font-black text-slate-800 tracking-tight">Pedidos & Vendas</h1>
             </div>
-            <button id="abrirModalPedido" class="bg-brand text-white p-4 md:px-6 md:py-4 rounded-[1.5rem] font-black shadow-xl shadow-blue-200 hover:scale-105 active:scale-95 transition flex items-center gap-2">
-                <span class="text-xl">+</span> <span class="hidden md:inline text-sm uppercase tracking-widest">Novo Pedido</span>
+            <button id="abrirModalPedido" class="w-full md:w-auto bg-brand text-white p-4 md:px-6 md:py-4 rounded-[1.5rem] font-black shadow-xl shadow-blue-200 hover:scale-105 active:scale-95 transition flex justify-center items-center gap-2">
+                <span class="text-xl">+</span> <span class="text-sm uppercase tracking-widest">Novo Pedido no Balcão</span>
             </button>
+        </div>
+
+        <div class="flex gap-2 overflow-x-auto pb-4 hide-scroll mb-6">
+            <button class="px-6 py-2 bg-brand text-white rounded-full text-xs font-black uppercase tracking-wider shadow-md">Todos</button>
+            <button class="px-6 py-2 bg-white text-slate-400 rounded-full text-xs font-black uppercase tracking-wider border border-slate-100 hover:bg-slate-50 transition">Pendentes</button>
+            <button class="px-6 py-2 bg-white text-slate-400 rounded-full text-xs font-black uppercase tracking-wider border border-slate-100 hover:bg-slate-50 transition">Concluídos</button>
         </div>
 
         <div id="listaPedidos" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div class="col-span-full py-20 text-center">
                 <div class="w-12 h-12 border-4 border-slate-200 border-t-brand rounded-full animate-spin mx-auto mb-4"></div>
-                <p class="text-slate-400 font-bold italic">Buscando encomendas na nuvem...</p>
+                <p class="text-slate-400 font-bold italic">Sincronizando pedidos balcão e online...</p>
             </div>
         </div>
     </main>
@@ -99,42 +108,40 @@
     </div>
 
     <div id="modalPedido" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4 z-[100]">
-        <div class="bg-white p-8 md:p-10 rounded-t-[3rem] md:rounded-[2.5rem] w-full max-w-lg shadow-2xl border border-gray-100">
+        <div class="bg-white p-8 md:p-10 rounded-t-[3rem] md:rounded-[2.5rem] w-full max-w-lg shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
             <div class="w-12 h-1.5 bg-slate-100 rounded-full mx-auto mb-8 md:hidden"></div> 
             
-            <h3 class="text-2xl font-black text-slate-800 tracking-tighter mb-1">Nova Encomenda</h3>
-            <p class="text-sm text-slate-400 mb-8 font-medium">Cadastre os detalhes do pedido do seu cliente.</p>
+            <h3 class="text-2xl font-black text-slate-800 tracking-tighter mb-1">Venda Balcão</h3>
+            <p class="text-sm text-slate-400 mb-8 font-medium">Os itens vendidos aqui darão baixa no seu estoque.</p>
             
             <form id="formPedido" class="space-y-5">
                 <div>
                     <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Cliente</label>
-                    <input type="text" id="cliente" placeholder="Nome do cliente" 
-                           class="w-full mt-1 p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus-ring-brand font-bold" required>
+                    <input type="text" id="cliente" placeholder="Nome do cliente (opcional)" 
+                           class="w-full mt-1 p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus-ring-brand font-bold">
                 </div>
                 
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Data de Entrega</label>
-                        <input type="date" id="dataEntrega" class="w-full mt-1 p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus-ring-brand font-bold text-sm" required>
-                    </div>
-                    <div>
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Horário</label>
-                        <input type="time" id="horaEntrega" class="w-full mt-1 p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus-ring-brand font-bold text-sm" required>
-                    </div>
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Adicionar Produtos</label>
+                    <select id="selectProduto" class="w-full mt-1 p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus-ring-brand font-bold text-sm">
+                        <option value="">Selecione um produto...</option>
+                    </select>
                 </div>
 
-                <div>
-                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">O que ele pediu?</label>
-                    <textarea id="descricao" placeholder="Ex: 1 Bolo de Chocolate Médio e 50 Coxinhas" 
-                              class="w-full mt-1 p-4 bg-slate-50 border border-slate-100 rounded-2xl h-28 outline-none focus:ring-2 focus-ring-brand font-medium resize-none" required></textarea>
+                <div id="itensSelecionados" class="space-y-2 max-h-40 overflow-y-auto pr-2">
+                    </div>
+
+                <div class="bg-slate-50 p-4 rounded-2xl flex justify-between items-center border border-dashed border-slate-200">
+                    <span class="text-xs font-black text-slate-400 uppercase">Total da Venda</span>
+                    <span id="valorTotalPedido" class="text-xl font-black text-brand">R$ 0,00</span>
                 </div>
                 
                 <div class="flex gap-3 pt-2">
                     <button type="submit" class="flex-1 bg-brand text-white py-5 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 transition-all">
-                        Agendar Pedido
+                        Finalizar e Abater Estoque
                     </button>
                     <button type="button" id="fecharModalPedido" class="flex-1 bg-slate-100 text-slate-400 py-5 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-200 transition-all">
-                        Voltar
+                        Cancelar
                     </button>
                 </div>
             </form>
