@@ -24,13 +24,17 @@ const gridProdutos = document.getElementById('gridProdutos');
 const editIdInput = document.getElementById('editId');
 const btnCancelarEdicao = document.getElementById('btnCancelarEdicao');
 
+// NOVAS REFERÊNCIAS DE ESTOQUE
+const estoqueAtualInput = document.getElementById('estoqueAtual');
+const estoqueMinimoInput = document.getElementById('estoqueMinimo');
+
 let urlFotoProduto = "";
 
 // --- 1. MONITORAR USUÁRIO E CARREGAR DADOS ---
 onAuthStateChanged(auth, (user) => {
     if (user) {
         carregarPreferencias(user);
-        carregarProdutosLista(); // Carrega a lista em segundo plano
+        carregarProdutosLista(); 
     } else {
         window.location.href = "index.html";
     }
@@ -51,9 +55,8 @@ async function carregarPreferencias(user) {
     } catch (error) { console.error("Erro ao carregar preferências:", error); }
 }
 
-// --- 2. GESTÃO DA LISTA (VISUALIZAR / EXCLUIR / EDITAR) ---
+// --- 2. GESTÃO DA LISTA ---
 
-// Função global para carregar a lista de produtos
 window.carregarProdutosLista = async () => {
     if (!auth.currentUser) return;
     
@@ -75,6 +78,9 @@ window.carregarProdutosLista = async () => {
             const p = documento.data();
             const id = documento.id;
             const precoFormatado = p.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            
+            // Lógica visual para estoque no card da lista
+            const corEstoque = (p.estoqueAtual <= (p.estoqueMinimo || 0)) ? 'text-red-500' : 'text-slate-400';
 
             gridProdutos.innerHTML += `
                 <div class="bg-white p-4 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-4">
@@ -82,7 +88,10 @@ window.carregarProdutosLista = async () => {
                     <div class="flex-1">
                         <h3 class="font-black text-slate-800 text-sm leading-tight">${p.nome}</h3>
                         <p class="text-brand font-bold text-xs">${precoFormatado}</p>
-                        <p class="text-[10px] text-slate-400 uppercase font-bold mt-1">${p.categoria}</p>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span class="text-[9px] uppercase font-bold bg-slate-100 px-2 py-0.5 rounded text-slate-500">${p.categoria}</span>
+                            <span class="text-[9px] font-black uppercase ${corEstoque}">📦 Est: ${p.estoqueAtual || 0}</span>
+                        </div>
                     </div>
                     <div class="flex flex-col gap-2">
                         <button onclick="prepararEdicao('${id}')" class="p-2 bg-slate-50 hover:bg-blue-50 text-blue-500 rounded-xl transition-all">✏️</button>
@@ -94,7 +103,6 @@ window.carregarProdutosLista = async () => {
     } catch (error) { console.error("Erro ao listar:", error); }
 };
 
-// Função para Deletar
 window.excluirProduto = async (id) => {
     if (confirm("Deseja remover este item do cardápio?")) {
         try {
@@ -104,27 +112,27 @@ window.excluirProduto = async (id) => {
     }
 };
 
-// Função para preparar Edição
 window.prepararEdicao = async (id) => {
     try {
         const docSnap = await getDoc(doc(db, "produtos", id));
         if (docSnap.exists()) {
             const p = docSnap.data();
             
-            // Preenche o formulário
             editIdInput.value = id;
             document.getElementById('nomeProduto').value = p.nome;
             document.getElementById('precoVenda').value = p.preco;
             document.getElementById('categoria').value = p.categoria;
             document.getElementById('descricaoProduto').value = p.descricao;
             
-            // Preview da imagem
+            // CARREGAR DADOS DE ESTOQUE NA EDIÇÃO
+            estoqueAtualInput.value = p.estoqueAtual || 0;
+            estoqueMinimoInput.value = p.estoqueMinimo || 0;
+            
             urlFotoProduto = p.foto;
             imgPreview.src = p.foto;
             imgPreview.classList.remove('hidden');
             previewContainer.classList.add('hidden');
 
-            // Muda a UI para aba de cadastro
             document.getElementById('btnVerCadastro').click(); 
             document.getElementById('tituloPagina').innerText = "Editando Produto";
             btnPublicar.innerHTML = "💾 SALVAR ALTERAÇÕES";
@@ -160,12 +168,18 @@ formProduto.addEventListener('submit', async (e) => {
     const idEdicao = editIdInput.value;
     btnPublicar.disabled = true;
 
+    // CAPTURA DOS DADOS (INCLUINDO ESTOQUE)
     const dados = {
         userId: auth.currentUser.uid,
         nome: document.getElementById('nomeProduto').value.trim(),
         preco: parseFloat(document.getElementById('precoVenda').value),
         categoria: document.getElementById('categoria').value,
         descricao: document.getElementById('descricaoProduto').value.trim(),
+        
+        // Novos campos de estoque convertidos para número
+        estoqueAtual: parseInt(estoqueAtualInput.value) || 0,
+        estoqueMinimo: parseInt(estoqueMinimoInput.value) || 0,
+        
         foto: urlFotoProduto,
         status: "disponivel",
         atualizadoEm: serverTimestamp()
@@ -182,7 +196,8 @@ formProduto.addEventListener('submit', async (e) => {
         }
 
         resetarFormulario();
-        carregarProdutosLista();
+        // Volta para a lista automaticamente após salvar
+        document.getElementById('btnVerLista').click();
     } catch (err) {
         console.error(err);
         alert("Erro ao salvar.");
@@ -215,4 +230,5 @@ const realizarSair = async () => {
         window.location.href = "index.html";
     }
 };
+
 document.getElementById('btnSairDesktop')?.addEventListener('click', realizarSair);
