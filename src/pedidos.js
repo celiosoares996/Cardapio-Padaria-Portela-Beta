@@ -5,7 +5,6 @@ import {
     getDocs, 
     query, 
     where, 
-    orderBy, 
     deleteDoc, 
     doc, 
     getDoc,
@@ -23,7 +22,7 @@ const valorTotalPedidoTxt = document.getElementById('valorTotalPedido');
 
 let itensNoCarrinho = [];
 let produtosDisponiveis = [];
-let filtroStatus = "Todos"; // Controle do filtro atual
+let filtroStatus = "Todos";
 const formatador = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 
 // --- 1. PREFERÊNCIAS E NOME DINÂMICO ---
@@ -53,7 +52,7 @@ async function carregarProdutosSelect(user) {
             produtosDisponiveis.push({ id: doc.id, ...p });
             selectProduto.innerHTML += `<option value="${doc.id}">${p.nome} - ${formatador.format(p.preco)}</option>`;
         });
-    } catch (e) { console.error("Erro ao carregar produtos para select:", e); }
+    } catch (e) { console.error("Erro ao carregar produtos:", e); }
 }
 
 // --- 3. LÓGICA DO CARRINHO ---
@@ -81,17 +80,25 @@ function renderizarCarrinho() {
     itensNoCarrinho.forEach((item, index) => {
         total += item.preco * item.qtd;
         containerItens.innerHTML += `
-            <div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100 mb-2">
-                <div>
-                    <p class="text-xs font-bold text-slate-700">${item.nome}</p>
-                    <p class="text-[10px] text-brand font-bold">${item.qtd}x ${formatador.format(item.preco)}</p>
+            <div class="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-2 animate-in fade-in slide-in-from-right-4 duration-300">
+                <div class="flex items-center gap-3">
+                    <div class="bg-brand/10 text-brand w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs">
+                        ${item.qtd}x
+                    </div>
+                    <div>
+                        <p class="text-xs font-extrabold text-slate-700 uppercase tracking-tight">${item.nome}</p>
+                        <p class="text-[10px] text-slate-400 font-bold">${formatador.format(item.preco)} cada</p>
+                    </div>
                 </div>
-                <button type="button" onclick="removerItem(${index})" class="text-red-400 hover:text-red-600 font-bold px-2">✕</button>
+                <button type="button" onclick="removerItem(${index})" class="text-slate-300 hover:text-red-500 transition-colors p-2">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
             </div>
         `;
     });
 
     valorTotalPedidoTxt.innerText = formatador.format(total);
+    if (window.lucide) lucide.createIcons();
 }
 
 window.removerItem = (index) => {
@@ -104,15 +111,14 @@ async function carregarPedidos() {
     const user = auth.currentUser;
     if (!user) return;
 
-    listaPedidos.innerHTML = `<div class="col-span-full py-10 text-center animate-pulse"><p class="text-slate-400 font-bold">Carregando...</p></div>`;
+    listaPedidos.innerHTML = `
+        <div class="col-span-full py-20 text-center">
+            <div class="w-12 h-12 border-4 border-slate-100 border-t-brand rounded-full animate-spin mx-auto mb-4"></div>
+            <p class="text-slate-400 font-bold italic text-sm tracking-wide">Sincronizando registros...</p>
+        </div>`;
 
     try {
-        // Ajustamos a query para evitar erros de índice se não houver configurações no console do Firebase
-        let q = query(
-            collection(db, "pedidos"), 
-            where("userId", "==", user.uid)
-        );
-
+        const q = query(collection(db, "pedidos"), where("userId", "==", user.uid));
         const querySnapshot = await getDocs(q);
         let pedidosArray = [];
         
@@ -120,10 +126,13 @@ async function carregarPedidos() {
             pedidosArray.push({ id: docSnap.id, ...docSnap.data() });
         });
 
-        // Ordenação manual (mais seguro que orderBy do Firebase para começar)
-        pedidosArray.sort((a, b) => b.createdAt?.toMillis() - a.createdAt?.toMillis());
+        // Ordenação por data (mais recente primeiro)
+        pedidosArray.sort((a, b) => {
+            const dateA = a.createdAt?.seconds || 0;
+            const dateB = b.createdAt?.seconds || 0;
+            return dateB - dateA;
+        });
 
-        // Filtragem manual
         if (filtroStatus !== "Todos") {
             pedidosArray = pedidosArray.filter(p => p.status === filtroStatus);
         }
@@ -131,64 +140,87 @@ async function carregarPedidos() {
         listaPedidos.innerHTML = "";
 
         if (pedidosArray.length === 0) {
-            listaPedidos.innerHTML = `<div class="col-span-full py-20 text-center"><p class="text-slate-400 italic">Nenhum pedido em "${filtroStatus}".</p></div>`;
+            listaPedidos.innerHTML = `
+                <div class="col-span-full py-20 text-center">
+                    <i data-lucide="inbox" class="w-12 h-12 text-slate-200 mx-auto mb-4"></i>
+                    <p class="text-slate-400 font-medium italic">Nenhum pedido encontrado em "${filtroStatus}".</p>
+                </div>`;
+            if(window.lucide) lucide.createIcons();
             return;
         }
 
         pedidosArray.forEach(p => {
-            const itensStr = p.itens ? p.itens.map(i => `${i.qtd}x ${i.nome}`).join('<br>') : "Pedido s/ detalhes";
-            const badgeOrigem = p.origem === "Online" ? "bg-blue-50 text-blue-600" : "bg-purple-50 text-purple-600";
-            const badgeStatus = p.status === "Pendente" ? "bg-amber-50 text-amber-600 border-amber-100" : "bg-green-50 text-green-600 border-green-100";
+            const itensStr = p.itens ? p.itens.map(i => `<span class="block">• ${i.qtd}x ${i.nome}</span>`).join('') : "Pedido sem detalhes";
+            const isOnline = p.origem === "Online";
+            const isPendente = p.status === "Pendente";
+
+            const badgeOrigem = isOnline ? "bg-blue-50 text-blue-600" : "bg-purple-50 text-purple-600";
+            const badgeStatus = isPendente ? "bg-amber-50 text-amber-600 border-amber-100" : "bg-green-50 text-green-600 border-green-100";
 
             listaPedidos.innerHTML += `
-                <div class="bg-white p-6 rounded-[2rem] shadow-xl border border-gray-50 flex flex-col hover:scale-[1.01] transition-all">
-                    <div class="flex justify-between items-start mb-4">
-                        <div class="flex flex-col gap-1">
-                            <span class="text-[9px] w-fit font-black uppercase px-2 py-0.5 rounded-lg ${badgeOrigem}">${p.origem || 'Balcão'}</span>
-                            <span class="text-[9px] w-fit font-black uppercase px-2 py-0.5 rounded-lg border ${badgeStatus}">${p.status}</span>
+                <div class="bg-white p-7 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300">
+                    <div class="flex justify-between items-start mb-6">
+                        <div class="flex flex-col gap-2">
+                            <span class="text-[9px] w-fit font-black uppercase px-2.5 py-1 rounded-lg ${badgeOrigem} tracking-widest">
+                                ${p.origem || 'Balcão'}
+                            </span>
+                            <span class="text-[9px] w-fit font-black uppercase px-2.5 py-1 rounded-lg border ${badgeStatus} tracking-widest">
+                                ${p.status}
+                            </span>
                         </div>
-                        <div class="flex gap-2">
-                            ${p.status === "Pendente" ? `<button onclick="finalizarPedido('${p.id}')" class="bg-green-500 text-white text-[10px] font-black p-2 rounded-xl px-3 hover:bg-green-600 transition-all">CONCLUIR</button>` : ''}
-                            <button onclick="excluirPedido('${p.id}')" class="text-red-300 hover:text-red-500 transition-colors p-2 text-xs">✕</button>
+                        <div class="flex gap-1">
+                            ${isPendente ? `
+                                <button onclick="finalizarPedido('${p.id}')" class="bg-green-500 text-white p-2.5 rounded-xl hover:bg-green-600 shadow-lg shadow-green-200 transition-all group" title="Concluir Venda">
+                                    <i data-lucide="check" class="w-4 h-4"></i>
+                                </button>` : ''}
+                            <button onclick="excluirPedido('${p.id}')" class="text-slate-300 hover:text-red-500 hover:bg-red-50 p-2.5 rounded-xl transition-all" title="Excluir Registro">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
                         </div>
                     </div>
                     
-                    <h4 class="font-black text-slate-800 leading-tight text-lg mb-1">${p.cliente || 'Consumidor'}</h4>
-                    <div class="bg-slate-50 p-4 rounded-2xl mb-4 border border-slate-100 flex-1">
-                        <p class="text-[10px] text-slate-400 font-black uppercase mb-2 tracking-widest">Detalhes do Pedido</p>
-                        <p class="text-xs text-slate-600 font-bold leading-relaxed">${itensStr}</p>
+                    <h4 class="font-black text-slate-800 leading-tight text-xl mb-1 tracking-tighter">${p.cliente || 'Consumidor Final'}</h4>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.15em] mb-4">${p.horaEntrega || 'Horário não registrado'}</p>
+
+                    <div class="bg-slate-50/50 p-5 rounded-[1.5rem] mb-6 border border-slate-100/50 flex-1">
+                        <p class="text-[9px] text-slate-400 font-black uppercase mb-3 tracking-widest">Itens do Pedido</p>
+                        <div class="text-xs text-slate-600 font-bold leading-relaxed space-y-1">${itensStr}</div>
                     </div>
 
-                    <div class="flex justify-between items-center mt-auto pt-4 border-t border-dashed border-slate-100">
-                        <span class="text-xl font-black text-brand">${formatador.format(p.total)}</span>
-                        <div class="text-right">
-                             <p class="text-[9px] font-black text-slate-300 uppercase leading-none">Entrega/Venda em</p>
-                             <p class="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">${p.horaEntrega || ''}</p>
+                    <div class="flex justify-between items-center pt-5 border-t border-dashed border-slate-200">
+                        <div class="flex flex-col">
+                            <span class="text-[9px] font-black text-slate-300 uppercase tracking-widest leading-none mb-1">Total Geral</span>
+                            <span class="text-2xl font-black text-brand tracking-tighter">${formatador.format(p.total)}</span>
+                        </div>
+                        <div class="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center text-slate-300">
+                             <i data-lucide="receipt" class="w-5 h-5"></i>
                         </div>
                     </div>
                 </div>
             `;
         });
+        if (window.lucide) lucide.createIcons();
     } catch (e) { console.error("Erro ao carregar pedidos:", e); }
 }
 
-// --- 5. LÓGICA DOS FILTROS (BOTÕES TODOS, PENDENTES, CONCLUÍDOS) ---
+// --- 5. LÓGICA DOS FILTROS ---
 document.addEventListener('click', (e) => {
-    if (e.target.matches('button') && ['Todos', 'Pendentes', 'Concluídos'].includes(e.target.innerText.trim())) {
-        // Pegar o status clicado
-        const selecionado = e.target.innerText.trim();
-        filtroStatus = selecionado === "Todos" ? "Todos" : (selecionado === "Pendentes" ? "Pendente" : "Concluído");
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    
+    const texto = btn.innerText.trim();
+    if (['Todos', 'Pendentes', 'Concluídos'].includes(texto)) {
+        filtroStatus = texto === "Todos" ? "Todos" : (texto === "Pendentes" ? "Pendente" : "Concluído");
 
-        // Resetar visual de todos os botões de filtro
-        document.querySelectorAll('button').forEach(btn => {
-            if (['Todos', 'Pendentes', 'Concluídos'].includes(btn.innerText.trim())) {
-                btn.className = "px-6 py-2 bg-white text-slate-400 rounded-full text-xs font-black uppercase tracking-wider border border-slate-100 hover:bg-slate-50 transition";
+        // Resetar botões
+        document.querySelectorAll('button').forEach(b => {
+            if (['Todos', 'Pendentes', 'Concluídos'].includes(b.innerText.trim())) {
+                b.className = "px-8 py-3 bg-white text-slate-400 rounded-2xl text-xs font-black uppercase tracking-widest border border-slate-200 hover:bg-slate-50 transition-all";
             }
         });
 
-        // Aplicar visual de ativo no clicado
-        e.target.className = "px-6 py-2 bg-brand text-white rounded-full text-xs font-black uppercase tracking-wider shadow-md";
-        
+        // Ativar clicado
+        btn.className = "px-8 py-3 bg-brand text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-blue-500/20";
         carregarPedidos();
     }
 });
@@ -196,12 +228,12 @@ document.addEventListener('click', (e) => {
 // --- 6. FINALIZAR VENDA (BALCÃO) ---
 form.onsubmit = async (e) => {
     e.preventDefault();
-    if (itensNoCarrinho.length === 0) return Swal.fire("Atenção", "O carrinho está vazio!", "warning");
+    if (itensNoCarrinho.length === 0) return Swal.fire("Carrinho Vazio", "Selecione ao menos um produto para vender.", "warning");
 
     const btn = form.querySelector('button[type="submit"]');
     const originalText = btn.innerText;
     btn.disabled = true;
-    btn.innerText = "FINALIZANDO...";
+    btn.innerHTML = `<span class="flex items-center gap-2"><div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> PROCESSANDO...</span>`;
 
     const totalVenda = itensNoCarrinho.reduce((acc, i) => acc + (i.preco * i.qtd), 0);
 
@@ -227,7 +259,13 @@ form.onsubmit = async (e) => {
             });
         }
 
-        Swal.fire("Sucesso!", "Venda finalizada e estoque abatido.", "success");
+        Swal.fire({
+            title: "Venda Realizada!",
+            text: "O estoque foi atualizado automaticamente.",
+            icon: "success",
+            confirmButtonColor: "#2563eb"
+        });
+
         modal.classList.add('hidden');
         itensNoCarrinho = [];
         form.reset();
@@ -235,22 +273,23 @@ form.onsubmit = async (e) => {
         carregarPedidos();
     } catch (e) { 
         console.error(e); 
-        Swal.fire("Erro", "Não foi possível processar a venda.", "error");
+        Swal.fire("Erro", "Falha ao registrar venda.", "error");
     } finally { 
         btn.disabled = false; 
         btn.innerText = originalText;
     }
 };
 
-// --- 7. AÇÕES DE PEDIDO (FINALIZAR/EXCLUIR) ---
+// --- 7. AÇÕES DE PEDIDO ---
 window.finalizarPedido = async (id) => {
     const result = await Swal.fire({
-        title: 'Concluir este pedido?',
-        text: "O status será alterado para Concluído.",
+        title: 'Concluir Venda?',
+        text: "O status passará para Concluído.",
         icon: 'question',
         showCancelButton: true,
         confirmButtonText: 'Sim, concluir',
-        confirmButtonColor: '#22c55e'
+        confirmButtonColor: '#22c55e',
+        cancelButtonColor: '#64748b'
     });
 
     if(result.isConfirmed) {
@@ -263,12 +302,13 @@ window.finalizarPedido = async (id) => {
 
 window.excluirPedido = async (id) => {
     const result = await Swal.fire({
-        title: 'Excluir registro?',
-        text: "Isso não devolverá os itens ao estoque!",
+        title: 'Remover Registro?',
+        text: "Essa ação é irreversível.",
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonText: 'Excluir',
-        confirmButtonColor: '#ef4444'
+        confirmButtonText: 'Sim, excluir',
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b'
     });
 
     if(result.isConfirmed) {
@@ -290,7 +330,7 @@ onAuthStateChanged(auth, (user) => {
     }
 });
 
-// Controle de Modal e Logout
+// Modal Control
 document.getElementById('abrirModalPedido').onclick = () => {
     itensNoCarrinho = [];
     renderizarCarrinho();
