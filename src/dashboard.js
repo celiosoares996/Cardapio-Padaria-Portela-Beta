@@ -32,7 +32,7 @@ async function carregarDashboard(user) {
             }
         }
 
-        // B. Buscar Coleções
+        // B. Buscar Coleções de forma paralela para velocidade
         const produtosRef = collection(db, "produtos");
         const pedidosRef = collection(db, "pedidos");
 
@@ -44,17 +44,16 @@ async function carregarDashboard(user) {
         // C. Processamento de Dados
         let faturamentoTotal = 0;
         let alertasEstoque = [];
-        let contagemVendas = {}; // Para o Top 3
+        let contagemVendas = {}; 
 
         // Processar Pedidos
         snapPedidos.forEach(doc => {
             const pedido = doc.data();
             faturamentoTotal += parseFloat(pedido.total || 0);
             
-            // Contar itens vendidos (se houver array de itens no pedido)
-            if (pedido.itens) {
+            if (pedido.itens && Array.isArray(pedido.itens)) {
                 pedido.itens.forEach(item => {
-                    contagemVendas[item.nome] = (contagemVendas[item.nome] || 0) + (item.qtd || 1);
+                    contagemVendas[item.nome] = (contagemVendas[item.nome] || 0) + (parseInt(item.qtd) || 1);
                 });
             }
         });
@@ -63,6 +62,7 @@ async function carregarDashboard(user) {
         snapProdutos.forEach(doc => {
             const p = doc.data();
             const qtd = parseInt(p.estoque || 0);
+            // Definimos 5 como estoque crítico
             if (qtd <= 5) {
                 alertasEstoque.push({ nome: p.nome, qtd: qtd });
             }
@@ -71,9 +71,14 @@ async function carregarDashboard(user) {
         // --- 2. ATUALIZAÇÃO DA UI ---
 
         // Atualizar Cards Principais
-        document.getElementById('faturamentoMes').innerText = formatador.format(faturamentoTotal);
-        document.getElementById('totalAlertasEstoque').innerText = alertasEstoque.length;
-        document.getElementById('totalClientes').innerText = snapPedidos.size; // Simulação: cada pedido um cliente ou use col. clientes
+        if (document.getElementById('faturamentoMes')) 
+            document.getElementById('faturamentoMes').innerText = formatador.format(faturamentoTotal);
+        
+        if (document.getElementById('totalAlertasEstoque'))
+            document.getElementById('totalAlertasEstoque').innerText = alertasEstoque.length;
+        
+        if (document.getElementById('totalClientes'))
+            document.getElementById('totalClientes').innerText = snapPedidos.size;
 
         // Atualizar Sininho e Alertas
         const badgeMobile = document.getElementById('badgeNotificacao');
@@ -81,24 +86,30 @@ async function carregarDashboard(user) {
         const containerAlertas = document.getElementById('containerAlertas');
 
         if (alertasEstoque.length > 0) {
-            badgeMobile.classList.remove('hidden');
-            badgeMobile.innerText = alertasEstoque.length;
-            if(badgeDesk) {
-                badgeDesk.classList.remove('hidden');
+            if (badgeMobile) {
+                badgeMobile.classList.remove('hidden');
+                badgeMobile.innerText = alertasEstoque.length;
             }
+            if (badgeDesk) badgeDesk.classList.remove('hidden');
 
             containerAlertas.innerHTML = alertasEstoque.map(alerta => `
-                <div class="flex items-center gap-3 p-2 bg-orange-50 rounded-xl border border-orange-100">
+                <div class="flex items-center gap-3 p-3 bg-orange-50 rounded-xl border border-orange-100 mb-2">
                     <span class="text-lg">⚠️</span>
                     <div>
-                        <p class="text-[11px] font-bold text-slate-700 uppercase">${alerta.nome}</p>
-                        <p class="text-[10px] text-orange-600">Estoque crítico: ${alerta.qtd} un.</p>
+                        <p class="text-[11px] font-bold text-slate-700 uppercase leading-tight">${alerta.nome}</p>
+                        <p class="text-[10px] text-orange-600 font-medium">Estoque: ${alerta.qtd} unidades</p>
                     </div>
                 </div>
             `).join('');
             
-            document.getElementById('statusEstoqueGeral').innerText = "Itens Precisam de Reposição";
-            document.getElementById('statusEstoqueGeral').classList.replace('text-slate-400', 'text-orange-500');
+            const statusEstoque = document.getElementById('statusEstoqueGeral');
+            if (statusEstoque) {
+                statusEstoque.innerText = "Itens Precisam de Reposição";
+                statusEstoque.classList.remove('text-slate-400');
+                statusEstoque.classList.add('text-orange-500');
+            }
+        } else {
+            containerAlertas.innerHTML = `<p class="text-xs text-slate-400 italic text-center py-4">Tudo em dia por aqui! ✅</p>`;
         }
 
         // Atualizar Top 3 Produtos
@@ -107,26 +118,28 @@ async function carregarDashboard(user) {
             .sort((a, b) => b[1] - a[1])
             .slice(0, 3);
 
-        if (topProdutos.length > 0) {
+        if (topProdutos.length > 0 && containerTop) {
             containerTop.innerHTML = topProdutos.map(([nome, qtd], index) => `
-                <div class="flex items-center justify-between">
+                <div class="flex items-center justify-between p-2 hover:bg-white/5 rounded-xl transition-colors">
                     <div class="flex items-center gap-3">
-                        <span class="text-xs font-black text-slate-600">${index + 1}º</span>
+                        <span class="text-xs font-black text-brand">${index + 1}º</span>
                         <span class="text-sm font-bold text-slate-300">${nome}</span>
                     </div>
-                    <span class="text-[10px] bg-slate-800 px-2 py-1 rounded-lg text-slate-400">${qtd} vendas</span>
+                    <span class="text-[10px] bg-slate-800 px-2 py-1 rounded-lg text-slate-400 border border-slate-700">${qtd} un.</span>
                 </div>
             `).join('');
         }
 
         // Insight Inteligente
         const insight = document.getElementById('insightTexto');
-        if (alertasEstoque.length > 0) {
-            insight.innerHTML = `⚠️ Você tem <b>${alertasEstoque.length} produtos</b> acabando. Reponha o estoque para não perder vendas!`;
-        } else if (faturamentoTotal > 0) {
-            insight.innerHTML = `🚀 Seu faturamento está crescendo! Que tal cadastrar um novo produto hoje?`;
-        } else {
-            insight.innerHTML = `💡 Dica: Cadastre seus primeiros produtos e registre uma venda para ver a mágica acontecer.`;
+        if (insight) {
+            if (alertasEstoque.length > 0) {
+                insight.innerHTML = `⚠️ Atenção! <b>${alertasEstoque.length} produtos</b> estão no limite do estoque. Evite rupturas!`;
+            } else if (faturamentoTotal > 0) {
+                insight.innerHTML = `🚀 Bom trabalho! Seu faturamento acumulado é de <b>${formatador.format(faturamentoTotal)}</b>.`;
+            } else {
+                insight.innerHTML = `💡 <b>Dica:</b> Registre suas primeiras vendas para acompanhar o crescimento do seu negócio aqui.`;
+            }
         }
 
     } catch (error) {
@@ -157,11 +170,15 @@ const logoutAction = async () => {
     });
 
     if (confirmacao.isConfirmed) {
-        await signOut(auth);
-        localStorage.clear();
-        window.location.href = 'index.html';
+        try {
+            await signOut(auth);
+            localStorage.clear();
+            window.location.href = 'index.html';
+        } catch (error) {
+            console.error("Erro ao sair:", error);
+        }
     }
 };
 
-const btnSair = document.getElementById('btnSairDesktop');
-if (btnSair) btnSair.addEventListener('click', logoutAction);
+// Vinculação de eventos
+document.getElementById('btnSairDesktop')?.addEventListener('click', logoutAction);
