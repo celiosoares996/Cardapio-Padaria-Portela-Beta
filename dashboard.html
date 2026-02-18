@@ -11,23 +11,28 @@
     
     <style>
         :root { --cor-primaria: #2563eb; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; }
+        
         .bg-brand { background-color: var(--cor-primaria) !important; }
         .text-brand { color: var(--cor-primaria) !important; }
         .border-brand { border-color: var(--cor-primaria) !important; }
-        .shadow-brand { 
-            box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.2);
-        }
         
+        /* Layout Base unificado */
         body { padding-bottom: 90px; } 
         @media (min-width: 768px) { 
-            body { padding-bottom: 0; padding-left: 260px; } 
+            body { padding-bottom: 0; padding-left: 280px; } 
         }
 
-        /* Ajuste fino para os ícones */
-        i[data-lucide] {
-            stroke-width: 2.5px;
+        /* Destaque do item ativo no menu */
+        .nav-item-active {
+            background-color: var(--cor-primaria) !important;
+            color: white !important;
+            box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.2);
         }
 
+        i[data-lucide] { stroke-width: 2.5px; }
+
+        /* Animação notificações */
         #listaNotificacoes {
             display: none;
             animation: fadeIn 0.2s ease-out;
@@ -36,85 +41,75 @@
             from { opacity: 0; transform: translateY(-10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-
-        #containerAlertas::-webkit-scrollbar { width: 4px; }
-        #containerAlertas::-webkit-scrollbar-thumb {
-            background: #e2e8f0;
-            border-radius: 10px;
-        }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen transition-all font-sans">
+<body class="text-slate-900">
 
-    <aside class="hidden md:flex fixed left-0 top-0 h-full w-64 bg-white border-r border-slate-100 flex-col p-6 z-50">
-        <div class="flex items-center gap-3 mb-10 px-2">
-            <div id="logoContainerSide" class="w-10 h-10 rounded-xl bg-brand flex items-center justify-center text-white shadow-lg">
+    <aside class="hidden md:flex fixed left-0 top-0 h-full w-72 bg-white border-r border-slate-200 flex-col p-8 z-50">
+        <div class="flex items-center gap-3 mb-12">
+            <div class="w-10 h-10 bg-brand rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-200">
                 <i data-lucide="layout-dashboard" class="w-6 h-6"></i>
             </div>
             <div class="flex flex-col">
-                <h2 id="sideNomeNegocio" class="text-lg font-black text-slate-800 tracking-tighter uppercase leading-none">Carregando...</h2>
-                <span class="text-[10px] font-bold text-slate-400 tracking-widest uppercase mt-1">Painel Gestão</span>
+                <h2 id="sideNomeNegocio" class="text-lg font-extrabold tracking-tight text-slate-800 uppercase italic leading-tight">Carregando...</h2>
+                <span class="text-[10px] font-bold text-slate-400 tracking-widest uppercase">Painel Gestão</span>
             </div>
         </div>
 
         <nav class="flex-1 space-y-2">
-            <a href="dashboard.html" class="flex items-center gap-3 p-4 rounded-2xl bg-brand text-white font-bold shadow-brand transition-all">
+            <a href="dashboard.html" class="flex items-center gap-3 p-4 rounded-2xl nav-item-active font-bold transition-all">
                 <i data-lucide="home" class="w-5 h-5"></i> Início
             </a>
-            <a href="estoque.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:bg-slate-50 hover:text-brand font-bold transition-all group">
-                <i data-lucide="package" class="w-5 h-5 group-hover:scale-110 transition-transform"></i> Estoque
+            <a href="estoque.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:text-brand hover:bg-blue-50 transition-all font-semibold group">
+                <i data-lucide="boxes" class="w-5 h-5 group-hover:scale-110 transition-transform"></i> Estoque
             </a>
-            <a href="produtos.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:bg-slate-50 hover:text-brand font-bold transition-all group">
+            <a href="produtos.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:text-brand hover:bg-blue-50 transition-all font-semibold group">
                 <i data-lucide="shopping-bag" class="w-5 h-5 group-hover:scale-110 transition-transform"></i> Produtos
             </a>
-            <a href="pedidos.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:bg-slate-50 hover:text-brand font-bold transition-all group">
+            <a href="pedidos.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:text-brand hover:bg-blue-50 transition-all font-semibold group">
                 <i data-lucide="receipt" class="w-5 h-5 group-hover:scale-110 transition-transform"></i> Vendas
             </a>
-            <a href="perfil.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:bg-slate-50 hover:text-brand font-bold transition-all group">
+            <a href="perfil.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:text-brand hover:bg-blue-50 transition-all font-semibold group">
                 <i data-lucide="settings" class="w-5 h-5 group-hover:scale-110 transition-transform"></i> Perfil
             </a>
         </nav>
 
-        <button id="btnSairDesktop" class="flex items-center gap-3 p-4 rounded-2xl text-red-400 hover:bg-red-50 font-black transition-all mt-auto uppercase text-xs tracking-widest">
+        <button id="btnSairDesktop" class="flex items-center gap-3 p-4 rounded-2xl text-red-400 hover:bg-red-50 font-bold transition-all mt-auto uppercase text-xs tracking-widest">
             <i data-lucide="log-out" class="w-4 h-4"></i> Sair
         </button>
     </aside>
 
-    <nav class="md:hidden bg-white shadow-sm p-4 sticky top-0 z-[60] flex justify-between items-center border-b border-gray-100">
+    <nav class="md:hidden bg-white/80 backdrop-blur-md sticky top-0 z-40 p-5 flex justify-between items-center border-b border-slate-100">
         <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-lg bg-brand flex items-center justify-center text-white shadow-md">
-                <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+            <div class="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500">
+                <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
             </div>
-            <h2 id="navNomeNegocio" class="text-sm font-black text-slate-800 tracking-tighter uppercase">Carregando...</h2>
+            <h2 id="navNomeNegocio" class="text-lg font-black text-slate-800 uppercase italic">Início</h2>
         </div>
         
-        <div class="relative">
-            <button id="btnNotificacao" class="p-2 bg-slate-50 rounded-full text-slate-400 relative">
-                <i data-lucide="bell" class="w-5 h-5"></i>
-                <span id="badgeNotificacao" class="hidden absolute top-0 right-0 w-4 h-4 bg-red-500 text-white text-[8px] flex items-center justify-center rounded-full border-2 border-white font-bold">0</span>
-            </button>
-        </div>
+        <button id="btnNotificacao" class="p-3 bg-slate-50 rounded-full text-slate-400 relative">
+            <i data-lucide="bell" class="w-6 h-6"></i>
+            <span id="badgeNotificacao" class="hidden absolute top-0 right-0 w-4 h-4 bg-red-500 text-white text-[8px] flex items-center justify-center rounded-full border-2 border-white font-bold">0</span>
+        </button>
     </nav>
 
-    <main class="max-w-5xl mx-auto p-4 md:p-10 relative">
-        <header class="mb-8 flex justify-between items-start relative">
+    <main class="max-w-5xl mx-auto p-5 md:p-12 relative">
+        <header class="mb-10 flex justify-between items-start relative">
             <div>
-                <h1 class="text-3xl md:text-4xl font-black text-slate-800 tracking-tight">
+                <h1 class="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tighter">
                     Olá, <span class="text-brand" id="boasVindasNome">...</span>
                 </h1>
-                <p class="text-slate-500 font-medium mt-1">Resumão do seu negócio hoje:</p>
+                <p class="text-slate-500 font-medium mt-2">Resumão do seu negócio hoje:</p>
             </div>
 
-            <div class="relative">
-                <button id="btnNotificacaoDesktop" class="hidden md:flex p-3 bg-white border border-slate-100 rounded-2xl text-slate-400 relative hover:bg-slate-50 transition-all shadow-sm">
-                    <i data-lucide="bell" class="w-5 h-5"></i>
-                    <span id="badgeNotificacaoDesktop" class="hidden absolute top-2 right-2 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
-                </button>
-            </div>
+            <button id="btnNotificacaoDesktop" class="hidden md:flex p-4 bg-white border border-slate-200 rounded-2xl text-slate-400 relative hover:bg-slate-50 transition-all shadow-sm">
+                <i data-lucide="bell" class="w-6 h-6"></i>
+                <span id="badgeNotificacaoDesktop" class="hidden absolute top-3 right-3 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
+            </button>
 
-            <div id="listaNotificacoes" class="fixed md:absolute right-4 md:right-0 top-[75px] md:top-16 w-[calc(100%-2rem)] md:w-80 bg-white rounded-3xl shadow-2xl border border-slate-100 p-5 z-[100]">
-                <div class="flex justify-between items-center mb-4">
-                    <h4 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Notificações</h4>
+            <div id="listaNotificacoes" class="fixed md:absolute right-5 md:right-0 top-[85px] md:top-20 w-[calc(100%-2.5rem)] md:w-80 bg-white rounded-[2.5rem] shadow-2xl border border-slate-100 p-6 z-[100]">
+                <div class="flex justify-between items-center mb-5">
+                    <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest">Notificações</h4>
                     <span class="bg-blue-50 text-brand text-[10px] px-2 py-1 rounded-lg font-bold">Recentes</span>
                 </div>
                 <div id="containerAlertas" class="space-y-3 max-h-80 overflow-y-auto pr-1">
@@ -123,105 +118,99 @@
             </div>
         </header>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-            <div class="bg-white p-6 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-gray-50">
-                <div class="bg-green-50 w-12 h-12 flex items-center justify-center rounded-2xl mb-4 text-green-600">
-                    <i data-lucide="banknote" class="w-6 h-6"></i>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+            <div class="bg-white p-8 rounded-[2.5rem] shadow-xl shadow-slate-200/40 border border-slate-50">
+                <div class="bg-green-50 w-14 h-14 flex items-center justify-center rounded-2xl mb-6 text-green-600">
+                    <i data-lucide="banknote" class="w-7 h-7"></i>
                 </div>
                 <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Faturamento (Mês)</h3>
                 <p id="faturamentoMes" class="text-3xl font-black text-slate-800 tracking-tighter mt-1">R$ 0,00</p>
-                <span class="text-[10px] font-bold text-green-500 uppercase mt-2 block">● Fluxo de Caixa</span>
+                <span class="text-[10px] font-bold text-green-500 uppercase mt-3 block">● Fluxo de Caixa</span>
             </div>
 
-            <div class="bg-white p-6 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-gray-50 overflow-hidden">
-                <div class="bg-orange-50 w-12 h-12 flex items-center justify-center rounded-2xl mb-4 text-orange-600">
-                    <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+            <div class="bg-white p-8 rounded-[2.5rem] shadow-xl shadow-slate-200/40 border border-slate-50">
+                <div class="bg-orange-50 w-14 h-14 flex items-center justify-center rounded-2xl mb-6 text-orange-600">
+                    <i data-lucide="alert-triangle" class="w-7 h-7"></i>
                 </div>
                 <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Alertas de Estoque</h3>
                 <p id="totalAlertasEstoque" class="text-3xl font-black text-slate-800 tracking-tighter mt-1">0</p>
-                <span id="statusEstoqueGeral" class="text-[10px] font-bold text-slate-400 uppercase mt-2 block">Tudo em dia</span>
+                <span id="statusEstoqueGeral" class="text-[10px] font-bold text-slate-400 uppercase mt-3 block tracking-wider">Tudo em dia</span>
             </div>
 
-            <div class="bg-white p-6 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-gray-50">
-                <div class="bg-purple-50 w-12 h-12 flex items-center justify-center rounded-2xl mb-4 text-purple-600">
-                    <i data-lucide="users" class="w-6 h-6"></i>
+            <div class="bg-white p-8 rounded-[2.5rem] shadow-xl shadow-slate-200/40 border border-slate-50">
+                <div class="bg-purple-50 w-14 h-14 flex items-center justify-center rounded-2xl mb-6 text-purple-600">
+                    <i data-lucide="users" class="w-7 h-7"></i>
                 </div>
                 <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Clientes Ativos</h3>
                 <p id="totalClientes" class="text-3xl font-black text-slate-800 tracking-tighter mt-1">0</p>
-                <span class="text-[10px] font-bold text-purple-500 uppercase mt-2 block">● Fidelização</span>
+                <span class="text-[10px] font-bold text-purple-500 uppercase mt-3 block tracking-wider">● Fidelização</span>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-            <div class="bg-slate-900 p-8 rounded-[2.5rem] text-white">
-                <h3 class="text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
-                    <i data-lucide="crown" class="w-4 h-4 text-yellow-500"></i> Top 3 Mais Vendidos
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+            <div class="bg-slate-900 p-10 rounded-[3rem] text-white shadow-2xl shadow-slate-900/20">
+                <h3 class="text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-8 flex items-center gap-3">
+                    <i data-lucide="crown" class="w-5 h-5 text-yellow-500"></i> Top 3 Mais Vendidos
                 </h3>
-                <div id="containerTopProdutos" class="space-y-4">
+                <div id="containerTopProdutos" class="space-y-5">
                     <p class="text-sm text-slate-500 italic">Aguardando vendas...</p>
                 </div>
             </div>
 
-            <div class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
-                <h3 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
-                    <i data-lucide="lightbulb" class="w-4 h-4 text-brand"></i> Insight do Dia
+            <div class="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm">
+                <h3 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-8 flex items-center gap-3">
+                    <i data-lucide="lightbulb" class="w-5 h-5 text-brand"></i> Insight do Dia
                 </h3>
-                <div id="insightTexto" class="text-slate-600 font-medium italic">
+                <div id="insightTexto" class="text-slate-600 font-medium italic text-lg leading-relaxed">
                     Carregando indicadores inteligentes...
                 </div>
             </div>
         </div>
 
-        <h2 class="text-sm font-black text-slate-400 uppercase tracking-[0.2em] mb-4 ml-1">Ações de Gestão</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <a href="pedidos.html" class="bg-brand text-white p-6 rounded-[2rem] font-black shadow-xl shadow-blue-500/20 hover:scale-[1.02] transition-all flex items-center justify-between group">
+        <h2 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-6 ml-1">Ações de Gestão</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <a href="pedidos.html" class="bg-brand text-white p-8 rounded-[2.5rem] font-black shadow-2xl shadow-blue-500/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-between group">
                 <div class="flex items-center uppercase tracking-widest text-sm">
-                    <span class="bg-white/20 p-3 rounded-xl mr-4 group-hover:rotate-12 transition-transform flex items-center justify-center">
-                        <i data-lucide="plus-circle" class="w-5 h-5"></i>
+                    <span class="bg-white/20 p-4 rounded-2xl mr-5 group-hover:rotate-12 transition-transform">
+                        <i data-lucide="plus-circle" class="w-6 h-6"></i>
                     </span>
                     Registrar Venda
                 </div>
-                <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                <i data-lucide="arrow-right" class="w-6 h-6"></i>
             </a>
             
-            <a href="produtos.html" class="bg-white border border-slate-200 text-slate-800 p-6 rounded-[2rem] font-black hover:bg-slate-50 transition-all flex items-center justify-between group">
+            <a href="produtos.html" class="bg-white border-2 border-slate-100 text-slate-800 p-8 rounded-[2.5rem] font-black hover:bg-slate-50 hover:border-brand/20 transition-all flex items-center justify-between group">
                 <div class="flex items-center uppercase tracking-widest text-sm">
-                    <span class="bg-slate-100 p-3 rounded-xl mr-4 group-hover:rotate-12 transition-transform flex items-center justify-center">
-                        <i data-lucide="sparkles" class="w-5 h-5"></i>
+                    <span class="bg-slate-100 p-4 rounded-2xl mr-5 group-hover:rotate-12 transition-transform">
+                        <i data-lucide="sparkles" class="w-6 h-6"></i>
                     </span>
                     Novo Produto
                 </div>
-                <i data-lucide="arrow-right" class="w-5 h-5 text-slate-300"></i>
+                <i data-lucide="arrow-right" class="w-6 h-6 text-slate-300"></i>
             </a>
         </div>
     </main>
 
-    <div id="tabBarMobile" class="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-gray-100 px-6 py-4 flex justify-between items-center z-50 rounded-t-[2rem] shadow-[0_-10px_25px_rgba(0,0,0,0.05)]">
-        <a href="dashboard.html" class="flex flex-col items-center text-brand">
+    <div class="md:hidden fixed bottom-6 left-6 right-6 bg-slate-900/95 backdrop-blur-xl rounded-[2.5rem] p-4 flex justify-around items-center z-50 shadow-2xl border border-white/10">
+        <a href="dashboard.html" class="p-4 bg-brand rounded-2xl text-white shadow-lg shadow-blue-500/40">
             <i data-lucide="home" class="w-6 h-6"></i>
-            <span class="text-[9px] font-black uppercase mt-1">Início</span>
         </a>
-        <a href="pedidos.html" class="flex flex-col items-center text-slate-300">
+        <a href="pedidos.html" class="p-3 text-slate-400">
             <i data-lucide="receipt" class="w-6 h-6"></i>
-            <span class="text-[9px] font-black uppercase mt-1">Vendas</span>
         </a>
-        <a href="estoque.html" class="flex flex-col items-center text-slate-300">
+        <a href="estoque.html" class="p-3 text-slate-400">
             <i data-lucide="package" class="w-6 h-6"></i>
-            <span class="text-[9px] font-black uppercase mt-1">Estoque</span>
         </a>
-        <a href="perfil.html" class="flex flex-col items-center text-slate-300">
+        <a href="perfil.html" class="p-3 text-slate-400">
             <i data-lucide="settings" class="w-6 h-6"></i>
-            <span class="text-[9px] font-black uppercase mt-1">Perfil</span>
         </a>
     </div>
 
     <script type="module" src="./src/dashboard.js"></script>
     <script>
-        // Inicializa os ícones Lucide
         lucide.createIcons();
 
         const lista = document.getElementById('listaNotificacoes');
-        
         function toggleNotificacoes(e) {
             e.stopPropagation();
             const isVisible = lista.style.display === 'block';
