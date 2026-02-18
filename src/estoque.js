@@ -23,6 +23,7 @@ const editIdInput = document.getElementById('editId');
 
 // --- 1. TEMA E NOME DO NEGÓCIO ---
 async function carregarPreferencias(user) {
+    if (!user) return;
     try {
         const docRef = doc(db, "usuarios", user.uid);
         const docSnap = await getDoc(docRef);
@@ -60,6 +61,7 @@ async function carregarEstoque(user) {
     if (!user) return;
     
     try {
+        // Importante: Verifique se existe um índice para userId no console do Firebase se o erro persistir
         const q = query(collection(db, "estoque"), where("userId", "==", user.uid));
         const querySnapshot = await getDocs(q);
         
@@ -117,8 +119,8 @@ async function carregarEstoque(user) {
         
         if(window.lucide) lucide.createIcons();
     } catch (e) { 
-        console.error("Erro ao carregar estoque:", e);
-        lista.innerHTML = `<tr><td colspan="3" class="p-10 text-center text-red-400 text-xs font-bold uppercase">Erro ao carregar dados.</td></tr>`;
+        console.error("Erro detalhado do Firestore:", e);
+        lista.innerHTML = `<tr><td colspan="3" class="p-10 text-center text-red-400 text-xs font-bold uppercase">Erro ao carregar dados. Verifique o console.</td></tr>`;
     }
 }
 
@@ -126,7 +128,11 @@ async function carregarEstoque(user) {
 form?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const user = auth.currentUser;
-    if (!user) return;
+    
+    if (!user) {
+        alert("Sessão expirada. Faça login novamente.");
+        return;
+    }
 
     const btn = form.querySelector('button[type="submit"]');
     const id = editIdInput.value;
@@ -135,7 +141,6 @@ form?.addEventListener('submit', async (e) => {
     const originalContent = btn.innerHTML;
     btn.innerText = "Sincronizando...";
 
-    // Ajustado para parseInt (Unitário)
     const dados = {
         nome: document.getElementById('nomeItem').value.trim(),
         quantidade: parseInt(document.getElementById('quantidadeItem').value) || 0, 
@@ -146,7 +151,8 @@ form?.addEventListener('submit', async (e) => {
 
     try {
         if (id) {
-            await updateDoc(doc(db, "estoque", id), dados);
+            const docRef = doc(db, "estoque", id);
+            await updateDoc(docRef, dados);
         } else {
             dados.dataCriacao = serverTimestamp();
             await addDoc(collection(db, "estoque"), dados);
@@ -156,8 +162,9 @@ form?.addEventListener('submit', async (e) => {
         modal.classList.add('hidden');
         await carregarEstoque(user);
     } catch (error) {
-        console.error("Erro ao salvar insumo:", error);
-        alert("Erro ao salvar! Verifique suas permissões no Firestore.");
+        console.error("Erro ao salvar no Firestore:", error);
+        // Se o erro persistir, verifique se as Regras permitem escrita na coleção 'estoque'
+        alert("Erro ao salvar! Verifique se você publicou as regras no console do Firebase.");
     } finally {
         btn.disabled = false;
         btn.innerHTML = originalContent;
@@ -182,6 +189,7 @@ window.deletarItem = async (id) => {
             await deleteDoc(doc(db, "estoque", id));
             await carregarEstoque(auth.currentUser);
         } catch (error) {
+            console.error("Erro ao deletar:", error);
             alert("Erro ao excluir.");
         }
     }
