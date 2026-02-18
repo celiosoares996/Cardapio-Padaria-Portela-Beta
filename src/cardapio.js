@@ -255,7 +255,12 @@ window.enviarWhatsApp = async () => {
     const subtotal = carrinho.reduce((a,b) => a + b.preco, 0);
     const totalFinal = subtotal + taxaEntregaAtual;
 
-    // 1. Criar o objeto do pedido para o Banco de Dados
+    // --- CORREÇÃO WHATSAPP ---
+    let numDestino = whatsappLoja.replace(/\D/g,'');
+    if (numDestino.length >= 10 && numDestino.length <= 11) {
+        numDestino = '55' + numDestino;
+    }
+
     const dadosPedido = {
         userId: userId,
         cliente: nomeCliente,
@@ -272,11 +277,9 @@ window.enviarWhatsApp = async () => {
     };
 
     try {
-        // 2. Salvar no Firebase (Painel do Dono)
         await addDoc(collection(db, "pedidos"), dadosPedido);
 
-        // 3. Opcional: Salvar/Atualizar cadastro do cliente
-        const whatsLimpo = String(clienteLogado?.whatsapp || ""); // Se houver campo de whats no form
+        const whatsLimpo = String(clienteLogado?.whatsapp || ""); 
         if(whatsLimpo) {
             await setDoc(doc(db, "clientes", whatsLimpo), {
                 nome: nomeCliente,
@@ -286,7 +289,6 @@ window.enviarWhatsApp = async () => {
             }, { merge: true });
         }
 
-        // 4. Formatar Mensagem WhatsApp
         let msg = `*NOVO PEDIDO ONLINE* 🥐\n`;
         msg += `*Cliente:* ${nomeCliente}\n`;
         msg += `------------------------------\n`;
@@ -298,16 +300,15 @@ window.enviarWhatsApp = async () => {
         msg += `*TOTAL: R$ ${totalFinal.toFixed(2)}*\n\n`;
         msg += `_Pedido registrado no sistema._`;
 
-        window.open(`https://wa.me/${whatsappLoja.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`);
+        window.open(`https://wa.me/${numDestino}?text=${encodeURIComponent(msg)}`);
         
-        // Limpa carrinho e fecha
         carrinho = [];
         fecharCarrinho();
         atualizarBadgeCarrinho();
 
     } catch (e) {
         console.error("Erro ao processar pedido:", e);
-        alert("Houve um erro ao salvar seu pedido. Tente novamente.");
+        alert("Houve um erro ao salvar seu pedido.");
     }
 };
 
@@ -335,6 +336,13 @@ async function inicializar() {
             configEntrega = d.configEntrega || { coords: {lat:0, log:0}, raioMaximo: 0, valorKm: 0, tipo: 'fixo' };
 
             document.getElementById('nomeLoja').innerText = d.nomeNegocio || "Loja";
+            
+            // --- CORREÇÃO FOTO PERFIL ---
+            const imgPerfil = document.getElementById('logoLoja');
+            if(imgPerfil) {
+                imgPerfil.src = d.fotoPerfil || localStorage.getItem('estab-logo') || 'assets/default-logo.png';
+            }
+
             if(d.corTema) document.documentElement.style.setProperty('--cor-primaria', d.corTema);
             
             const banner = document.getElementById('bannerLoja');
@@ -353,7 +361,6 @@ async function inicializar() {
             }
         }
 
-        // CARREGAR PRODUTOS
         const q = query(collection(db, "produtos"), where("userId", "==", userId));
         const snap = await getDocs(q);
         const prods = {};
