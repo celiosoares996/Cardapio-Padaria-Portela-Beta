@@ -3,19 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Produtos | Publicar no Cardápio</title>
+    <title>Produtos | Digitaliza Menu</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
     <style>
         :root { --cor-primaria: #2563eb; }
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; }
+        
         .bg-brand { background-color: var(--cor-primaria) !important; }
         .text-brand { color: var(--cor-primaria) !important; }
         .border-brand { border-color: var(--cor-primaria) !important; }
         
         body { padding-bottom: 100px; }
         @media (min-width: 768px) { 
-            body { padding-bottom: 0; padding-left: 260px; } 
+            body { padding-bottom: 0; padding-left: 280px; } 
         }
 
         .input-focus:focus {
@@ -23,172 +28,189 @@
             box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
         }
 
-        /* Toggle Switch Style */
-        .toggle-checkbox:checked { right: 0; border-color: var(--cor-primaria); }
-        .toggle-checkbox:checked + .toggle-label { background-color: var(--cor-primaria); }
+        .nav-item-active {
+            background-color: var(--cor-primaria) !important;
+            color: white !important;
+            box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.2);
+        }
+
+        /* Estilização customizada para o scroll da lista */
+        .custom-scroll::-webkit-scrollbar { width: 5px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen transition-all">
+<body class="text-slate-900">
 
-    <aside class="hidden md:flex fixed left-0 top-0 h-full w-64 bg-white border-r border-slate-100 flex-col p-6 z-50">
-        <div class="flex items-center gap-3 mb-10 px-2">
-            <span class="text-3xl">🛍️</span>
-            <h2 id="sideNomeNegocio" class="text-xl font-black text-slate-800 tracking-tighter uppercase italic leading-none">Carregando...</h2>
+    <aside class="hidden md:flex fixed left-0 top-0 h-full w-72 bg-white border-r border-slate-200 flex-col p-8 z-50">
+        <div class="flex items-center gap-3 mb-12">
+            <div class="w-10 h-10 bg-brand rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-200">
+                <i data-lucide="shopping-bag" class="w-6 h-6"></i>
+            </div>
+            <div class="flex flex-col">
+                <h2 id="sideNomeNegocio" class="text-lg font-extrabold tracking-tight text-slate-800 uppercase italic leading-tight">Carregando...</h2>
+                <span class="text-[10px] font-bold text-slate-400 tracking-widest uppercase">Catálogo Digital</span>
+            </div>
         </div>
 
         <nav class="flex-1 space-y-2">
-            <a href="dashboard.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:bg-slate-50 hover:text-slate-600 font-bold transition-all">
-                <span>🏠</span> Início
+            <a href="dashboard.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:text-brand hover:bg-blue-50 transition-all font-semibold group">
+                <i data-lucide="home" class="w-5 h-5 group-hover:scale-110 transition-transform"></i> Início
             </a>
-            <a href="estoque.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:bg-slate-50 hover:text-slate-600 font-bold transition-all">
-                <span>📦</span> Estoque
+            <a href="estoque.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:text-brand hover:bg-blue-50 transition-all font-semibold group">
+                <i data-lucide="boxes" class="w-5 h-5 group-hover:scale-110 transition-transform"></i> Estoque
             </a>
-            <a href="produtos.html" class="flex items-center gap-3 p-4 rounded-2xl bg-brand text-white font-bold shadow-lg shadow-blue-100 transition-all">
-                <span>🛍️</span> Produtos
+            <a href="produtos.html" class="flex items-center gap-3 p-4 rounded-2xl nav-item-active font-bold transition-all">
+                <i data-lucide="shopping-bag" class="w-5 h-5"></i> Produtos
             </a>
-            <a href="pedidos.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:bg-slate-50 hover:text-slate-600 font-bold transition-all">
-                <span>📋</span> Pedidos
+            <a href="pedidos.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:text-brand hover:bg-blue-50 transition-all font-semibold group">
+                <i data-lucide="receipt" class="w-5 h-5 group-hover:scale-110 transition-transform"></i> Vendas
             </a>
-            <a href="perfil.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:bg-slate-50 hover:text-slate-600 font-bold transition-all">
-                <span>⚙️</span> Perfil
+            <a href="perfil.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:text-brand hover:bg-blue-50 transition-all font-semibold group">
+                <i data-lucide="settings" class="w-5 h-5 group-hover:scale-110 transition-transform"></i> Perfil
             </a>
         </nav>
 
-        <button id="btnSairDesktop" class="flex items-center gap-3 p-4 rounded-2xl text-red-400 hover:bg-red-50 font-bold transition-all mt-auto">
-            <span>🚪</span> Sair
+        <button id="btnSairDesktop" class="flex items-center gap-3 p-4 rounded-2xl text-red-400 hover:bg-red-50 font-bold transition-all mt-auto uppercase text-xs tracking-widest">
+            <i data-lucide="log-out" class="w-4 h-4"></i> Sair
         </button>
     </aside>
 
-    <nav class="md:hidden bg-white shadow-sm p-4 sticky top-0 z-40 flex justify-between items-center border-b border-gray-100">
-        <div class="flex items-center gap-2">
-            <span class="text-2xl">🛍️</span>
-            <h2 id="navNomeNegocio" class="text-lg font-black text-slate-800 tracking-tighter uppercase italic">Produtos</h2>
+    <nav class="md:hidden bg-white/80 backdrop-blur-md sticky top-0 z-40 p-5 flex justify-between items-center border-b border-slate-100">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500">
+                <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+            </div>
+            <h2 id="navNomeNegocio" class="text-lg font-black text-slate-800 uppercase italic">Produtos</h2>
         </div>
     </nav>
 
-    <main class="max-w-4xl mx-auto p-4 md:p-10">
+    <main class="max-w-4xl mx-auto p-5 md:p-12">
         
-        <header class="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <header class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div>
-                <p class="text-[10px] font-black text-brand uppercase tracking-widest mb-1">Painel de Vendas</p>
-                <h1 id="tituloPagina" class="text-3xl md:text-4xl font-black text-slate-800 tracking-tight">Publicar no Cardápio</h1>
-                <p class="text-slate-400 text-sm font-medium">Gerencie o que seus clientes veem no catálogo.</p>
+                <p class="text-xs font-black text-brand uppercase tracking-widest mb-2">Gestão de Itens</p>
+                <h1 id="tituloPagina" class="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tighter">Novo Produto</h1>
             </div>
 
-            <div class="flex items-center bg-white p-2 rounded-2xl shadow-sm border border-slate-100 w-fit">
-                <button id="btnVerCadastro" class="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all bg-brand text-white">Cadastrar</button>
-                <button id="btnVerLista" class="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all text-slate-400 hover:text-slate-600">Meus Itens</button>
+            <div class="flex items-center bg-white p-1.5 rounded-2xl shadow-sm border border-slate-200 w-full md:w-fit">
+                <button id="btnVerCadastro" class="flex-1 md:px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all bg-brand text-white shadow-lg shadow-blue-500/20">Cadastrar</button>
+                <button id="btnVerLista" class="flex-1 md:px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all text-slate-400 hover:text-slate-600">Meus Itens</button>
             </div>
         </header>
 
-        <section id="secaoCadastro" class="block">
-            <div class="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 p-6 md:p-10 border border-gray-50">
+        <section id="secaoCadastro" class="block animate-in fade-in duration-500">
+            <div class="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 p-6 md:p-10 border border-slate-100">
                 <form id="formProduto" class="space-y-8">
                     <input type="hidden" id="editId"> 
                     
-                    <div class="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-[2.5rem] p-8 bg-slate-50 hover:bg-slate-100 transition-all cursor-pointer relative group" id="dropZone">
+                    <div class="flex flex-col items-center justify-center border-4 border-dashed border-slate-100 rounded-[2.5rem] p-8 bg-slate-50/50 hover:bg-slate-50 hover:border-brand/20 transition-all cursor-pointer relative group" id="dropZone">
                         <input type="file" id="fotoProduto" class="absolute inset-0 opacity-0 cursor-pointer" accept="image/*">
-                        <div class="text-center transition-transform group-hover:scale-110" id="previewContainer">
-                            <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mx-auto mb-3 text-3xl">📸</div>
-                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Toque para escolher a foto</p>
+                        <div class="text-center transition-transform group-hover:scale-105" id="previewContainer">
+                            <div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm mx-auto mb-4">
+                                <i data-lucide="camera" class="w-8 h-8 text-slate-300"></i>
+                            </div>
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Arraste ou toque para a foto</p>
                         </div>
-                        <img id="imgPreview" class="hidden w-full max-h-64 object-contain rounded-[2rem] shadow-lg">
+                        <img id="imgPreview" class="hidden w-full max-h-64 object-contain rounded-[2rem] shadow-2xl">
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="col-span-1 md:col-span-2">
+                        <div class="col-span-full">
                             <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Nome do Produto</label>
-                            <input type="text" id="nomeProduto" class="w-full mt-2 p-4 md:p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none input-focus transition-all" placeholder="Ex: Bolo de Chocolate" required>
+                            <input type="text" id="nomeProduto" class="w-full mt-2 p-5 bg-slate-50 border-2 border-transparent rounded-2xl font-bold outline-none input-focus transition-all" placeholder="Ex: Hambúrguer Artesanal" required>
                         </div>
                         
                         <div>
                             <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Preço de Venda (R$)</label>
-                            <input type="number" id="precoVenda" step="0.01" class="w-full mt-2 p-4 md:p-5 bg-slate-50 border border-slate-100 rounded-2xl font-black text-green-600 text-lg outline-none input-focus transition-all" placeholder="0,00" required>
+                            <input type="number" id="precoVenda" step="0.01" class="w-full mt-2 p-5 bg-slate-50 border-2 border-transparent rounded-2xl font-black text-brand text-xl outline-none input-focus transition-all" placeholder="0,00" required>
                         </div>
 
                         <div>
                             <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Categoria</label>
                             <div class="relative">
-                                <select id="categoria" class="w-full mt-2 p-4 md:p-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none input-focus transition-all appearance-none cursor-pointer">
-                                    <option value="Bolos">🎂 Bolos</option>
-                                    <option value="Pães">🥖 Pães</option>
-                                    <option value="Salgados">🥐 Salgados</option>
-                                    <option value="Doces">🍫 Doces</option>
-                                    <option value="Bebidas">☕ Bebidas</option>
+                                <select id="categoria" class="w-full mt-2 p-5 bg-slate-50 border-2 border-transparent rounded-2xl font-bold outline-none input-focus transition-all appearance-none cursor-pointer">
+                                    <option value="Destaques">✨ Destaques</option>
+                                    <option value="Lanches">🍔 Lanches</option>
+                                    <option value="Pizzas">🍕 Pizzas</option>
+                                    <option value="Bebidas">🥤 Bebidas</option>
+                                    <option value="Sobremesas">🍰 Sobremesas</option>
+                                    <option value="Outros">📦 Outros</option>
                                 </select>
-                                <div class="absolute right-5 top-1/2 mt-1 pointer-events-none text-slate-400">▼</div>
+                                <i data-lucide="chevron-down" class="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
                             </div>
                         </div>
                     </div>
 
-                    <div class="bg-slate-50/50 p-6 rounded-[2rem] border border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="col-span-full mb-2">
-                            <h3 class="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
-                                <span class="bg-white p-2 rounded-lg shadow-sm">📦</span> Controle de Estoque
+                    <div class="bg-slate-900 p-8 rounded-[2.5rem] shadow-xl grid grid-cols-1 md:grid-cols-2 gap-6 relative overflow-hidden">
+                        <div class="absolute top-0 right-0 p-8 opacity-10">
+                            <i data-lucide="boxes" class="w-24 h-24 text-white"></i>
+                        </div>
+                        <div class="col-span-full">
+                            <h3 class="text-xs font-black text-blue-400 uppercase tracking-widest flex items-center gap-2">
+                                Controle de Estoque
                             </h3>
                         </div>
                         <div>
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Quantidade Atual</label>
-                            <input type="number" id="estoqueAtual" class="w-full mt-2 p-4 bg-white border border-slate-100 rounded-2xl font-bold outline-none input-focus transition-all" placeholder="0" required>
+                            <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2">Qtd Inicial</label>
+                            <input type="number" id="estoqueAtual" class="w-full mt-2 p-4 bg-white/5 border border-white/10 rounded-2xl font-bold text-white outline-none focus:border-blue-500 transition-all" placeholder="0" required>
                         </div>
                         <div>
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Aviso de Estoque Baixo (Mínimo)</label>
-                            <input type="number" id="estoqueMinimo" class="w-full mt-2 p-4 bg-white border border-slate-100 rounded-2xl font-bold outline-none input-focus transition-all text-orange-600" placeholder="Ex: 5">
+                            <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2">Alerta Mínimo</label>
+                            <input type="number" id="estoqueMinimo" class="w-full mt-2 p-4 bg-white/5 border border-white/10 rounded-2xl font-bold text-orange-400 outline-none focus:border-orange-500 transition-all" placeholder="5">
                         </div>
                     </div>
 
                     <div>
                         <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Descrição Curta</label>
-                        <textarea id="descricaoProduto" class="w-full mt-2 p-4 md:p-5 bg-slate-50 border border-slate-100 rounded-2xl font-medium outline-none h-32 input-focus transition-all resize-none" placeholder="Conte mais sobre o produto..."></textarea>
+                        <textarea id="descricaoProduto" class="w-full mt-2 p-5 bg-slate-50 border-2 border-transparent rounded-2xl font-medium outline-none h-32 input-focus transition-all resize-none" placeholder="Ingredientes, tamanho, etc..."></textarea>
                     </div>
 
-                    <button type="submit" id="btnSubmit" class="w-full bg-brand text-white py-5 rounded-[2rem] font-black uppercase tracking-[0.2em] text-sm shadow-xl hover:scale-[1.02] active:scale-95 transition-all shadow-blue-200">
+                    <button type="submit" id="btnSubmit" class="w-full bg-brand text-white py-6 rounded-[2rem] font-black uppercase tracking-[0.2em] text-sm shadow-2xl shadow-blue-500/30 hover:scale-[1.02] active:scale-95 transition-all">
                         🚀 Publicar no Cardápio
                     </button>
                     
-                    <button type="button" id="btnCancelarEdicao" class="hidden w-full text-slate-400 font-black uppercase tracking-widest text-[10px] pt-2">
-                        Cancelar Edição
+                    <button type="button" id="btnCancelarEdicao" class="hidden w-full text-slate-400 font-black uppercase tracking-widest text-[10px] py-4 hover:text-red-500 transition-colors">
+                        Cancelar Edição e Limpar
                     </button>
                 </form>
             </div>
         </section>
 
-        <section id="secaoLista" class="hidden">
+        <section id="secaoLista" class="hidden animate-in slide-in-from-bottom-4 duration-500">
             <div id="gridProdutos" class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="col-span-full py-20 text-center">
-                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-brand border-t-transparent mb-4"></div>
-                    <p class="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Carregando catálogo...</p>
+                    <div class="w-12 h-12 border-4 border-slate-100 border-t-brand rounded-full animate-spin mx-auto mb-4"></div>
+                    <p class="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Sincronizando catálogo...</p>
                 </div>
             </div>
         </section>
 
     </main>
 
-    <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-gray-100 px-6 py-3 flex justify-between items-center z-50">
-        <a href="dashboard.html" class="flex flex-col items-center text-slate-300">
-            <span class="text-xl">🏠</span>
-            <span class="text-[9px] font-black uppercase mt-1">Início</span>
+    <div class="md:hidden fixed bottom-6 left-6 right-6 bg-slate-900/95 backdrop-blur-xl rounded-[2.5rem] p-4 flex justify-around items-center z-50 shadow-2xl border border-white/10">
+        <a href="dashboard.html" class="p-3 text-slate-400">
+            <i data-lucide="home" class="w-6 h-6"></i>
         </a>
-        <a href="estoque.html" class="flex flex-col items-center text-slate-300">
-            <span class="text-xl">📦</span>
-            <span class="text-[9px] font-black uppercase mt-1">Estoque</span>
+        <a href="pedidos.html" class="p-3 text-slate-400">
+            <i data-lucide="receipt" class="w-6 h-6"></i>
         </a>
-        <a href="produtos.html" class="flex flex-col items-center text-brand">
-            <span class="text-xl">🛍️</span>
-            <span class="text-[9px] font-black uppercase mt-1">Produtos</span>
+        <a href="estoque.html" class="p-3 text-slate-400">
+            <i data-lucide="boxes" class="w-6 h-6"></i>
         </a>
-        <a href="pedidos.html" class="flex flex-col items-center text-slate-300">
-            <span class="text-xl">📋</span>
-            <span class="text-[9px] font-black uppercase mt-1">Pedidos</span>
+        <a href="produtos.html" class="p-4 bg-brand rounded-2xl text-white shadow-lg shadow-blue-500/40">
+            <i data-lucide="shopping-bag" class="w-6 h-6"></i>
         </a>
-        <a href="perfil.html" class="flex flex-col items-center text-slate-300">
-            <span class="text-xl">⚙️</span>
-            <span class="text-[9px] font-black uppercase mt-1">Perfil</span>
+        <a href="perfil.html" class="p-3 text-slate-400">
+            <i data-lucide="settings" class="w-6 h-6"></i>
         </a>
     </div>
 
-    <script type="module" src="./src/produtos.js"></script>
     <script>
+        // Inicialização de ícones
+        lucide.createIcons();
+
+        // Lógica de Troca de Abas
         const btnVerCadastro = document.getElementById('btnVerCadastro');
         const btnVerLista = document.getElementById('btnVerLista');
         const secaoCadastro = document.getElementById('secaoCadastro');
@@ -196,22 +218,26 @@
         const tituloPagina = document.getElementById('tituloPagina');
 
         function alternarAba(aba) {
+            const activeClass = ['bg-brand', 'text-white', 'shadow-lg', 'shadow-blue-500/20'];
+            const inactiveClass = ['text-slate-400', 'hover:text-slate-600'];
+
             if (aba === 'cadastro') {
                 secaoCadastro.classList.remove('hidden');
                 secaoLista.classList.add('hidden');
-                btnVerCadastro.classList.add('bg-brand', 'text-white');
-                btnVerCadastro.classList.remove('text-slate-400');
-                btnVerLista.classList.remove('bg-brand', 'text-white');
-                btnVerLista.classList.add('text-slate-400');
-                tituloPagina.innerText = "Publicar no Cardápio";
+                btnVerCadastro.classList.add(...activeClass);
+                btnVerCadastro.classList.remove(...inactiveClass);
+                btnVerLista.classList.remove(...activeClass);
+                btnVerLista.classList.add(...inactiveClass);
+                tituloPagina.innerText = "Novo Produto";
             } else {
                 secaoCadastro.classList.add('hidden');
                 secaoLista.classList.remove('hidden');
-                btnVerLista.classList.add('bg-brand', 'text-white');
-                btnVerLista.classList.remove('text-slate-400');
-                btnVerCadastro.classList.remove('bg-brand', 'text-white');
-                btnVerCadastro.classList.add('text-slate-400');
-                tituloPagina.innerText = "Meus Produtos";
+                btnVerLista.classList.add(...activeClass);
+                btnVerLista.classList.remove(...inactiveClass);
+                btnVerCadastro.classList.remove(...activeClass);
+                btnVerCadastro.classList.add(...inactiveClass);
+                tituloPagina.innerText = "Meus Itens";
+                // Chama a função global definida no produtos.js
                 if(window.carregarProdutosLista) window.carregarProdutosLista();
             }
         }
@@ -219,6 +245,7 @@
         btnVerCadastro.addEventListener('click', () => alternarAba('cadastro'));
         btnVerLista.addEventListener('click', () => alternarAba('lista'));
 
+        // Preview da Foto
         document.getElementById('fotoProduto').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
@@ -233,5 +260,6 @@
             }
         });
     </script>
+    <script type="module" src="./src/produtos.js"></script>
 </body>
 </html>
