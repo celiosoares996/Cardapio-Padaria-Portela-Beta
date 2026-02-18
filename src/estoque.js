@@ -33,7 +33,6 @@ async function carregarPreferencias(user) {
             if (document.getElementById('navNomeNegocio')) document.getElementById('navNomeNegocio').innerText = nomeNegocio;
             if (document.getElementById('sideNomeNegocio')) document.getElementById('sideNomeNegocio').innerText = nomeNegocio;
             
-            // Aplica a cor do tema dinamicamente
             document.documentElement.style.setProperty('--cor-primaria', dados.corTema || "#2563eb");
         }
     } catch (error) {
@@ -82,7 +81,6 @@ async function carregarEstoque(user) {
             const data = documento.data();
             const id = documento.id;
             
-            // Define ícone baseado na unidade para facilitar identificação visual
             let iconType = 'package';
             if(['kg', 'gr'].includes(data.unidade)) iconType = 'wheat';
             if(['lt', 'ml'].includes(data.unidade)) iconType = 'droplets';
@@ -98,7 +96,7 @@ async function carregarEstoque(user) {
                         </div>
                     </td>
                     <td class="md:p-6 flex justify-between md:table-cell items-center">
-                        <span class="md:hidden text-[10px] font-bold text-slate-400 uppercase">Qtd Insumo</span>
+                        <span class="md:hidden text-[10px] font-bold text-slate-400 uppercase">Qtd Atual</span>
                         <span class="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg font-black italic">
                             ${data.quantidade} <small class="not-italic opacity-60 uppercase text-[9px]">${data.unidade}</small>
                         </span>
@@ -120,7 +118,7 @@ async function carregarEstoque(user) {
         if(window.lucide) lucide.createIcons();
     } catch (e) { 
         console.error("Erro ao carregar estoque:", e);
-        lista.innerHTML = `<tr><td colspan="3" class="p-10 text-center text-red-400 text-xs font-bold uppercase">Erro de permissão ou conexão.</td></tr>`;
+        lista.innerHTML = `<tr><td colspan="3" class="p-10 text-center text-red-400 text-xs font-bold uppercase">Erro ao carregar dados.</td></tr>`;
     }
 }
 
@@ -137,9 +135,10 @@ form?.addEventListener('submit', async (e) => {
     const originalContent = btn.innerHTML;
     btn.innerText = "Sincronizando...";
 
+    // Ajustado para parseInt (Unitário)
     const dados = {
         nome: document.getElementById('nomeItem').value.trim(),
-        quantidade: Number(document.getElementById('quantidadeItem').value), 
+        quantidade: parseInt(document.getElementById('quantidadeItem').value) || 0, 
         unidade: document.getElementById('unidadeItem').value,
         userId: user.uid,
         ultimaAtualizacao: serverTimestamp()
@@ -158,7 +157,7 @@ form?.addEventListener('submit', async (e) => {
         await carregarEstoque(user);
     } catch (error) {
         console.error("Erro ao salvar insumo:", error);
-        alert("Erro ao salvar! Verifique suas permissões no Firestore Database.");
+        alert("Erro ao salvar! Verifique suas permissões no Firestore.");
     } finally {
         btn.disabled = false;
         btn.innerHTML = originalContent;
@@ -166,7 +165,7 @@ form?.addEventListener('submit', async (e) => {
     }
 });
 
-// --- 5. FUNÇÕES GLOBAIS (EDITAR E DELETAR) ---
+// --- 5. FUNÇÕES GLOBAIS ---
 window.prepararEdicao = (id, nome, qtd, unid) => {
     editIdInput.value = id;
     document.getElementById('nomeItem').value = nome;
@@ -178,18 +177,17 @@ window.prepararEdicao = (id, nome, qtd, unid) => {
 };
 
 window.deletarItem = async (id) => {
-    if(confirm("Deseja realmente remover este insumo do estoque?")) {
+    if(confirm("Deseja remover este insumo?")) {
         try {
             await deleteDoc(doc(db, "estoque", id));
             await carregarEstoque(auth.currentUser);
         } catch (error) {
-            console.error("Erro ao deletar:", error);
-            alert("Erro ao excluir item.");
+            alert("Erro ao excluir.");
         }
     }
 };
 
-// --- 6. MONITORAMENTO DE LOGIN E LOGOUT ---
+// --- 6. AUTH MONITOR ---
 onAuthStateChanged(auth, (user) => {
     if (user) { 
         carregarPreferencias(user); 
@@ -199,9 +197,8 @@ onAuthStateChanged(auth, (user) => {
     }
 });
 
-// Logout Desktop
 document.getElementById('btnSairDesktop')?.addEventListener('click', async () => {
-    if (confirm("Deseja sair do sistema?")) {
+    if (confirm("Deseja sair?")) {
         await signOut(auth);
         window.location.href = "index.html";
     }
