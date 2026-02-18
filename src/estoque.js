@@ -30,15 +30,11 @@ async function carregarPreferencias(user) {
         if (docSnap.exists()) {
             const dados = docSnap.data();
             const nomeNegocio = dados.nomeNegocio || "Estoque";
-            
             if (document.getElementById('navNomeNegocio')) document.getElementById('navNomeNegocio').innerText = nomeNegocio;
             if (document.getElementById('sideNomeNegocio')) document.getElementById('sideNomeNegocio').innerText = nomeNegocio;
-            
             document.documentElement.style.setProperty('--cor-primaria', dados.corTema || "#2563eb");
         }
-    } catch (error) {
-        console.error("Erro ao carregar preferências:", error);
-    }
+    } catch (error) { console.error("Erro preferências:", error); }
 }
 
 // --- 2. CONTROLE DO MODAL ---
@@ -51,138 +47,72 @@ if (btnAbrir) {
         if(window.lucide) lucide.createIcons();
     };
 }
+if (btnFechar) btnFechar.onclick = () => modal.classList.add('hidden');
 
-if (btnFechar) {
-    btnFechar.onclick = () => modal.classList.add('hidden');
-}
-
-// --- 3. CARREGAR LISTA DE INSUMOS ---
+// --- 3. CARREGAR LISTA ---
 async function carregarEstoque(user) {
     if (!user) return;
-    
     try {
         const q = query(collection(db, "estoque"), where("userId", "==", user.uid));
         const querySnapshot = await getDocs(q);
-        
         lista.innerHTML = ""; 
-
         if (querySnapshot.empty) {
-            lista.innerHTML = `
-                <tr>
-                    <td colspan="3" class="p-20 text-center">
-                        <i data-lucide="package-search" class="w-12 h-12 text-slate-200 mx-auto mb-4"></i>
-                        <p class="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Nenhum insumo no estoque.</p>
-                    </td>
-                </tr>`;
-            if(window.lucide) lucide.createIcons();
+            lista.innerHTML = `<tr><td colspan="3" class="p-20 text-center"><p class="text-slate-400">Estoque vazio.</p></td></tr>`;
             return;
         }
-
         querySnapshot.forEach((documento) => {
             const data = documento.data();
             const id = documento.id;
-            
             let iconType = 'package';
             if(['kg', 'gr'].includes(data.unidade)) iconType = 'wheat';
             if(['lt', 'ml'].includes(data.unidade)) iconType = 'droplets';
 
             lista.innerHTML += `
-                <tr class="flex flex-col md:table-row p-4 md:p-0 bg-white mb-3 md:mb-0 rounded-2xl md:rounded-none border border-slate-100 md:border-b transition-hover hover:bg-slate-50/50">
-                    <td class="md:p-6">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400">
-                                <i data-lucide="${iconType}" class="w-5 h-5"></i>
-                            </div>
-                            <span class="font-bold text-slate-700">${data.nome}</span>
-                        </div>
+                <tr class="flex flex-col md:table-row p-4 border-b">
+                    <td class="md:p-6 font-bold">${data.nome}</td>
+                    <td class="md:p-6 text-blue-600 font-black">${data.quantidade} ${data.unidade}</td>
+                    <td class="md:p-6 flex gap-2">
+                        <button onclick="prepararEdicao('${id}', '${data.nome}', ${data.quantidade}, '${data.unidade}')" class="text-slate-400 hover:text-blue-600"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+                        <button onclick="deletarItem('${id}')" class="text-slate-400 hover:text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                     </td>
-                    <td class="md:p-6 flex justify-between md:table-cell items-center">
-                        <span class="md:hidden text-[10px] font-bold text-slate-400 uppercase">Qtd Atual</span>
-                        <span class="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg font-black italic">
-                            ${data.quantidade} <small class="not-italic opacity-60 uppercase text-[9px]">${data.unidade}</small>
-                        </span>
-                    </td>
-                    <td class="md:p-6 flex justify-end gap-2">
-                        <button onclick="prepararEdicao('${id}', '${data.nome}', ${data.quantidade}, '${data.unidade}')" 
-                                class="p-2 text-slate-300 hover:text-brand transition-colors">
-                            <i data-lucide="pencil" class="w-4 h-4"></i>
-                        </button>
-                        <button onclick="deletarItem('${id}')" 
-                                class="p-2 text-slate-300 hover:text-red-500 transition-colors">
-                            <i data-lucide="trash-2" class="w-4 h-4"></i>
-                        </button>
-                    </td>
-                </tr>
-            `;
+                </tr>`;
         });
-        
         if(window.lucide) lucide.createIcons();
-    } catch (e) { 
-        console.error("Erro ao carregar estoque:", e);
-        lista.innerHTML = `<tr><td colspan="3" class="p-10 text-center text-red-400 text-xs font-bold uppercase">Erro de conexão ou permissão.</td></tr>`;
-    }
+    } catch (e) { console.error("Erro ao carregar:", e); }
 }
 
-// --- 4. SALVAR OU ATUALIZAR INSUMO ---
+// --- 4. SALVAR/ATUALIZAR ---
 form?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const user = auth.currentUser;
-    
-    if (!user || !user.uid) {
-        alert("Sessão inválida. Por favor, saia e entre novamente.");
-        return;
-    }
+    if (!user) return alert("Usuário não logado!");
 
-    const btn = form.querySelector('button[type="submit"]');
     const id = editIdInput.value;
-    
-    btn.disabled = true;
-    const originalContent = btn.innerHTML;
-    btn.innerText = "Sincronizando...";
-
-    // Coleta e limpa os dados
-    const nome = document.getElementById('nomeItem').value.trim();
-    const quantidade = parseInt(document.getElementById('quantidadeItem').value) || 0;
-    const unidade = document.getElementById('unidadeItem').value;
-
     const dados = {
-        nome: nome,
-        quantidade: quantidade, 
-        unidade: unidade,
-        userId: user.uid, // Campo OBRIGATÓRIO conforme suas regras
+        nome: document.getElementById('nomeItem').value.trim(),
+        quantidade: parseInt(document.getElementById('quantidadeItem').value) || 0,
+        unidade: document.getElementById('unidadeItem').value,
+        userId: user.uid, // DEVE SER EXATAMENTE IGUAL À REGRA
         ultimaAtualizacao: serverTimestamp()
     };
 
     try {
         if (id) {
-            // Modo Edição
-            const docRef = doc(db, "estoque", id);
-            await updateDoc(docRef, dados);
+            await updateDoc(doc(db, "estoque", id), dados);
         } else {
-            // Modo Novo Item
             dados.dataCriacao = serverTimestamp();
             await addDoc(collection(db, "estoque"), dados);
         }
-        
         form.reset();
         modal.classList.add('hidden');
         await carregarEstoque(user);
     } catch (error) {
         console.error("ERRO FIREBASE:", error.code, error.message);
-        
-        if (error.code === 'permission-denied') {
-            alert("Acesso Negado: Verifique se você deletou itens antigos criados sem userId no console do Firebase.");
-        } else {
-            alert("Erro ao salvar! Detalhes no console (F12).");
-        }
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = originalContent;
-        if(window.lucide) lucide.createIcons();
+        alert("Erro de permissão! Tente excluir itens antigos no console do Firebase.");
     }
 });
 
-// --- 5. FUNÇÕES GLOBAIS ---
+// --- 5. GLOBAIS ---
 window.prepararEdicao = (id, nome, qtd, unid) => {
     editIdInput.value = id;
     document.getElementById('nomeItem').value = nome;
@@ -190,34 +120,17 @@ window.prepararEdicao = (id, nome, qtd, unid) => {
     document.getElementById('unidadeItem').value = unid;
     modalTitulo.innerText = "Atualizar Insumo";
     modal.classList.remove('hidden');
-    if(window.lucide) lucide.createIcons();
 };
 
 window.deletarItem = async (id) => {
-    if(confirm("Deseja remover este insumo?")) {
-        try {
-            await deleteDoc(doc(db, "estoque", id));
-            await carregarEstoque(auth.currentUser);
-        } catch (error) {
-            console.error("Erro ao deletar:", error);
-            alert("Erro ao excluir.");
-        }
+    if(confirm("Deseja remover?")) {
+        await deleteDoc(doc(db, "estoque", id));
+        await carregarEstoque(auth.currentUser);
     }
 };
 
-// --- 6. AUTH MONITOR ---
+// --- 6. AUTH ---
 onAuthStateChanged(auth, (user) => {
-    if (user) { 
-        carregarPreferencias(user); 
-        carregarEstoque(user); 
-    } else { 
-        window.location.href = "index.html"; 
-    }
-});
-
-document.getElementById('btnSairDesktop')?.addEventListener('click', async () => {
-    if (confirm("Deseja sair?")) {
-        await signOut(auth);
-        window.location.href = "index.html";
-    }
+    if (user) { carregarPreferencias(user); carregarEstoque(user); }
+    else { window.location.href = "index.html"; }
 });
