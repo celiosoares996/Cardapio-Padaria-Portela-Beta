@@ -100,10 +100,12 @@
                 </h1>
                 <p class="text-slate-500 font-medium mt-1">Resumão do seu negócio hoje:</p>
             </div>
-            <button id="btnNotificacaoDesktop" class="hidden md:flex p-3 bg-white border border-slate-100 rounded-2xl text-slate-400 relative hover:bg-slate-50 transition-all">
-                <span>🔔</span>
-                <span id="badgeNotificacaoDesktop" class="hidden absolute top-2 right-2 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
-            </button>
+            <div class="relative hidden md:block">
+                <button id="btnNotificacaoDesktop" class="p-3 bg-white border border-slate-100 rounded-2xl text-slate-400 relative hover:bg-slate-50 transition-all">
+                    <span>🔔</span>
+                    <span id="badgeNotificacaoDesktop" class="hidden absolute top-2 right-2 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
+                </button>
+            </div>
         </header>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
@@ -186,17 +188,25 @@
 
     <script type="module" src="./src/dashboard.js"></script>
     <script>
-        // Lógica simples para abrir/fechar o menu de notificações
-        const btnNotif = document.getElementById('btnNotificacao');
+        // Lógica unificada para notificações (Mobile e Desktop)
         const lista = document.getElementById('listaNotificacoes');
         
-        if(btnNotif) {
-            btnNotif.addEventListener('click', (e) => {
-                e.stopPropagation();
-                lista.style.display = lista.style.display === 'block' ? 'none' : 'block';
-            });
-            document.addEventListener('click', () => lista.style.display = 'none');
+        function toggleNotificacoes(e) {
+            e.stopPropagation();
+            const isVisible = lista.style.display === 'block';
+            lista.style.display = isVisible ? 'none' : 'block';
         }
+
+        document.getElementById('btnNotificacao')?.addEventListener('click', toggleNotificacoes);
+        document.getElementById('btnNotificacaoDesktop')?.addEventListener('click', toggleNotificacoes);
+
+        // Fechar ao clicar fora
+        document.addEventListener('click', () => {
+            if (lista) lista.style.display = 'none';
+        });
+
+        // Evitar que o clique dentro da lista a feche
+        lista?.addEventListener('click', (e) => e.stopPropagation());
     </script>
 </body>
 </html>
