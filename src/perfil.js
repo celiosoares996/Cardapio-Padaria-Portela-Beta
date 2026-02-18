@@ -27,6 +27,7 @@ let urlCapaFinal = "";
 function aplicarCor(cor) {
     if (!cor) return;
     document.documentElement.style.setProperty('--cor-primaria', cor);
+    // Caso você adicione inputs de seleção de cor no futuro:
     const radio = document.querySelector(`input[name="temaCor"][value="${cor}"]`);
     if (radio) radio.checked = true;
 }
@@ -55,7 +56,6 @@ function atualizarPreviewImagem(tipo, url) {
 // --- FUNÇÃO: GERAR LINK E QR CODE ---
 function processarLink(uid) {
     try {
-        // Altere 'seusite.com' para a URL real onde o projeto estiver hospedado
         const link = `${window.location.origin}/cardapio.html?id=${uid}`;
         if (inputLink) inputLink.value = link;
 
@@ -91,8 +91,6 @@ onAuthStateChanged(auth, async (user) => {
             // Preencher Campos de Texto
             document.getElementById('nomeNegocio').value = d.nomeNegocio || "";
             document.getElementById('whatsappNegocio').value = d.whatsapp || "";
-            if (d.horarioAbertura) document.getElementById('horarioAbertura').value = d.horarioAbertura;
-            if (d.horarioFechamento) document.getElementById('horarioFechamento').value = d.horarioFechamento;
             
             // Configurações de Entrega
             if (d.configEntrega) {
@@ -103,7 +101,7 @@ onAuthStateChanged(auth, async (user) => {
                 lojaLat.value = d.configEntrega.coords?.lat || "";
                 lojaLog.value = d.configEntrega.coords?.log || "";
                 
-                // Ativar visualmente o botão correto de frete
+                // Sincroniza os botões visuais (Fixo/Raio)
                 if (d.configEntrega.tipo === 'raio') {
                     document.getElementById('btnModoRaio').click();
                 } else {
@@ -115,7 +113,7 @@ onAuthStateChanged(auth, async (user) => {
                 }
             }
 
-            // Atualizar Nomes na Sidebar/Navbar
+            // Atualizar Nomes na Sidebar e Navbar Mobile
             const titulo = d.nomeNegocio || "Minha Loja";
             if(sideNome) sideNome.innerText = titulo;
             if(mobileNome) mobileNome.innerText = titulo;
@@ -131,7 +129,6 @@ onAuthStateChanged(auth, async (user) => {
             }
             aplicarCor(d.corTema);
         } else {
-            // Caso o usuário não tenha dados, limpa os labels de carregamento
             if(sideNome) sideNome.innerText = "Configurar Loja";
             if(mobileNome) mobileNome.innerText = "Configurar Loja";
         }
@@ -155,7 +152,7 @@ document.getElementById('fileInput')?.addEventListener('change', async (e) => {
         urlFotoFinal = await realizarUpload('logos', file);
         atualizarPreviewImagem('perfil', urlFotoFinal);
         btnSalvarPerfil.disabled = false;
-        btnSalvarPerfil.innerText = "Salvar Alterações";
+        btnSalvarPerfil.innerText = "Salvar Todas as Configurações";
     } catch (err) { 
         Swal.fire('Erro', 'Não foi possível subir a imagem.', 'error');
         btnSalvarPerfil.disabled = false; 
@@ -171,7 +168,7 @@ document.getElementById('fileCapa')?.addEventListener('change', async (e) => {
         urlCapaFinal = await realizarUpload('capas', file);
         atualizarPreviewImagem('capa', urlCapaFinal);
         btnSalvarPerfil.disabled = false;
-        btnSalvarPerfil.innerText = "Salvar Alterações";
+        btnSalvarPerfil.innerText = "Salvar Todas as Configurações";
     } catch (err) { 
         Swal.fire('Erro', 'Não foi possível subir a capa.', 'error');
         btnSalvarPerfil.disabled = false; 
@@ -184,17 +181,16 @@ formPerfil?.addEventListener('submit', async (e) => {
     const user = auth.currentUser;
     if(!user) return;
 
-    btnSalvarPerfil.innerText = "⏳ SALVANDO TUDO...";
+    btnSalvarPerfil.innerText = "⏳ SALVANDO...";
     btnSalvarPerfil.disabled = true;
 
     try {
+        // Pega a cor do tema se houver inputs, senão usa o padrão azul
         const corSelecionada = document.querySelector('input[name="temaCor"]:checked')?.value || "#2563eb";
         
         const novosDados = {
             nomeNegocio: document.getElementById('nomeNegocio').value.trim(),
             whatsapp: document.getElementById('whatsappNegocio').value.trim(),
-            horarioAbertura: document.getElementById('horarioAbertura').value,
-            horarioFechamento: document.getElementById('horarioFechamento').value,
             fotoPerfil: urlFotoFinal,
             fotoCapa: urlCapaFinal,
             corTema: corSelecionada,
@@ -228,25 +224,48 @@ formPerfil?.addEventListener('submit', async (e) => {
         console.error(err);
         Swal.fire('Erro', 'Ocorreu um erro ao salvar os dados.', 'error');
     } finally {
-        btnSalvarPerfil.innerText = "Salvar Alterações";
+        btnSalvarPerfil.innerText = "Salvar Todas as Configurações";
         btnSalvarPerfil.disabled = false;
     }
 });
 
-// --- MUDANÇA DE COR EM TEMPO REAL ---
-document.querySelectorAll('input[name="temaCor"]').forEach(r => {
-    r.addEventListener('change', (e) => aplicarCor(e.target.value));
+// --- COPIAR LINK ---
+document.getElementById('btnCopiarLink')?.addEventListener('click', () => {
+    if(inputLink && inputLink.value) {
+        navigator.clipboard.writeText(inputLink.value);
+        Swal.fire({
+            icon: 'success',
+            title: 'Copiado!',
+            text: 'Link do cardápio copiado para a área de transferência.',
+            timer: 1500,
+            showConfirmButton: false
+        });
+    }
+});
+
+// --- CAPTURAR GPS ---
+document.getElementById('btnCapturarGps')?.addEventListener('click', () => {
+    statusGPS.innerHTML = "⏳ Localizando...";
+    navigator.geolocation.getCurrentPosition((pos) => {
+        lojaLat.value = pos.coords.latitude;
+        lojaLog.value = pos.coords.longitude;
+        statusGPS.innerHTML = "✅ Localização Base Fixada";
+        Swal.fire('Sucesso', 'Localização capturada com sucesso!', 'success');
+    }, (err) => {
+        statusGPS.innerHTML = "❌ Erro ao localizar";
+        Swal.fire('Erro', 'Por favor, ative o GPS e permita o acesso.', 'error');
+    });
 });
 
 // --- FUNÇÃO SAIR ---
 const sair = async () => {
     const result = await Swal.fire({
         title: 'Sair do Sistema?',
-        text: "Você precisará fazer login novamente.",
+        text: "Você precisará fazer login novamente para acessar.",
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
         confirmButtonText: 'Sim, sair!',
         cancelButtonText: 'Cancelar'
     });
