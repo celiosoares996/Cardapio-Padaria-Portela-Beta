@@ -1,15 +1,6 @@
 import { db, auth } from './firebase-config.js';
 import { 
-    collection, 
-    addDoc, 
-    getDocs, 
-    query, 
-    where, 
-    deleteDoc, 
-    doc, 
-    getDoc,
-    updateDoc,
-    serverTimestamp 
+    collection, addDoc, getDocs, query, where, deleteDoc, doc, getDoc, updateDoc, serverTimestamp 
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
@@ -49,22 +40,19 @@ if (btnAbrir) {
 }
 if (btnFechar) btnFechar.onclick = () => modal.classList.add('hidden');
 
-// --- 3. CARREGAR LISTA (DESIGN DE CARDS MODERNOS) ---
+// --- 3. CARREGAR LISTA (DESIGN ALINHADO COM GRID) ---
 async function carregarEstoque(user) {
     if (!user) return;
     try {
         const q = query(collection(db, "estoque"), where("userId", "==", user.uid));
         const querySnapshot = await getDocs(q);
-        
         lista.innerHTML = ""; 
 
         if (querySnapshot.empty) {
             lista.innerHTML = `
-                <div class="p-20 text-center bg-white rounded-[3rem] border border-slate-100">
-                    <i data-lucide="package-search" class="w-12 h-12 text-slate-200 mx-auto mb-4"></i>
-                    <p class="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Nenhum insumo encontrado.</p>
+                <div class="p-10 text-center bg-white rounded-3xl border border-dashed border-slate-200">
+                    <p class="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Estoque vazio.</p>
                 </div>`;
-            if(window.lucide) lucide.createIcons();
             return;
         }
 
@@ -76,33 +64,32 @@ async function carregarEstoque(user) {
             if(['kg', 'gr'].includes(data.unidade)) iconType = 'wheat';
             if(['lt', 'ml'].includes(data.unidade)) iconType = 'droplets';
 
+            // Estrutura em GRID para garantir o alinhamento vertical das colunas no Desktop
             lista.innerHTML += `
-                <div class="item-card flex flex-col md:flex-row items-start md:items-center bg-white p-6 md:px-10 md:py-6 rounded-[2rem] md:rounded-[2.5rem] border border-slate-100 gap-4 md:gap-0 shadow-sm">
-                    <div class="flex items-center gap-5 flex-1">
-                        <div class="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400">
-                            <i data-lucide="${iconType}" class="w-6 h-6"></i>
+                <div class="grid grid-cols-1 md:grid-cols-[1fr_200px_120px] items-center bg-white p-5 md:px-8 md:py-4 rounded-2xl md:rounded-3xl border border-slate-100 hover:border-blue-200 transition-all gap-4 md:gap-0 shadow-sm">
+                    
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400">
+                            <i data-lucide="${iconType}" class="w-5 h-5"></i>
                         </div>
-                        <div>
-                            <h4 class="font-extrabold text-slate-800 text-lg md:text-base">${data.nome}</h4>
-                            <p class="text-[10px] font-black text-slate-300 uppercase tracking-widest md:hidden mt-1">Saldo Atual</p>
+                        <span class="font-bold text-slate-700 text-lg md:text-base">${data.nome}</span>
+                    </div>
+
+                    <div class="flex flex-col md:items-center">
+                        <span class="md:hidden text-[10px] font-black text-slate-300 uppercase mb-1">Saldo Atual</span>
+                        <div class="bg-blue-50 text-blue-600 px-4 py-2 rounded-xl font-black italic w-fit md:w-auto md:min-w-[100px] text-center">
+                            ${data.quantidade} <small class="not-italic opacity-60 uppercase text-[9px]">${data.unidade}</small>
                         </div>
                     </div>
 
-                    <div class="w-full md:w-48 flex items-baseline justify-start md:justify-center gap-1">
-                        <span class="text-3xl md:text-xl font-black text-brand">${data.quantidade}</span>
-                        <span class="text-xs font-bold text-slate-400 uppercase">${data.unidade}</span>
-                    </div>
-
-                    <div class="w-full md:w-32 flex justify-end items-center gap-2 border-t md:border-none pt-4 md:pt-0">
-                        <button onclick="prepararEdicao('${id}', '${data.nome}', ${data.quantidade}, '${data.unidade}')" 
-                                class="flex-1 md:flex-none flex items-center justify-center gap-2 md:p-3 py-3 text-slate-400 hover:text-brand hover:bg-blue-50 rounded-xl transition-all">
-                            <i data-lucide="pencil" class="w-4 h-4"></i>
-                            <span class="md:hidden text-xs font-bold uppercase">Editar</span>
+                    <div class="flex justify-end gap-2 border-t md:border-none pt-3 md:pt-0">
+                        <button onclick="window.prepararEdicao('${id}', '${data.nome}', ${data.quantidade}, '${data.unidade}')" 
+                                class="p-3 md:p-2 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all">
+                            <i data-lucide="pencil" class="w-5 h-5 md:w-4 md:h-4"></i>
                         </button>
-                        <button onclick="deletarItem('${id}')" 
-                                class="flex-1 md:flex-none flex items-center justify-center gap-2 md:p-3 py-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all">
-                            <i data-lucide="trash-2" class="w-4 h-4"></i>
-                            <span class="md:hidden text-xs font-bold uppercase">Excluir</span>
+                        <button onclick="window.deletarItem('${id}')" 
+                                class="p-3 md:p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all">
+                            <i data-lucide="trash-2" class="w-5 h-5 md:w-4 md:h-4"></i>
                         </button>
                     </div>
                 </div>
@@ -111,23 +98,16 @@ async function carregarEstoque(user) {
         if(window.lucide) lucide.createIcons();
     } catch (e) { 
         console.error("Erro ao carregar:", e); 
-        Swal.fire('Erro', 'Não foi possível carregar o estoque.', 'error');
     }
 }
 
-// --- 4. SALVAR/ATUALIZAR COM SWEETALERT ---
+// --- 4. SALVAR/ATUALIZAR ---
 form?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const user = auth.currentUser;
     if (!user) return;
 
-    const btn = form.querySelector('button[type="submit"]');
     const id = editIdInput.value;
-    
-    btn.disabled = true;
-    const originalContent = btn.innerHTML;
-    btn.innerText = "Sincronizando...";
-
     const dados = {
         nome: document.getElementById('nomeItem').value.trim(),
         quantidade: parseInt(document.getElementById('quantidadeItem').value) || 0,
@@ -139,43 +119,22 @@ form?.addEventListener('submit', async (e) => {
     try {
         if (id) {
             await updateDoc(doc(db, "estoque", id), dados);
-            Swal.fire({
-                icon: 'success',
-                title: 'Atualizado!',
-                text: 'Dados salvos com sucesso.',
-                confirmButtonColor: '#2563eb',
-                customClass: { popup: 'rounded-[2rem]' }
-            });
+            Swal.fire({ icon: 'success', title: 'Atualizado!', confirmButtonColor: '#2563eb', customClass: { popup: 'rounded-[2rem]' } });
         } else {
             dados.dataCriacao = serverTimestamp();
             await addDoc(collection(db, "estoque"), dados);
-            Swal.fire({
-                icon: 'success',
-                title: 'Cadastrado!',
-                text: 'Item adicionado ao estoque.',
-                confirmButtonColor: '#2563eb',
-                customClass: { popup: 'rounded-[2rem]' }
-            });
+            Swal.fire({ icon: 'success', title: 'Cadastrado!', confirmButtonColor: '#2563eb', customClass: { popup: 'rounded-[2rem]' } });
         }
         form.reset();
         modal.classList.add('hidden');
         await carregarEstoque(user);
     } catch (error) {
-        console.error("ERRO FIREBASE:", error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Erro de Permissão',
-            text: 'Verifique as regras do Firebase ou se o item pertence a você.',
-            confirmButtonColor: '#ef4444'
-        });
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = originalContent;
-        if(window.lucide) lucide.createIcons();
+        console.error(error);
+        Swal.fire({ icon: 'error', title: 'Erro ao salvar', confirmButtonColor: '#ef4444' });
     }
 });
 
-// --- 5. GLOBAIS ---
+// --- 5. FUNÇÕES GLOBAIS (Obrigatório 'window.' para módulos) ---
 window.prepararEdicao = (id, nome, qtd, unid) => {
     editIdInput.value = id;
     document.getElementById('nomeItem').value = nome;
@@ -203,13 +162,9 @@ window.deletarItem = async (id) => {
             try {
                 await deleteDoc(doc(db, "estoque", id));
                 await carregarEstoque(auth.currentUser);
-                Swal.fire({
-                    title: 'Excluído!',
-                    icon: 'success',
-                    confirmButtonColor: '#2563eb'
-                });
+                Swal.fire({ title: 'Excluído!', icon: 'success', confirmButtonColor: '#2563eb' });
             } catch (error) {
-                Swal.fire('Erro!', 'Não foi possível remover o item.', 'error');
+                Swal.fire('Erro!', 'Não foi possível remover.', 'error');
             }
         }
     });
@@ -225,19 +180,18 @@ onAuthStateChanged(auth, (user) => {
     }
 });
 
+// Logout Sidebar
 document.getElementById('btnSairDesktop')?.addEventListener('click', async () => {
-    Swal.fire({
+    const res = await Swal.fire({
         title: 'Sair do sistema?',
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#2563eb',
-        cancelButtonColor: '#94a3b8',
         confirmButtonText: 'Sair',
         cancelButtonText: 'Ficar'
-    }).then(async (result) => {
-        if (result.isConfirmed) {
-            await signOut(auth);
-            window.location.href = "index.html";
-        }
     });
+    if (res.isConfirmed) {
+        await signOut(auth);
+        window.location.href = "index.html";
+    }
 });
