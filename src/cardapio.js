@@ -1,5 +1,15 @@
 import { db } from './firebase-config.js'; 
-import { collection, query, where, getDocs, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { 
+    collection, 
+    query, 
+    where, 
+    getDocs, 
+    doc, 
+    getDoc, 
+    setDoc, 
+    addDoc, 
+    serverTimestamp 
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const params = new URLSearchParams(window.location.search);
 const userId = params.get('id');
@@ -15,7 +25,7 @@ let distanciaCliente = 0;
 let modoPedido = 'entrega'; 
 let formaPagamento = '';
 let enderecoCompleto = { rua: "", bairro: "", cidade: "", cep: "" };
-let clienteLogado = null; // Armazena dados do cliente recuperados
+let clienteLogado = null;
 
 // --- FUNÇÃO: CÁLCULO DE DISTÂNCIA (HAVERSINE) ---
 function calcularDistancia(lat1, lon1, lat2, lon2) {
@@ -30,13 +40,9 @@ function calcularDistancia(lat1, lon1, lat2, lon2) {
 }
 
 // --- LÓGICA DE IDENTIFICAÇÃO E CADASTRO ---
-
 window.verificarCliente = async (valor) => {
     const whatsapp = valor.replace(/\D/g, '');
     if (whatsapp.length < 10) return;
-
-    const status = document.getElementById('statusCliente');
-    if(status) status.innerText = "Buscando seu cadastro...";
 
     try {
         const docRef = doc(db, "clientes", whatsapp);
@@ -45,27 +51,19 @@ window.verificarCliente = async (valor) => {
         if (docSnap.exists()) {
             const d = docSnap.data();
             clienteLogado = d;
-
-            // Preenche os campos automaticamente no HTML
             if(document.getElementById('inputNome')) document.getElementById('inputNome').value = d.nome || "";
             if(document.getElementById('inputCEP')) document.getElementById('inputCEP').value = d.cep || "";
             if(document.getElementById('inputNumero')) document.getElementById('inputNumero').value = d.numero || "";
             
-            if(status) status.innerHTML = `<span class="text-green-600 font-bold">Olá, ${d.nome}! Seus dados foram carregados.</span>`;
-
-            // Se tem CEP e distância salva, já calcula o frete sem usar API externa
             if (d.cep && d.distanciaSalva) {
                 distanciaCliente = d.distanciaSalva;
                 recalcularTaxaEntrega();
             }
-        } else {
-            if(status) status.innerText = "Não encontramos cadastro. Preencha abaixo para a primeira compra!";
         }
     } catch (e) { console.error("Erro ao verificar cliente:", e); }
 };
 
 // --- LÓGICA DE MÁSCARA E BUSCA DE CEP ---
-
 window.mascaraCEP = (input) => {
     let v = input.value.replace(/\D/g, '');
     if (v.length > 8) v = v.substring(0, 8);
@@ -88,7 +86,6 @@ window.buscarCEP = async () => {
     const cep = cepInput.value.replace(/\D/g, '');
     if (cep.length !== 8) return;
 
-    // ECONOMIA DE API: Se for o mesmo CEP do cliente logado, pula a busca no mapa
     if (clienteLogado && clienteLogado.cep === cep && clienteLogado.distanciaSalva) {
         distanciaCliente = clienteLogado.distanciaSalva;
         recalcularTaxaEntrega();
@@ -114,9 +111,8 @@ window.buscarCEP = async () => {
 
         enderecoCompleto = { rua: data.logradouro || "", bairro: data.bairro || "", cidade: data.localidade || "", cep: cep };
 
-        // BUSCA NO MAPA (LOCATION IQ ou NOMINATIM)
         const userAgent = `CardapioVacy_User_${userId}`;
-        const geoResp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&postalcode=${cep}&country=Brazil&v=${Date.now()}`, {
+        const geoResp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&postalcode=${cep}&country=Brazil`, {
             headers: { 'User-Agent': userAgent }
         });
         const geoData = await geoResp.json();
@@ -133,7 +129,7 @@ window.buscarCEP = async () => {
             );
 
             if (configEntrega.raioMaximo > 0 && dist > configEntrega.raioMaximo) {
-                alert(`Não entregamos nesta distância (${dist.toFixed(1)}km). Limite: ${configEntrega.raioMaximo}km.`);
+                alert(`Não entregamos nesta distância (${dist.toFixed(1)}km).`);
                 if(btnProx2) btnProx2.disabled = true;
             } else {
                 distanciaCliente = dist;
@@ -163,8 +159,6 @@ function recalcularTaxaEntrega() {
     renderizarCarrinho();
 }
 
-// --- LOGICA DE NAVEGAÇÃO E MODOS ---
-
 window.atualizarModoPedidoJS = (modo) => {
     modoPedido = modo;
     const btnProx1 = document.getElementById('btnProximo1');
@@ -176,10 +170,9 @@ window.atualizarModoPedidoJS = (modo) => {
 };
 
 // --- RENDERIZAÇÃO ---
-
 window.adicionarAoCarrinho = (nome, preco) => {
-    if(!verificarSeEstaAberto(configHorario.abertura, configHorario.fechamento)) {
-        alert("Loja Fechada!"); return;
+    if(!lojaAberta) {
+        alert("Loja Fechada no momento!"); return;
     }
     carrinho.push({ nome, preco: Number(preco) });
     atualizarBadgeCarrinho();
@@ -227,7 +220,7 @@ function renderizarCarrinho() {
             <div class="space-y-2 text-[11px]">
                 <div class="flex justify-between opacity-70"><span>Subtotal:</span><span>R$ ${subtotal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span></div>
                 <div class="flex justify-between opacity-70">
-                    <span>Frete ${distanciaCliente > 0 ? '('+distanciaCliente.toFixed(1)+'km)' : ''}:</span>
+                    <span>Frete:</span>
                     <span>${taxaEntregaAtual > 0 ? 'R$ ' + taxaEntregaAtual.toLocaleString('pt-BR', {minimumFractionDigits: 2}) : 'Grátis'}</span>
                 </div>
                 <div class="flex justify-between text-base font-black border-t border-white/20 pt-2 mt-2">
@@ -238,78 +231,87 @@ function renderizarCarrinho() {
 }
 
 window.abrirCarrinho = () => {
-    const modal = document.getElementById('modalCarrinho');
-    if(modal) modal.classList.remove('hidden');
+    document.getElementById('modalCarrinho')?.classList.remove('hidden');
     if(window.irParaPasso) window.irParaPasso(1);
     renderizarCarrinho();
 };
 
 window.fecharCarrinho = () => {
-    const modal = document.getElementById('modalCarrinho');
-    if(modal) modal.classList.add('hidden');
+    document.getElementById('modalCarrinho')?.classList.add('hidden');
 };
 
-// --- FINALIZAÇÃO E PERSISTÊNCIA ---
-
-async function salvarDadosCliente() {
-    const whatsapp = document.getElementById('inputWhatsApp').value.replace(/\D/g, '');
-    const nome = document.getElementById('inputNome').value;
-    const numero = document.getElementById('inputNumero').value;
-
-    if (!whatsapp || !nome) return;
-
-    const info = {
-        nome,
-        whatsapp,
-        cep: enderecoCompleto.cep,
-        rua: enderecoCompleto.rua,
-        bairro: enderecoCompleto.bairro,
-        cidade: enderecoCompleto.cidade,
-        numero,
-        distanciaSalva: distanciaCliente, // SALVA PARA NÃO CALCULAR NOVO FRETE NA PRÓXIMA
-        ultimaCompra: new Date()
-    };
-
-    try {
-        await setDoc(doc(db, "clientes", whatsapp), info, { merge: true });
-    } catch (e) { console.error("Erro ao salvar dados do cliente:", e); }
-}
-
+// --- FINALIZAÇÃO, FIREBASE E WHATSAPP ---
 window.enviarWhatsApp = async () => {
     const radios = document.getElementsByName('pagamento');
     radios.forEach(r => { if(r.checked) formaPagamento = r.value; });
 
-    if(!formaPagamento) { alert("Selecione o pagamento!"); return; }
+    if(!formaPagamento) { alert("Selecione a forma de pagamento!"); return; }
 
-    let numero = document.getElementById('inputNumero').value;
-    if(modoPedido === 'entrega' && !numero) { alert("Preencha o número/complemento."); return; }
+    const nomeCliente = document.getElementById('inputNome')?.value || "Cliente Online";
+    const numeroEnd = document.getElementById('inputNumero')?.value || "";
 
-    // Salva o cadastro do cliente antes de sair
-    await salvarDadosCliente();
+    if(modoPedido === 'entrega' && !numeroEnd) { alert("Informe o número do endereço."); return; }
 
     const subtotal = carrinho.reduce((a,b) => a + b.preco, 0);
     const totalFinal = subtotal + taxaEntregaAtual;
 
-    let texto = `*NOVO PEDIDO - ${document.getElementById('nomeLoja').innerText}* 🛒\n`;
-    texto += `--------------------------------\n`;
-    carrinho.forEach(i => texto += `• ${i.nome} (R$ ${i.preco.toLocaleString('pt-BR', {minimumFractionDigits: 2})})\n`);
-    texto += `--------------------------------\n`;
-    texto += `*MODO:* ${modoPedido === 'entrega' ? '🛵 Entrega' : '🛍️ Retirada'}\n`;
-    
-    if(modoPedido === 'entrega') {
-        texto += `*ENDEREÇO:* ${enderecoCompleto.rua}, ${numero}\n`;
-        texto += `*BAIRRO:* ${enderecoCompleto.bairro}\n`;
-        texto += `*FRETE:* R$ ${taxaEntregaAtual.toLocaleString('pt-BR', {minimumFractionDigits: 2})} (${distanciaCliente.toFixed(1)}km)\n`;
-    }
+    // 1. Criar o objeto do pedido para o Banco de Dados
+    const dadosPedido = {
+        userId: userId,
+        cliente: nomeCliente,
+        itens: carrinho,
+        total: totalFinal,
+        taxaEntrega: taxaEntregaAtual,
+        status: "Pendente",
+        origem: "Online",
+        pagamento: formaPagamento,
+        tipo: modoPedido,
+        endereco: modoPedido === 'entrega' ? `${enderecoCompleto.rua}, ${numeroEnd} - ${enderecoCompleto.bairro}` : 'Retirada na Loja',
+        createdAt: serverTimestamp(),
+        horaEntrega: new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})
+    };
 
-    texto += `*PAGAMENTO:* ${formaPagamento}\n`;
-    texto += `*TOTAL: R$ ${totalFinal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}*\n`;
-    
-    window.open(`https://wa.me/${whatsappLoja.replace(/\D/g,'')}?text=${encodeURIComponent(texto)}`);
+    try {
+        // 2. Salvar no Firebase (Painel do Dono)
+        await addDoc(collection(db, "pedidos"), dadosPedido);
+
+        // 3. Opcional: Salvar/Atualizar cadastro do cliente
+        const whatsLimpo = String(clienteLogado?.whatsapp || ""); // Se houver campo de whats no form
+        if(whatsLimpo) {
+            await setDoc(doc(db, "clientes", whatsLimpo), {
+                nome: nomeCliente,
+                cep: enderecoCompleto.cep,
+                distanciaSalva: distanciaCliente,
+                ultimaCompra: serverTimestamp()
+            }, { merge: true });
+        }
+
+        // 4. Formatar Mensagem WhatsApp
+        let msg = `*NOVO PEDIDO ONLINE* 🥐\n`;
+        msg += `*Cliente:* ${nomeCliente}\n`;
+        msg += `------------------------------\n`;
+        carrinho.forEach(i => msg += `• ${i.nome} - R$ ${i.preco.toFixed(2)}\n`);
+        msg += `------------------------------\n`;
+        msg += `*Modo:* ${modoPedido === 'entrega' ? '🛵 Entrega' : '🛍️ Retirada'}\n`;
+        if(modoPedido === 'entrega') msg += `*Endereço:* ${dadosPedido.endereco}\n`;
+        msg += `*Pagamento:* ${formaPagamento}\n`;
+        msg += `*TOTAL: R$ ${totalFinal.toFixed(2)}*\n\n`;
+        msg += `_Pedido registrado no sistema._`;
+
+        window.open(`https://wa.me/${whatsappLoja.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`);
+        
+        // Limpa carrinho e fecha
+        carrinho = [];
+        fecharCarrinho();
+        atualizarBadgeCarrinho();
+
+    } catch (e) {
+        console.error("Erro ao processar pedido:", e);
+        alert("Houve um erro ao salvar seu pedido. Tente novamente.");
+    }
 };
 
 // --- FIREBASE E INICIALIZAÇÃO ---
-
 function verificarSeEstaAberto(abertura, fechamento) {
     if (!abertura || !fechamento) return true;
     const agora = new Date();
@@ -332,36 +334,26 @@ async function inicializar() {
             configHorario = { abertura: d.horarioAbertura || "", fechamento: d.horarioFechamento || "" };
             configEntrega = d.configEntrega || { coords: {lat:0, log:0}, raioMaximo: 0, valorKm: 0, tipo: 'fixo' };
 
-            document.getElementById('nomeLoja').innerText = d.nomeNegocio || "Minha Loja";
-            document.getElementById('nomeLojaRodape').innerText = d.nomeNegocio || "Minha Loja";
-            
+            document.getElementById('nomeLoja').innerText = d.nomeNegocio || "Loja";
             if(d.corTema) document.documentElement.style.setProperty('--cor-primaria', d.corTema);
             
-            // Usando os nomes originais dos campos do seu banco
             const banner = document.getElementById('bannerLoja');
             if(banner && d.fotoCapa) banner.style.backgroundImage = `url('${d.fotoCapa}')`;
             
-            const img = document.getElementById('fotoLoja');
-            if(img && d.fotoPerfil) {
-                img.src = d.fotoPerfil;
-                img.classList.remove('hidden');
-                const emoji = document.getElementById('emojiLoja');
-                if(emoji) emoji.classList.add('hidden');
-            }
-
-            const dotStatus = document.getElementById('dotStatus');
-            const labelStatus = document.getElementById('labelStatus');
             lojaAberta = verificarSeEstaAberto(d.horarioAbertura, d.horarioFechamento);
+            const labelStatus = document.getElementById('labelStatus');
+            const dotStatus = document.getElementById('dotStatus');
             
             if (lojaAberta) {
                 if(dotStatus) dotStatus.className = "w-2 h-2 rounded-full bg-green-500 ping-aberto";
                 if(labelStatus) labelStatus.innerHTML = `<span class="text-green-600 font-bold">Aberto</span> até ${d.horarioFechamento}`;
             } else {
                 if(dotStatus) dotStatus.className = "w-2 h-2 rounded-full bg-red-500";
-                if(labelStatus) labelStatus.innerHTML = `<span class="text-red-600 font-bold">Fechado</span> abre às ${d.horarioAbertura}`;
+                if(labelStatus) labelStatus.innerHTML = `<span class="text-red-600 font-bold">Fechado</span>`;
             }
         }
 
+        // CARREGAR PRODUTOS
         const q = query(collection(db, "produtos"), where("userId", "==", userId));
         const snap = await getDocs(q);
         const prods = {};
@@ -384,11 +376,11 @@ async function inicializar() {
                         <div class="bg-white p-3 rounded-3xl flex items-center justify-between shadow-sm border border-slate-50">
                             <div class="flex-1 pr-4">
                                 <h3 class="text-sm font-bold text-slate-800">${p.nome}</h3>
-                                <p class="text-[10px] text-slate-400 mt-0.5 line-clamp-2">${p.descricao || ''}</p>
-                                <p class="text-brand font-black mt-2">R$ ${Number(p.preco).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
+                                <p class="text-[10px] text-slate-400 mt-0.5">${p.descricao || ''}</p>
+                                <p class="text-brand font-black mt-2">R$ ${Number(p.preco).toFixed(2)}</p>
                             </div>
                             <div class="relative w-20 h-20">
-                                <img src="${p.foto}" class="w-full h-full object-cover rounded-2xl bg-slate-50">
+                                <img src="${p.foto}" class="w-full h-full object-cover rounded-2xl">
                                 <button onclick="adicionarAoCarrinho('${p.nome}', ${p.preco})" class="absolute -bottom-1 -right-1 w-8 h-8 bg-brand text-white rounded-xl shadow-lg font-bold">+</button>
                             </div>
                         </div>`;
