@@ -20,12 +20,22 @@ async function carregarDashboard(user) {
 
         if (userSnap.exists()) {
             dadosUsuario = userSnap.data();
+            
+            // Atualiza o nome do negócio em todos os lugares (Sidebar, Nav Mobile, Boas-vindas)
             const elementosNome = ['sideNomeNegocio', 'navNomeNegocio', 'boasVindasNome'];
             elementosNome.forEach(id => {
                 const el = document.getElementById(id);
-                if (el) el.innerText = dadosUsuario.nomeNegocio || "Meu Negócio";
+                if (el) {
+                    // Se for boasVindasNome, usamos o primeiro nome ou o nome do negócio
+                    if(id === 'boasVindasNome') {
+                        el.innerText = dadosUsuario.nomeNegocio?.split(' ')[0] || "Parceiro";
+                    } else {
+                        el.innerText = dadosUsuario.nomeNegocio || "Meu Negócio";
+                    }
+                }
             });
 
+            // Aplica cor customizada se existir
             if (dadosUsuario.corTema) {
                 document.documentElement.style.setProperty('--cor-primaria', dadosUsuario.corTema);
                 localStorage.setItem('tema-cor', dadosUsuario.corTema);
@@ -35,6 +45,7 @@ async function carregarDashboard(user) {
         const produtosRef = collection(db, "produtos");
         const pedidosRef = collection(db, "pedidos");
 
+        // Busca produtos e pedidos simultaneamente para performance
         const [snapProdutos, snapPedidos] = await Promise.all([
             getDocs(query(produtosRef, where("userId", "==", user.uid))),
             getDocs(query(pedidosRef, where("userId", "==", user.uid)))
@@ -45,6 +56,7 @@ async function carregarDashboard(user) {
         let contagemVendas = {}; 
         const nicho = (dadosUsuario.categoriaNegocio || "comércio").toLowerCase();
 
+        // Processar Pedidos
         snapPedidos.forEach(doc => {
             const pedido = doc.data();
             faturamentoTotal += parseFloat(pedido.total || 0);
@@ -56,6 +68,7 @@ async function carregarDashboard(user) {
             }
         });
 
+        // Processar Alertas de Estoque
         snapProdutos.forEach(doc => {
             const p = doc.data();
             const atual = parseInt(p.estoqueAtual || 0);
@@ -65,44 +78,43 @@ async function carregarDashboard(user) {
             }
         });
 
-        // --- D. MOTOR DE INSIGHTS INTELIGENTES ---
+        // --- MOTOR DE INSIGHTS INTELIGENTES ---
         const obterInsight = () => {
             const hora = new Date().getHours();
             const topProduto = Object.entries(contagemVendas).sort((a, b) => b[1] - a[1])[0];
-            const ticketMedio = snapPedidos.size > 0 ? faturamentoTotal / snapPedidos.size : 0;
 
             if (alertasEstoque.some(a => a.esgotado)) {
-                return `<i data-lucide="octagon-alert" class="inline-block w-4 h-4 mr-1 text-red-500"></i> <b>Ruptura detectada:</b> Você tem produtos esgotados!`;
+                return `<i data-lucide="octagon-alert" class="inline-block w-5 h-5 mr-2 text-red-500 align-middle"></i> <b>Ruptura detectada:</b> Você tem produtos esgotados no estoque!`;
             }
 
-            if (nicho.includes("padaria") || nicho.includes("café")) {
-                if (hora >= 6 && hora <= 10) return `<i data-lucide="coffee" class="inline-block w-4 h-4 mr-1 text-orange-500"></i> <b>Hora do Pico:</b> O movimento de pães está alto.`;
-                if (hora >= 16 && hora <= 19) return `<i data-lucide="croissant" class="inline-block w-4 h-4 mr-1 text-orange-400"></i> <b>Dica:</b> Muitos clientes buscam o lanche da tarde.`;
+            if (nicho.includes("padaria") || nicho.includes("café") || nicho.includes("lanchonete")) {
+                if (hora >= 6 && hora <= 10) return `<i data-lucide="coffee" class="inline-block w-5 h-5 mr-2 text-orange-500 align-middle"></i> <b>Hora do Pico:</b> O movimento matinal costuma ser alto agora.`;
+                if (hora >= 16 && hora <= 19) return `<i data-lucide="croissant" class="inline-block w-5 h-5 mr-2 text-orange-400 align-middle"></i> <b>Dica de Tarde:</b> Prepare o estoque para o lanche da tarde.`;
             }
 
-            if (nicho.includes("doce") || nicho.includes("confeitaria")) {
-                if (topProduto) return `<i data-lucide="cookie" class="inline-block w-4 h-4 mr-1 text-pink-500"></i> <b>Destaque:</b> Seu "${topProduto[0]}" é o favorito.`;
+            if (topProduto && topProduto[1] > 5) {
+                return `<i data-lucide="trending-up" class="inline-block w-5 h-5 mr-2 text-green-500 align-middle"></i> <b>Sucesso de Vendas:</b> O item "${topProduto[0]}" é o seu carro-chefe.`;
             }
 
             if (alertasEstoque.length > 0) {
-                return `<i data-lucide="package-search" class="inline-block w-4 h-4 mr-1 text-orange-500"></i> <b>Atenção:</b> ${alertasEstoque.length} itens no limite.`;
+                return `<i data-lucide="package-search" class="inline-block w-5 h-5 mr-2 text-orange-500 align-middle"></i> <b>Atenção:</b> Você tem ${alertasEstoque.length} itens precisando de reposição.`;
             }
 
-            return `<i data-lucide="lightbulb" class="inline-block w-4 h-4 mr-1 text-yellow-500"></i> <b>Dica:</b> Mantenha seu estoque atualizado para melhores insights.`;
+            return `<i data-lucide="sparkles" class="inline-block w-5 h-5 mr-2 text-brand align-middle"></i> <b>Dica:</b> Mantenha seus preços atualizados para garantir a margem de lucro.`;
         };
 
         // --- 2. ATUALIZAÇÃO DA UI ---
 
-        if (document.getElementById('faturamentoMes')) 
-            document.getElementById('faturamentoMes').innerText = formatador.format(faturamentoTotal);
-        
-        if (document.getElementById('totalAlertasEstoque'))
-            document.getElementById('totalAlertasEstoque').innerText = alertasEstoque.length;
-        
-        if (document.getElementById('totalClientes'))
-            document.getElementById('totalClientes').innerText = snapPedidos.size;
+        // Atualizar Cards Principais
+        const elFaturamento = document.getElementById('faturamentoMes');
+        const elAlertaEstoque = document.getElementById('totalAlertasEstoque');
+        const elTotalClientes = document.getElementById('totalClientes');
 
-        // Atualizar Sininho e Alertas
+        if (elFaturamento) elFaturamento.innerText = formatador.format(faturamentoTotal);
+        if (elAlertaEstoque) elAlertaEstoque.innerText = alertasEstoque.length;
+        if (elTotalClientes) elTotalClientes.innerText = snapPedidos.size;
+
+        // Atualizar Notificações (Sininho)
         const badgeMobile = document.getElementById('badgeNotificacao');
         const badgeDesk = document.getElementById('badgeNotificacaoDesktop');
         const containerAlertas = document.getElementById('containerAlertas');
@@ -121,13 +133,13 @@ async function carregarDashboard(user) {
                 const label = alerta.esgotado ? 'ESGOTADO' : 'REPOR';
 
                 return `
-                    <div class="flex items-center gap-3 p-3 ${corCard} rounded-xl border mb-2 transition-all hover:scale-[1.02]">
+                    <div class="flex items-center gap-3 p-4 ${corCard} rounded-2xl border mb-2 transition-all hover:scale-[1.02]">
                         <div class="${corTexto}">
-                             <i data-lucide="${icon}" class="w-4 h-4"></i>
+                             <i data-lucide="${icon}" class="w-5 h-5"></i>
                         </div>
                         <div class="flex-1">
-                            <p class="text-[11px] font-bold text-slate-700 uppercase leading-tight">${alerta.nome}</p>
-                            <p class="text-[10px] ${corTexto} font-black mt-0.5">${label}: ${alerta.qtd} UNIDADES</p>
+                            <p class="text-xs font-bold text-slate-700 uppercase leading-tight">${alerta.nome}</p>
+                            <p class="text-[10px] ${corTexto} font-black mt-1 uppercase tracking-wider">${label}: ${alerta.qtd} UNIDADES</p>
                         </div>
                     </div>
                 `;
@@ -135,14 +147,16 @@ async function carregarDashboard(user) {
             
             const statusEstoque = document.getElementById('statusEstoqueGeral');
             if (statusEstoque) {
-                statusEstoque.innerText = "Reposição Necessária";
-                statusEstoque.className = "text-[10px] font-bold text-red-500 uppercase tracking-tight";
+                statusEstoque.innerText = "Ação Necessária";
+                statusEstoque.className = "text-[10px] font-bold text-red-500 uppercase mt-3 block tracking-wider";
             }
         } else {
             containerAlertas.innerHTML = `
-                <div class="py-6 text-center">
-                    <i data-lucide="check-circle" class="w-8 h-8 text-green-400 mx-auto mb-2"></i>
-                    <p class="text-xs text-slate-400 italic">Tudo em dia por aqui!</p>
+                <div class="py-10 text-center">
+                    <div class="w-12 h-12 bg-green-50 text-green-400 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <i data-lucide="check-circle" class="w-6 h-6"></i>
+                    </div>
+                    <p class="text-xs text-slate-400 font-medium">Seu estoque está saudável!</p>
                 </div>`;
             
             if (badgeMobile) badgeMobile.classList.add('hidden');
@@ -157,12 +171,12 @@ async function carregarDashboard(user) {
 
         if (topProdutos.length > 0 && containerTop) {
             containerTop.innerHTML = topProdutos.map(([nome, qtd], index) => `
-                <div class="flex items-center justify-between p-2 hover:bg-white/5 rounded-xl transition-colors">
-                    <div class="flex items-center gap-3">
-                        <span class="text-xs font-black text-brand">${index + 1}º</span>
+                <div class="flex items-center justify-between p-3 hover:bg-white/5 rounded-2xl transition-colors border border-transparent hover:border-white/10">
+                    <div class="flex items-center gap-4">
+                        <span class="text-sm font-black text-brand w-6">${index + 1}º</span>
                         <span class="text-sm font-bold text-slate-300">${nome}</span>
                     </div>
-                    <span class="text-[10px] bg-slate-800 px-2 py-1 rounded-lg text-slate-400 border border-slate-700">${qtd} un.</span>
+                    <span class="text-[10px] bg-slate-800 px-3 py-1.5 rounded-xl text-slate-400 border border-white/5 font-black uppercase tracking-tighter">${qtd} vendid.</span>
                 </div>
             `).join('');
         }
@@ -173,13 +187,13 @@ async function carregarDashboard(user) {
             insightEl.innerHTML = obterInsight();
         }
 
-        // --- IMPORTANTE: Re-inicializa os ícones após renderizar o conteúdo dinâmico ---
+        // Re-inicializa ícones para o conteúdo novo
         if (window.lucide) {
             window.lucide.createIcons();
         }
 
     } catch (error) {
-        console.error("Erro no Dashboard:", error);
+        console.error("Erro ao carregar Dashboard:", error);
     }
 }
 
@@ -199,10 +213,15 @@ const logoutAction = async () => {
         text: "Sua sessão será encerrada com segurança.",
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#ef4444',
+        confirmButtonColor: '#2563eb', // Cor brand
         cancelButtonColor: '#64748b',
         confirmButtonText: 'Sair agora',
-        cancelButtonText: 'Ficar'
+        cancelButtonText: 'Ficar',
+        customClass: {
+            popup: 'rounded-[2.5rem]',
+            confirmButton: 'rounded-2xl px-6 py-3',
+            cancelButton: 'rounded-2xl px-6 py-3'
+        }
     });
 
     if (confirmacao.isConfirmed) {
