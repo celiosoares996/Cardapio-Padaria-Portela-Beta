@@ -58,13 +58,19 @@ async function carregarDashboard(user) {
             }
         });
 
-        // Processar Produtos (Estoque Baixo)
+        // Processar Produtos (Estoque Inteligente)
         snapProdutos.forEach(doc => {
             const p = doc.data();
-            const qtd = parseInt(p.estoque || 0);
-            // Definimos 5 como estoque crítico
-            if (qtd <= 5) {
-                alertasEstoque.push({ nome: p.nome, qtd: qtd });
+            const atual = parseInt(p.estoqueAtual || 0);
+            const minimo = parseInt(p.estoqueMinimo || 0);
+
+            // Se o estoque atual for menor ou igual ao mínimo definido pelo usuário
+            if (atual <= minimo) {
+                alertasEstoque.push({ 
+                    nome: p.nome, 
+                    qtd: atual,
+                    esgotado: atual === 0 
+                });
             }
         });
 
@@ -92,24 +98,34 @@ async function carregarDashboard(user) {
             }
             if (badgeDesk) badgeDesk.classList.remove('hidden');
 
-            containerAlertas.innerHTML = alertasEstoque.map(alerta => `
-                <div class="flex items-center gap-3 p-3 bg-orange-50 rounded-xl border border-orange-100 mb-2">
-                    <span class="text-lg">⚠️</span>
-                    <div>
-                        <p class="text-[11px] font-bold text-slate-700 uppercase leading-tight">${alerta.nome}</p>
-                        <p class="text-[10px] text-orange-600 font-medium">Estoque: ${alerta.qtd} unidades</p>
+            containerAlertas.innerHTML = alertasEstoque.map(alerta => {
+                const corCard = alerta.esgotado ? 'bg-red-50 border-red-100' : 'bg-orange-50 border-orange-100';
+                const corTexto = alerta.esgotado ? 'text-red-600' : 'text-orange-600';
+                const label = alerta.esgotado ? '🚫 ESGOTADO' : '⚠️ REPOR';
+
+                return `
+                    <div class="flex items-center gap-3 p-3 ${corCard} rounded-xl border mb-2 transition-all hover:scale-[1.02]">
+                        <div class="flex-1">
+                            <p class="text-[11px] font-bold text-slate-700 uppercase leading-tight">${alerta.nome}</p>
+                            <p class="text-[10px] ${corTexto} font-black mt-0.5">${label}: ${alerta.qtd} UNIDADES</p>
+                        </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
             
             const statusEstoque = document.getElementById('statusEstoqueGeral');
             if (statusEstoque) {
-                statusEstoque.innerText = "Itens Precisam de Reposição";
-                statusEstoque.classList.remove('text-slate-400');
-                statusEstoque.classList.add('text-orange-500');
+                statusEstoque.innerText = "Reposição Necessária";
+                statusEstoque.className = "text-[10px] font-bold text-red-500 uppercase tracking-tight";
             }
         } else {
-            containerAlertas.innerHTML = `<p class="text-xs text-slate-400 italic text-center py-4">Tudo em dia por aqui! ✅</p>`;
+            containerAlertas.innerHTML = `
+                <div class="py-6 text-center">
+                    <p class="text-xs text-slate-400 italic">Tudo em dia por aqui! ✅</p>
+                </div>`;
+            
+            if (badgeMobile) badgeMobile.classList.add('hidden');
+            if (badgeDesk) badgeDesk.classList.add('hidden');
         }
 
         // Atualizar Top 3 Produtos
@@ -134,11 +150,11 @@ async function carregarDashboard(user) {
         const insight = document.getElementById('insightTexto');
         if (insight) {
             if (alertasEstoque.length > 0) {
-                insight.innerHTML = `⚠️ Atenção! <b>${alertasEstoque.length} produtos</b> estão no limite do estoque. Evite rupturas!`;
+                insight.innerHTML = `⚠️ Atenção! <b>${alertasEstoque.length} produtos</b> atingiram o limite de estoque.`;
             } else if (faturamentoTotal > 0) {
-                insight.innerHTML = `🚀 Bom trabalho! Seu faturamento acumulado é de <b>${formatador.format(faturamentoTotal)}</b>.`;
+                insight.innerHTML = `🚀 Bom trabalho! Seu faturamento total é de <b>${formatador.format(faturamentoTotal)}</b>.`;
             } else {
-                insight.innerHTML = `💡 <b>Dica:</b> Registre suas primeiras vendas para acompanhar o crescimento do seu negócio aqui.`;
+                insight.innerHTML = `💡 <b>Dica:</b> O estoque dos seus produtos será monitorado automaticamente aqui.`;
             }
         }
 
@@ -180,5 +196,4 @@ const logoutAction = async () => {
     }
 };
 
-// Vinculação de eventos
 document.getElementById('btnSairDesktop')?.addEventListener('click', logoutAction);
