@@ -3,36 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vendas | Digitaliza Menu</title>
+    <title>Perfil | Digitaliza Menu</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
     <style>
         :root { --cor-primaria: #2563eb; }
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; padding-bottom: 90px; }
         
+        @media (min-width: 768px) { body { padding-bottom: 0; padding-left: 280px; } }
+
         .bg-brand { background-color: var(--cor-primaria) !important; }
         .text-brand { color: var(--cor-primaria) !important; }
         .border-brand { border-color: var(--cor-primaria) !important; }
         
-        /* Layout Base unificado */
-        body { padding-bottom: 90px; } 
-        @media (min-width: 768px) { 
-            body { padding-bottom: 0; padding-left: 280px; } 
-        }
-
-        /* Destaque do item ativo no menu */
         .nav-item-active {
             background-color: var(--cor-primaria) !important;
             color: white !important;
             box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.2);
         }
 
+        .input-padrao {
+            width: 100%; margin-top: 0.5rem; padding: 1.25rem; background-color: #f8fafc;
+            border: 2px solid transparent; border-radius: 1.5rem; font-weight: 700;
+            color: #334155; outline: none; transition: all 0.3s;
+        }
+        .input-padrao:focus { border-color: rgba(37, 99, 235, 0.2); background-color: white; }
+
+        .btn-toggle-active { background-color: white !important; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); color: var(--cor-primaria) !important; }
+
         i[data-lucide] { stroke-width: 2.5px; }
-        .hide-scroll::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body class="text-slate-900">
@@ -40,7 +44,7 @@
     <aside class="hidden md:flex fixed left-0 top-0 h-full w-72 bg-white border-r border-slate-200 flex-col p-8 z-50">
         <div class="flex items-center gap-3 mb-12">
             <div class="w-10 h-10 bg-brand rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-200">
-                <i data-lucide="receipt" class="w-6 h-6"></i>
+                <i data-lucide="settings" class="w-6 h-6"></i>
             </div>
             <div class="flex flex-col">
                 <h2 id="sideNomeNegocio" class="text-lg font-extrabold tracking-tight text-slate-800 uppercase italic leading-tight">Carregando...</h2>
@@ -58,11 +62,11 @@
             <a href="produtos.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:text-brand hover:bg-blue-50 transition-all font-semibold group">
                 <i data-lucide="shopping-bag" class="w-5 h-5 group-hover:scale-110 transition-transform"></i> Produtos
             </a>
-            <a href="pedidos.html" class="flex items-center gap-3 p-4 rounded-2xl nav-item-active font-bold transition-all">
+            <a href="pedidos.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:text-brand hover:bg-blue-50 transition-all font-semibold group">
                 <i data-lucide="receipt" class="w-5 h-5"></i> Vendas
             </a>
-            <a href="perfil.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:text-brand hover:bg-blue-50 transition-all font-semibold group">
-                <i data-lucide="settings" class="w-5 h-5 group-hover:scale-110 transition-transform"></i> Perfil
+            <a href="perfil.html" class="flex items-center gap-3 p-4 rounded-2xl nav-item-active font-bold transition-all">
+                <i data-lucide="settings" class="w-5 h-5"></i> Perfil
             </a>
         </nav>
 
@@ -74,110 +78,160 @@
     <nav class="md:hidden bg-white/80 backdrop-blur-md sticky top-0 z-40 p-5 flex justify-between items-center border-b border-slate-100">
         <div class="flex items-center gap-3">
             <div class="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500">
-                <i data-lucide="receipt" class="w-5 h-5"></i>
+                <i data-lucide="settings" class="w-5 h-5"></i>
             </div>
-            <h2 id="navNomeNegocio" class="text-lg font-black text-slate-800 uppercase italic">Vendas</h2>
+            <h2 id="mobileNomeNegocio" class="text-lg font-black text-slate-800 uppercase italic">Perfil</h2>
         </div>
     </nav>
 
     <main class="max-w-5xl mx-auto p-5 md:p-12">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6">
-            <div>
-                <p class="text-xs font-black text-brand uppercase tracking-widest mb-2">Central de Operações</p>
-                <h1 class="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tighter">Vendas & Pedidos</h1>
+        <header class="mb-10">
+            <p class="text-xs font-black text-brand uppercase tracking-widest mb-2">Configurações</p>
+            <h1 class="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tighter">Sua Identidade</h1>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-2 space-y-8">
+                <form id="formPerfil" class="space-y-8">
+                    
+                    <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div class="space-y-4">
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Capa da Loja</label>
+                                <div id="wrapperCapa" class="relative h-48 bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200 overflow-hidden group cursor-pointer hover:border-brand transition-all flex items-center justify-center">
+                                    <img id="imgCapa" class="hidden absolute inset-0 w-full h-full object-cover">
+                                    <div id="placeholderCapa" class="text-center">
+                                        <i data-lucide="image" class="w-8 h-8 text-slate-300 mx-auto mb-2"></i>
+                                        <p class="text-[10px] font-bold text-slate-400 uppercase">Alterar Capa</p>
+                                    </div>
+                                    <input type="file" id="fileCapa" class="hidden" accept="image/*">
+                                </div>
+                            </div>
+
+                            <div class="space-y-4 text-center md:text-left">
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Logo da Loja</label>
+                                <div class="flex items-center gap-6 p-4 bg-slate-50 rounded-[2rem] border border-slate-100">
+                                    <div id="wrapperFoto" class="relative w-24 h-24 bg-white rounded-3xl shadow-sm border-4 border-white overflow-hidden cursor-pointer group shrink-0">
+                                        <img id="imgLogo" class="hidden w-full h-full object-cover">
+                                        <div id="placeholderEmoji" class="flex items-center justify-center h-full text-slate-300">
+                                            <i data-lucide="camera" class="w-8 h-8"></i>
+                                        </div>
+                                        <input type="file" id="fileInput" class="hidden" accept="image/*">
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-bold text-slate-800">Sua Marca</p>
+                                        <p class="text-[10px] text-slate-400 font-medium">PNG ou JPG até 2MB</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nome do Negócio</label>
+                                <input type="text" id="nomeNegocio" class="input-padrao" placeholder="Ex: Burguer King">
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">WhatsApp</label>
+                                <input type="text" id="whatsappNegocio" class="input-padrao" placeholder="5511999999999">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+                        <div class="flex items-center gap-4 mb-8">
+                            <div class="w-12 h-12 bg-blue-50 text-brand rounded-2xl flex items-center justify-center">
+                                <i data-lucide="truck" class="w-6 h-6"></i>
+                            </div>
+                            <h3 class="text-xl font-black text-slate-800 tracking-tighter">Entrega & Frete</h3>
+                        </div>
+
+                        <div class="space-y-6">
+                            <div class="flex p-2 bg-slate-100 rounded-[1.5rem] gap-2">
+                                <button type="button" id="btnModoFixo" class="flex-1 py-4 rounded-xl font-black text-[10px] uppercase transition-all btn-toggle-active">Taxa Fixa</button>
+                                <button type="button" id="btnModoRaio" class="flex-1 py-4 rounded-xl font-black text-[10px] uppercase transition-all text-slate-400">Por Distância</button>
+                                <input type="hidden" id="tipoEntrega" value="fixo">
+                            </div>
+
+                            <div id="configFixo">
+                                <label class="text-[10px] font-black text-slate-400 uppercase ml-1 block">Valor da Entrega (R$)</label>
+                                <input type="number" id="taxaFixa" class="input-padrao" placeholder="0.00">
+                            </div>
+
+                            <div id="configRaio" class="hidden space-y-6">
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div><label class="text-[10px] font-black text-slate-400 uppercase block">Raio Máx (KM)</label><input type="number" id="raioMaximo" class="input-padrao"></div>
+                                    <div><label class="text-[10px] font-black text-slate-400 uppercase block">R$ por KM</label><input type="number" id="valorKm" class="input-padrao"></div>
+                                </div>
+                                <button type="button" id="btnCapturarGps" class="w-full p-6 bg-slate-900 text-white rounded-[1.5rem] flex items-center justify-between group">
+                                    <div class="text-left">
+                                        <p class="text-[10px] font-black uppercase opacity-60">Ponto de Partida</p>
+                                        <p id="statusGPS" class="text-xs font-bold mt-1">Clique para fixar localização 📍</p>
+                                    </div>
+                                    <i data-lucide="map-pin" class="w-6 h-6 group-hover:scale-125 transition-transform"></i>
+                                    <input type="hidden" id="lojaLat"><input type="hidden" id="lojaLog">
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="btnSalvarPerfil" class="w-full bg-brand text-white py-6 rounded-[2rem] font-black uppercase tracking-widest text-sm shadow-2xl shadow-blue-500/20 active:scale-95 transition-all">
+                        Salvar Todas as Configurações
+                    </button>
+                </form>
             </div>
-            <button id="abrirModalPedido" class="w-full md:w-auto bg-brand text-white p-5 md:px-8 md:py-5 rounded-[2rem] font-black shadow-2xl shadow-blue-500/20 hover:scale-[1.02] active:scale-95 transition-all flex justify-center items-center gap-3">
-                <i data-lucide="plus" class="w-6 h-6"></i> 
-                <span class="text-sm uppercase tracking-widest">Nova Venda Balcão</span>
-            </button>
-        </div>
 
-        <div class="flex gap-3 overflow-x-auto pb-6 hide-scroll mb-4">
-            <button class="px-8 py-3 bg-brand text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-blue-500/20">Todos</button>
-            <button class="px-8 py-3 bg-white text-slate-400 rounded-2xl text-xs font-black uppercase tracking-widest border border-slate-200 hover:bg-slate-50 transition-all">Pendentes</button>
-            <button class="px-8 py-3 bg-white text-slate-400 rounded-2xl text-xs font-black uppercase tracking-widest border border-slate-200 hover:bg-slate-50 transition-all">Concluídos</button>
-        </div>
-
-        <div id="listaPedidos" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div class="col-span-full py-32 text-center">
-                <div class="w-16 h-16 border-4 border-slate-100 border-t-brand rounded-full animate-spin mx-auto mb-6"></div>
-                <p class="text-slate-400 font-bold italic">Sincronizando banco de dados...</p>
+            <div class="space-y-8">
+                <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 text-center">
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Seu Link Digital</p>
+                    <div id="qrcodePrint" class="flex justify-center mb-6 bg-white p-4 rounded-3xl border border-slate-50 shadow-inner"></div>
+                    <input type="text" id="linkCardapio" readonly class="w-full p-4 bg-slate-50 border-none rounded-2xl text-[10px] font-bold text-center text-slate-400 mb-4">
+                    <button id="btnCopiarLink" class="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-brand hover:text-white transition-all">Copiar Link</button>
+                </div>
             </div>
         </div>
     </main>
 
     <div class="md:hidden fixed bottom-6 left-6 right-6 bg-slate-900/95 backdrop-blur-xl rounded-[2.5rem] p-4 flex justify-around items-center z-50 shadow-2xl border border-white/10">
-        <a href="dashboard.html" class="p-3 text-slate-400">
-            <i data-lucide="home" class="w-6 h-6"></i>
-        </a>
-        <a href="pedidos.html" class="p-4 bg-brand rounded-2xl text-white shadow-lg shadow-blue-500/40">
-            <i data-lucide="receipt" class="w-6 h-6"></i>
-        </a>
-        <a href="estoque.html" class="p-3 text-slate-400">
-            <i data-lucide="boxes" class="w-6 h-6"></i>
-        </a>
-        <a href="produtos.html" class="p-3 text-slate-400">
-            <i data-lucide="shopping-bag" class="w-6 h-6"></i>
-        </a>
-        <a href="perfil.html" class="p-3 text-slate-400">
-            <i data-lucide="settings" class="w-6 h-6"></i>
-        </a>
-    </div>
-
-    <div id="modalPedido" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4 z-[100]">
-        <div class="bg-white p-8 md:p-10 rounded-t-[3rem] md:rounded-[3rem] w-full max-w-lg shadow-2xl border border-white/10 max-h-[92vh] overflow-y-auto">
-            <div class="w-12 h-1.5 bg-slate-100 rounded-full mx-auto mb-8 md:hidden"></div> 
-            
-            <div class="flex items-center gap-4 mb-2">
-                <div class="w-12 h-12 bg-blue-50 text-brand rounded-2xl flex items-center justify-center">
-                    <i data-lucide="shopping-cart" class="w-6 h-6"></i>
-                </div>
-                <div>
-                    <h3 class="text-2xl font-black text-slate-800 tracking-tighter leading-none">Venda Rápida</h3>
-                    <p class="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Baixa automática de estoque</p>
-                </div>
-            </div>
-            
-            <form id="formPedido" class="space-y-6 mt-8">
-                <div>
-                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nome do Cliente</label>
-                    <input type="text" id="cliente" placeholder="Opcional..." 
-                           class="w-full mt-2 p-5 bg-slate-50 border-2 border-transparent rounded-[1.5rem] outline-none focus:border-brand/20 focus:bg-white transition-all font-bold">
-                </div>
-                
-                <div>
-                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Escolher Produto</label>
-                    <div class="relative">
-                        <select id="selectProduto" class="w-full mt-2 p-5 bg-slate-50 border-2 border-transparent rounded-[1.5rem] outline-none focus:border-brand/20 focus:bg-white transition-all font-bold text-sm appearance-none">
-                            <option value="">Selecione um item...</option>
-                        </select>
-                        <i data-lucide="chevron-down" class="absolute right-5 top-7 text-slate-400 w-5 h-5 pointer-events-none"></i>
-                    </div>
-                </div>
-
-                <div id="itensSelecionados" class="space-y-3 max-h-48 overflow-y-auto pr-2 custom-scroll">
-                    </div>
-
-                <div class="bg-slate-900 p-6 rounded-[2rem] flex justify-between items-center shadow-xl shadow-slate-200">
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Total a Pagar</span>
-                    <span id="valorTotalPedido" class="text-2xl font-black text-white tracking-tighter text-brand">R$ 0,00</span>
-                </div>
-                
-                <div class="flex flex-col gap-3 pt-2">
-                    <button type="submit" class="w-full bg-brand text-white py-5 rounded-[1.5rem] font-black uppercase tracking-widest text-xs shadow-xl shadow-blue-500/20 active:scale-95 transition-all">
-                        Confirmar Venda
-                    </button>
-                    <button type="button" id="fecharModalPedido" class="w-full bg-slate-100 text-slate-400 py-5 rounded-[1.5rem] font-black uppercase tracking-widest text-xs hover:bg-red-50 hover:text-red-400 transition-all">
-                        Descartar
-                    </button>
-                </div>
-            </form>
-        </div>
+        <a href="dashboard.html" class="p-3 text-slate-400"><i data-lucide="home" class="w-6 h-6"></i></a>
+        <a href="pedidos.html" class="p-3 text-slate-400"><i data-lucide="receipt" class="w-6 h-6"></i></a>
+        <a href="estoque.html" class="p-3 text-slate-400"><i data-lucide="boxes" class="w-6 h-6"></i></a>
+        <a href="produtos.html" class="p-3 text-slate-400"><i data-lucide="shopping-bag" class="w-6 h-6"></i></a>
+        <a href="perfil.html" class="p-4 bg-brand rounded-2xl text-white shadow-lg shadow-blue-500/40"><i data-lucide="settings" class="w-6 h-6"></i></a>
     </div>
 
     <script>
         lucide.createIcons();
+        
+        // Lógica de Toggle das Taxas de Entrega
+        const btnFixo = document.getElementById('btnModoFixo');
+        const btnRaio = document.getElementById('btnModoRaio');
+        const configFixo = document.getElementById('configFixo');
+        const configRaio = document.getElementById('configRaio');
+        const tipoEntrega = document.getElementById('tipoEntrega');
+
+        btnFixo.onclick = () => {
+            tipoEntrega.value = 'fixo';
+            btnFixo.className = 'flex-1 py-4 rounded-xl font-black text-[10px] uppercase transition-all btn-toggle-active';
+            btnRaio.className = 'flex-1 py-4 rounded-xl font-black text-[10px] uppercase transition-all text-slate-400';
+            configFixo.classList.remove('hidden');
+            configRaio.classList.add('hidden');
+        };
+
+        btnRaio.onclick = () => {
+            tipoEntrega.value = 'raio';
+            btnRaio.className = 'flex-1 py-4 rounded-xl font-black text-[10px] uppercase transition-all btn-toggle-active';
+            btnFixo.className = 'flex-1 py-4 rounded-xl font-black text-[10px] uppercase transition-all text-slate-400';
+            configRaio.classList.remove('hidden');
+            configFixo.classList.add('hidden');
+        };
+
+        // Trigger de Upload
+        document.getElementById('wrapperCapa').onclick = () => document.getElementById('fileCapa').click();
+        document.getElementById('wrapperFoto').onclick = () => document.getElementById('fileInput').click();
     </script>
-    <script type="module" src="./src/pedidos.js"></script>
+    <script type="module" src="./src/perfil.js"></script>
 </body>
 </html>
