@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pedidos | Digitaliza Menu</title>
+    <title>Vendas | Digitaliza Menu</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
     <style>
         :root { --cor-primaria: #2563eb; }
@@ -31,7 +32,6 @@
         }
 
         i[data-lucide] { stroke-width: 2.5px; }
-
         .hide-scroll::-webkit-scrollbar { display: none; }
     </style>
 </head>
@@ -116,6 +116,9 @@
         <a href="estoque.html" class="p-3 text-slate-400">
             <i data-lucide="boxes" class="w-6 h-6"></i>
         </a>
+        <a href="produtos.html" class="p-3 text-slate-400">
+            <i data-lucide="shopping-bag" class="w-6 h-6"></i>
+        </a>
         <a href="perfil.html" class="p-3 text-slate-400">
             <i data-lucide="settings" class="w-6 h-6"></i>
         </a>
@@ -144,9 +147,12 @@
                 
                 <div>
                     <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Escolher Produto</label>
-                    <select id="selectProduto" class="w-full mt-2 p-5 bg-slate-50 border-2 border-transparent rounded-[1.5rem] outline-none focus:border-brand/20 focus:bg-white transition-all font-bold text-sm appearance-none">
-                        <option value="">Selecione um item...</option>
-                    </select>
+                    <div class="relative">
+                        <select id="selectProduto" class="w-full mt-2 p-5 bg-slate-50 border-2 border-transparent rounded-[1.5rem] outline-none focus:border-brand/20 focus:bg-white transition-all font-bold text-sm appearance-none">
+                            <option value="">Selecione um item...</option>
+                        </select>
+                        <i data-lucide="chevron-down" class="absolute right-5 top-7 text-slate-400 w-5 h-5 pointer-events-none"></i>
+                    </div>
                 </div>
 
                 <div id="itensSelecionados" class="space-y-3 max-h-48 overflow-y-auto pr-2 custom-scroll">
@@ -170,7 +176,6 @@
     </div>
 
     <script>
-        // Inicializa ícones Lucide
         lucide.createIcons();
     </script>
     <script type="module" src="./src/pedidos.js"></script>
