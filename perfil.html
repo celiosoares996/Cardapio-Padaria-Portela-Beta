@@ -6,6 +6,7 @@
     <title>Perfil Profissional | Gerenciador</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root { --cor-primaria: #2563eb; } 
@@ -36,20 +37,32 @@
 
     <aside class="hidden md:flex fixed left-0 top-0 h-full w-64 bg-white border-r border-slate-100 flex-col p-6 z-50">
         <div class="flex items-center gap-3 mb-10 px-2">
-            <span class="text-3xl">⚙️</span>
+            <span class="text-3xl">🛡️</span>
             <div class="flex flex-col">
                 <h2 id="sideNomeNegocio" class="text-xl font-black text-slate-800 tracking-tighter uppercase italic leading-none">Carregando...</h2>
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Painel Admin</span>
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Painel Gestor</span>
             </div>
         </div>
         <nav class="flex-1 space-y-2">
-            <a href="dashboard.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:bg-slate-50 font-bold transition-all"><span>🏠</span> Início</a>
-            <a href="estoque.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:bg-slate-50 font-bold transition-all"><span>📦</span> Estoque</a>
-            <a href="produtos.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:bg-slate-50 font-bold transition-all"><span>🛍️</span> Produtos</a>
-            <a href="pedidos.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:bg-slate-50 font-bold transition-all"><span>📋</span> Pedidos</a>
-            <a href="perfil.html" class="flex items-center gap-3 p-4 rounded-2xl bg-brand text-white font-bold shadow-lg shadow-blue-100"><span>⚙️</span> Perfil</a>
+            <a href="dashboard.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:bg-slate-50 font-bold transition-all">
+                <span class="text-xl">📊</span> Painel
+            </a>
+            <a href="estoque.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:bg-slate-50 font-bold transition-all">
+                <span class="text-xl">📦</span> Estoque
+            </a>
+            <a href="produtos.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:bg-slate-50 font-bold transition-all">
+                <span class="text-xl">🍔</span> Produtos
+            </a>
+            <a href="pedidos.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:bg-slate-50 font-bold transition-all">
+                <span class="text-xl">📝</span> Pedidos
+            </a>
+            <a href="perfil.html" class="flex items-center gap-3 p-4 rounded-2xl bg-brand text-white font-bold shadow-lg shadow-blue-100">
+                <span class="text-xl">⚙️</span> Perfil
+            </a>
         </nav>
-        <button id="btnSairDesktop" class="flex items-center gap-3 p-4 rounded-2xl text-red-400 hover:bg-red-50 font-bold mt-auto transition-all"><span>🚪</span> Sair</button>
+        <button id="btnSairDesktop" class="flex items-center gap-3 p-4 rounded-2xl text-red-400 hover:bg-red-50 font-bold mt-auto transition-all">
+            <span class="text-xl">🚪</span> Sair
+        </button>
     </aside>
 
     <nav class="md:hidden bg-white shadow-sm p-4 sticky top-0 z-40 flex justify-between items-center border-b border-gray-100">
@@ -60,50 +73,50 @@
                 <span class="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Configurações</span>
             </div>
         </div>
-        <button id="btnSairMobile" class="text-xs font-black text-red-500 uppercase tracking-widest bg-red-50 px-4 py-2 rounded-xl">Sair</button>
+        <button id="btnSairMobile" class="text-xs font-black text-red-500 uppercase tracking-widest bg-red-50 px-4 py-2 rounded-xl italic">Sair</button>
     </nav>
 
     <main class="max-w-3xl mx-auto p-4 md:p-10">
         <header class="mb-8 text-center md:text-left">
-            <p class="text-[10px] font-black text-brand uppercase tracking-widest mb-1">Configurações Gerais</p>
+            <p class="text-[10px] font-black text-brand uppercase tracking-widest mb-1">Gerenciamento</p>
             <h1 class="text-3xl font-black text-slate-800 tracking-tight">Sua Identidade</h1>
-            <p class="text-slate-400 text-sm font-medium">Personalize como os clientes veem sua loja e entrega.</p>
+            <p class="text-slate-400 text-sm font-medium">Personalize como os clientes veem sua loja.</p>
         </header>
 
         <div class="space-y-6">
             <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100">
                 <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2 ml-2">Link do seu Cardápio Digital</label>
                 <div class="flex gap-2">
-                    <input type="text" id="linkCardapio" readonly class="flex-1 p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-500 outline-none" value="Gerando link...">
-                    <button id="btnCopiarLink" class="bg-brand text-white p-4 rounded-2xl shadow-md active:scale-90 transition-all">📋</button>
+                    <input type="text" id="linkCardapio" readonly class="flex-1 p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-500 outline-none" value="Carregando link...">
+                    <button id="btnCopiarLink" class="bg-brand text-white px-6 rounded-2xl shadow-md active:scale-90 transition-all font-bold text-xs uppercase italic">Copiar</button>
                 </div>
             </div>
 
             <form id="formPerfil" class="space-y-6">
                 <div class="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-6">
                     <div class="space-y-3">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Foto de Capa (Banner)</label>
-                        <div id="wrapperCapa" class="relative h-40 w-full bg-slate-50 border-2 border-dashed border-slate-200 rounded-[2rem] flex items-center justify-center overflow-hidden group cursor-pointer transition-all">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Foto de Capa</label>
+                        <div id="wrapperCapa" class="relative h-44 w-full bg-slate-100 border-2 border-dashed border-slate-200 rounded-[2.5rem] flex items-center justify-center overflow-hidden group cursor-pointer transition-all hover:border-brand">
                             <img id="imgCapa" src="" class="hidden absolute inset-0 w-full h-full object-cover">
                             <div id="placeholderCapa" class="text-center z-10">
-                                <span class="text-2xl">🖼️</span>
-                                <p class="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-wider">Alterar Capa</p>
+                                <span class="text-3xl">📸</span>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase mt-2 tracking-wider">Trocar Banner</p>
                             </div>
                             <input type="file" id="fileCapa" class="hidden" accept="image/*">
                         </div>
                     </div>
 
-                    <div class="flex items-center gap-6 p-4 bg-slate-50 rounded-3xl border border-slate-100">
-                        <div id="wrapperFoto" class="relative cursor-pointer">
-                            <div id="previewLogo" class="w-20 h-20 rounded-2xl bg-white flex items-center justify-center shadow-sm overflow-hidden border-2 border-white">
-                                <span id="placeholderEmoji" class="text-2xl">📸</span>
+                    <div class="flex items-center gap-6 p-5 bg-slate-50 rounded-[2rem] border border-slate-100">
+                        <div id="wrapperFoto" class="relative cursor-pointer group">
+                            <div id="previewLogo" class="w-24 h-24 rounded-3xl bg-white flex items-center justify-center shadow-md overflow-hidden border-4 border-white transition-transform group-hover:scale-105">
+                                <span id="placeholderEmoji" class="text-3xl">🖼️</span>
                                 <img id="imgLogo" src="" class="hidden w-full h-full object-cover">
                             </div>
                             <input type="file" id="fileInput" class="hidden" accept="image/*">
                         </div>
                         <div>
                             <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Logo da Loja</label>
-                            <p class="text-[11px] text-slate-400 font-medium">Toque no ícone para alterar</p>
+                            <p class="text-xs text-slate-400 font-medium mt-1 italic">Clique no ícone para alterar</p>
                         </div>
                     </div>
                 </div>
@@ -112,138 +125,94 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <div>
                             <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nome do Negócio</label>
-                            <input type="text" id="nomeNegocio" class="input-padrao" placeholder="Ex: Padaria Portela">
+                            <input type="text" id="nomeNegocio" class="input-padrao" placeholder="Sua Loja">
                         </div>
                         <div>
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">WhatsApp (com DDD)</label>
-                            <input type="number" id="whatsappNegocio" class="input-padrao" placeholder="5585999999999">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">WhatsApp</label>
+                            <input type="number" id="whatsappNegocio" class="input-padrao" placeholder="5500000000000">
                         </div>
                     </div>
                 </div>
 
                 <div class="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
                     <div class="flex items-center gap-3 mb-6">
-                        <div class="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center text-xl">🚚</div>
+                        <div class="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-2xl">🚛</div>
                         <div>
-                            <h3 class="text-lg font-black text-slate-800 leading-none">Entrega Inteligente</h3>
-                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Configure como cobrar o frete</p>
+                            <h3 class="text-lg font-black text-slate-800 leading-none">Entrega</h3>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Configuração de taxas</p>
                         </div>
                     </div>
 
                     <div class="space-y-6">
-                        <div class="grid grid-cols-2 gap-3 p-1.5 bg-slate-100 rounded-2xl">
-                            <button type="button" id="btnModoFixo" class="py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all btn-toggle-active">Valor Fixo</button>
-                            <button type="button" id="btnModoRaio" class="py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all text-slate-400">Por Distância (KM)</button>
+                        <div class="grid grid-cols-2 gap-3 p-2 bg-slate-100 rounded-[1.5rem]">
+                            <button type="button" id="btnModoFixo" class="py-3 rounded-xl font-black text-[10px] uppercase transition-all btn-toggle-active">Fixo</button>
+                            <button type="button" id="btnModoRaio" class="py-3 rounded-xl font-black text-[10px] uppercase transition-all text-slate-400">Por Raio</button>
                             <input type="hidden" id="tipoEntrega" value="fixo">
                         </div>
 
-                        <div id="configFixo" class="space-y-2">
-                            <label class="text-[10px] font-black text-slate-400 uppercase ml-1 block">Taxa de Entrega Única (R$)</label>
-                            <input type="number" id="taxaFixa" class="input-padrao" placeholder="Ex: 7.00">
+                        <div id="configFixo">
+                            <label class="text-[10px] font-black text-slate-400 uppercase ml-1 block">Valor da Taxa (R$)</label>
+                            <input type="number" id="taxaFixa" class="input-padrao" placeholder="7.00">
                         </div>
 
                         <div id="configRaio" class="hidden space-y-6">
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label class="text-[10px] font-black text-slate-400 uppercase ml-1 block">Raio Máx (KM)</label>
-                                    <input type="number" id="raioMaximo" class="input-padrao" placeholder="Ex: 15">
+                                    <label class="text-[10px] font-black text-slate-400 uppercase block">Raio Máx (KM)</label>
+                                    <input type="number" id="raioMaximo" class="input-padrao" placeholder="10">
                                 </div>
                                 <div>
-                                    <label class="text-[10px] font-black text-slate-400 uppercase ml-1 block">Valor/KM (R$)</label>
-                                    <input type="number" id="valorKm" class="input-padrao" placeholder="Ex: 1.50">
+                                    <label class="text-[10px] font-black text-slate-400 uppercase block">R$ por KM</label>
+                                    <input type="number" id="valorKm" class="input-padrao" placeholder="1.50">
                                 </div>
                             </div>
-
-                            <div class="p-5 bg-blue-600 rounded-3xl text-white">
-                                <div class="flex items-center justify-between gap-4">
-                                    <div>
-                                        <h4 class="text-xs font-black uppercase tracking-wider">Localização Base</h4>
-                                        <p id="statusGPS" class="text-[10px] font-bold opacity-80 mt-1 uppercase tracking-tighter italic">📍 GPS não configurado</p>
+                            <div class="p-6 bg-brand rounded-[2rem] text-white shadow-lg">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex-1">
+                                        <h4 class="text-xs font-black uppercase mb-1">Localização Base</h4>
+                                        <p id="statusGPS" class="text-[10px] font-bold opacity-90 italic">A localização será usada para o cálculo de distância.</p>
                                     </div>
-                                    <button type="button" id="btnCapturarGps" class="bg-white text-blue-600 p-4 rounded-2xl shadow-lg active:scale-95 transition-all text-xl">📍</button>
+                                    <button type="button" id="btnCapturarGps" class="bg-white text-brand w-12 h-12 rounded-xl shadow-xl flex items-center justify-center text-xl">📍</button>
                                 </div>
-                                <input type="hidden" id="lojaLat">
-                                <input type="hidden" id="lojaLog">
+                                <input type="hidden" id="lojaLat"><input type="hidden" id="lojaLog">
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
-                    <label class="text-[10px] font-black text-brand uppercase tracking-widest ml-1 block mb-4">Funcionamento</label>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Abre às:</label>
-                            <input type="time" id="horarioAbertura" class="input-padrao !p-4">
-                        </div>
-                        <div>
-                            <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Fecha às:</label>
-                            <input type="time" id="horarioFechamento" class="input-padrao !p-4">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
-                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-4 block">Cor de Identidade</label>
-                    <div class="flex justify-between md:justify-start gap-4">
-                        <label class="cursor-pointer">
-                            <input type="radio" name="temaCor" value="#2563eb" class="hidden peer" checked>
-                            <div class="w-12 h-12 rounded-2xl bg-blue-600 border-4 border-white shadow-sm peer-checked:ring-4 peer-checked:ring-blue-100 peer-checked:scale-110 transition-all"></div>
-                        </label>
-                        <label class="cursor-pointer">
-                            <input type="radio" name="temaCor" value="#f59e0b" class="hidden peer">
-                            <div class="w-12 h-12 rounded-2xl bg-amber-500 border-4 border-white shadow-sm peer-checked:ring-4 peer-checked:ring-amber-100 peer-checked:scale-110 transition-all"></div>
-                        </label>
-                        <label class="cursor-pointer">
-                            <input type="radio" name="temaCor" value="#ef4444" class="hidden peer">
-                            <div class="w-12 h-12 rounded-2xl bg-red-500 border-4 border-white shadow-sm peer-checked:ring-4 peer-checked:ring-red-100 peer-checked:scale-110 transition-all"></div>
-                        </label>
-                        <label class="cursor-pointer">
-                            <input type="radio" name="temaCor" value="#10b981" class="hidden peer">
-                            <div class="w-12 h-12 rounded-2xl bg-emerald-500 border-4 border-white shadow-sm peer-checked:ring-4 peer-checked:ring-emerald-100 peer-checked:scale-110 transition-all"></div>
-                        </label>
-                    </div>
-                </div>
-
-                <button type="submit" id="btnSalvarPerfil" class="w-full bg-slate-800 text-white py-6 rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs shadow-xl hover:bg-slate-900 transition-all active:scale-95">
-                    Salvar Todas as Alterações
+                <button type="submit" id="btnSalvarPerfil" class="w-full bg-slate-900 text-white py-6 rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs shadow-2xl active:scale-95 transition-all">
+                    Salvar Alterações
                 </button>
             </form>
         </div>
     </main>
 
     <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-2 py-3 flex justify-around items-center z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
-        <a href="dashboard.html" class="flex flex-col items-center gap-1 text-slate-300">
-            <span class="text-xl">🏠</span>
-            <span class="text-[9px] font-bold uppercase tracking-tighter">Início</span>
+        <a href="dashboard.html" class="flex flex-col items-center gap-1 text-slate-300 transition-all">
+            <span class="text-xl">📊</span>
+            <span class="text-[9px] font-black uppercase">Painel</span>
         </a>
-        <a href="estoque.html" class="flex flex-col items-center gap-1 text-slate-300">
+        <a href="estoque.html" class="flex flex-col items-center gap-1 text-slate-300 transition-all">
             <span class="text-xl">📦</span>
-            <span class="text-[9px] font-bold uppercase tracking-tighter">Estoque</span>
+            <span class="text-[9px] font-black uppercase">Estoque</span>
         </a>
-        <a href="produtos.html" class="flex flex-col items-center gap-1 text-slate-300">
-            <span class="text-xl">🛍️</span>
-            <span class="text-[9px] font-bold uppercase tracking-tighter">Produtos</span>
+        <a href="produtos.html" class="flex flex-col items-center gap-1 text-slate-300 transition-all">
+            <span class="text-xl">🍔</span>
+            <span class="text-[9px] font-black uppercase">Produtos</span>
         </a>
-        <a href="pedidos.html" class="flex flex-col items-center gap-1 text-slate-300">
-            <span class="text-xl">📋</span>
-            <span class="text-[9px] font-bold uppercase tracking-tighter">Pedidos</span>
+        <a href="pedidos.html" class="flex flex-col items-center gap-1 text-slate-300 transition-all">
+            <span class="text-xl">📝</span>
+            <span class="text-[9px] font-black uppercase">Pedidos</span>
         </a>
-        <a href="perfil.html" class="flex flex-col items-center gap-1 text-brand">
+        <a href="perfil.html" class="flex flex-col items-center gap-1 text-brand transition-all scale-110">
             <span class="text-xl">⚙️</span>
-            <span class="text-[9px] font-bold uppercase tracking-tighter">Perfil</span>
+            <span class="text-[9px] font-black uppercase">Perfil</span>
         </a>
-    </div>
-
-    <div id="areaImpressao" class="hidden flex-col items-center text-center p-10 border-[15px] border-brand rounded-[50px] bg-white">
-        <h1 id="printNome" class="text-4xl font-black uppercase mb-8">NOME DA LOJA</h1>
-        <div id="qrcodePrint" class="mb-8"></div>
-        <p class="text-2xl font-bold text-slate-500">Aponte a câmera e faça seu pedido!</p>
     </div>
 
     <script type="module" src="./src/perfil.js"></script>
     <script>
-        // Logica de troca de abas da Entrega
+        // Lógica de abas de frete
         const btnFixo = document.getElementById('btnModoFixo');
         const btnRaio = document.getElementById('btnModoRaio');
         const configFixo = document.getElementById('configFixo');
@@ -252,38 +221,59 @@
 
         btnFixo.onclick = () => {
             tipoEntrega.value = 'fixo';
-            btnFixo.className = 'py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all btn-toggle-active';
-            btnRaio.className = 'py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all text-slate-400';
+            btnFixo.className = 'py-3 rounded-xl font-black text-[10px] uppercase transition-all btn-toggle-active';
+            btnRaio.className = 'py-3 rounded-xl font-black text-[10px] uppercase transition-all text-slate-400';
             configFixo.classList.remove('hidden');
             configRaio.classList.add('hidden');
         };
 
         btnRaio.onclick = () => {
             tipoEntrega.value = 'raio';
-            btnRaio.className = 'py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all btn-toggle-active';
-            btnFixo.className = 'py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all text-slate-400';
+            btnRaio.className = 'py-3 rounded-xl font-black text-[10px] uppercase transition-all btn-toggle-active';
+            btnFixo.className = 'py-3 rounded-xl font-black text-[10px] uppercase transition-all text-slate-400';
             configRaio.classList.remove('hidden');
             configFixo.classList.add('hidden');
         };
 
-        // Captura GPS
+        // GPS
         document.getElementById('btnCapturarGps').onclick = () => {
             const status = document.getElementById('statusGPS');
-            status.innerText = "⏳ Obtendo posição...";
-            
+            status.innerHTML = "⏳ Localizando...";
             navigator.geolocation.getCurrentPosition((pos) => {
                 document.getElementById('lojaLat').value = pos.coords.latitude;
                 document.getElementById('lojaLog').value = pos.coords.longitude;
-                status.innerText = `✅ Fixado: ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`;
+                status.innerHTML = `✅ Localização fixada com sucesso!`;
+                Swal.fire({ icon: 'success', title: 'Localizado!', showConfirmButton: false, timer: 1500 });
             }, () => {
-                status.innerText = "❌ Erro ao capturar GPS";
-                alert("Por favor, ative a localização no seu navegador.");
+                status.innerHTML = "❌ Erro ao localizar";
+                Swal.fire('Erro', 'Ative o GPS do seu dispositivo.', 'error');
             });
         };
 
-        // Gatilhos de upload
+        // Upload Preview
+        function setupPreview(inputId, imgId, placeholderId) {
+            document.getElementById(inputId).onchange = e => {
+                const [file] = e.target.files;
+                if (file) {
+                    document.getElementById(imgId).src = URL.createObjectURL(file);
+                    document.getElementById(imgId).classList.remove('hidden');
+                    document.getElementById(placeholderId).classList.add('hidden');
+                }
+            };
+        }
+        setupPreview('fileCapa', 'imgCapa', 'placeholderCapa');
+        setupPreview('fileInput', 'imgLogo', 'placeholderEmoji');
+
         document.getElementById('wrapperCapa').onclick = () => document.getElementById('fileCapa').click();
         document.getElementById('wrapperFoto').onclick = () => document.getElementById('fileInput').click();
+
+        // Copiar Link
+        document.getElementById('btnCopiarLink').onclick = function() {
+            const input = document.getElementById('linkCardapio');
+            navigator.clipboard.writeText(input.value);
+            this.innerText = "COPIADO!";
+            setTimeout(() => this.innerText = "COPIAR", 2000);
+        };
     </script>
 </body>
 </html>
