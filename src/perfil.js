@@ -5,15 +5,13 @@ import { signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/
 
 // --- REFERÊNCIAS DO DOM ---
 const inputLink = document.getElementById('linkCardapio');
-const qrcodeDiv = document.getElementById("qrcode");
 const qrcodePrintDiv = document.getElementById("qrcodePrint");
 const sideNome = document.getElementById('sideNomeNegocio');
-const navNome = document.getElementById('navNomeNegocio');
 const mobileNome = document.getElementById('mobileNomeNegocio');
 const formPerfil = document.getElementById('formPerfil');
 const btnSalvarPerfil = document.getElementById('btnSalvarPerfil');
 
-// Novos campos de entrega
+// Campos de entrega e logística
 const tipoEntrega = document.getElementById('tipoEntrega');
 const taxaFixa = document.getElementById('taxaFixa');
 const raioMaximo = document.getElementById('raioMaximo');
@@ -25,7 +23,7 @@ const statusGPS = document.getElementById('statusGPS');
 let urlFotoFinal = "";
 let urlCapaFinal = ""; 
 
-// --- FUNÇÃO: APLICAR TEMA ---
+// --- FUNÇÃO: APLICAR TEMA DINÂMICO ---
 function aplicarCor(cor) {
     if (!cor) return;
     document.documentElement.style.setProperty('--cor-primaria', cor);
@@ -57,22 +55,23 @@ function atualizarPreviewImagem(tipo, url) {
 // --- FUNÇÃO: GERAR LINK E QR CODE ---
 function processarLink(uid) {
     try {
+        // Altere 'seusite.com' para a URL real onde o projeto estiver hospedado
         const link = `${window.location.origin}/cardapio.html?id=${uid}`;
         if (inputLink) inputLink.value = link;
 
         setTimeout(() => {
-            if (typeof QRCode !== "undefined" && qrcodeDiv) {
-                qrcodeDiv.innerHTML = "";
-                new QRCode(qrcodeDiv, { 
+            if (typeof QRCode !== "undefined" && qrcodePrintDiv) {
+                qrcodePrintDiv.innerHTML = "";
+                new QRCode(qrcodePrintDiv, { 
                     text: link, 
-                    width: 150, 
-                    height: 150,
+                    width: 250, 
+                    height: 250,
                     colorDark: "#000000",
                     colorLight: "#ffffff"
                 });
             }
         }, 1000);
-    } catch (e) { console.error("Erro no Link:", e); }
+    } catch (e) { console.error("Erro ao gerar QR Code:", e); }
 }
 
 // --- ESCUTAR ESTADO DO USUÁRIO ---
@@ -89,13 +88,13 @@ onAuthStateChanged(auth, async (user) => {
         if (docSnap.exists()) {
             const d = docSnap.data();
             
-            // Dados Básicos
+            // Preencher Campos de Texto
             document.getElementById('nomeNegocio').value = d.nomeNegocio || "";
             document.getElementById('whatsappNegocio').value = d.whatsapp || "";
             if (d.horarioAbertura) document.getElementById('horarioAbertura').value = d.horarioAbertura;
             if (d.horarioFechamento) document.getElementById('horarioFechamento').value = d.horarioFechamento;
             
-            // Carregar Dados de Entrega
+            // Configurações de Entrega
             if (d.configEntrega) {
                 tipoEntrega.value = d.configEntrega.tipo || 'fixo';
                 taxaFixa.value = d.configEntrega.taxaFixa || "";
@@ -104,7 +103,7 @@ onAuthStateChanged(auth, async (user) => {
                 lojaLat.value = d.configEntrega.coords?.lat || "";
                 lojaLog.value = d.configEntrega.coords?.log || "";
                 
-                // Dispara o clique visual para ajustar os campos no HTML
+                // Ativar visualmente o botão correto de frete
                 if (d.configEntrega.tipo === 'raio') {
                     document.getElementById('btnModoRaio').click();
                 } else {
@@ -112,15 +111,16 @@ onAuthStateChanged(auth, async (user) => {
                 }
 
                 if (d.configEntrega.coords?.lat) {
-                    statusGPS.innerText = "✅ LOCALIZAÇÃO SALVA";
+                    statusGPS.innerHTML = "✅ Localização Base Fixada";
                 }
             }
 
-            // Atualizar UI
+            // Atualizar Nomes na Sidebar/Navbar
             const titulo = d.nomeNegocio || "Minha Loja";
             if(sideNome) sideNome.innerText = titulo;
             if(mobileNome) mobileNome.innerText = titulo;
             
+            // Imagens
             if (d.fotoPerfil) {
                 urlFotoFinal = d.fotoPerfil;
                 atualizarPreviewImagem('perfil', d.fotoPerfil);
@@ -130,11 +130,15 @@ onAuthStateChanged(auth, async (user) => {
                 atualizarPreviewImagem('capa', d.fotoCapa);
             }
             aplicarCor(d.corTema);
+        } else {
+            // Caso o usuário não tenha dados, limpa os labels de carregamento
+            if(sideNome) sideNome.innerText = "Configurar Loja";
+            if(mobileNome) mobileNome.innerText = "Configurar Loja";
         }
-    } catch (err) { console.error("Erro ao carregar dados:", err); }
+    } catch (err) { console.error("Erro ao carregar perfil:", err); }
 });
 
-// --- UPLOADS (STORAGE) ---
+// --- UPLOADS PARA FIREBASE STORAGE ---
 const realizarUpload = async (tipo, file) => {
     const nomeArquivo = `${Date.now()}_${file.name}`;
     const sRef = ref(storage, `${tipo}/${auth.currentUser.uid}/${nomeArquivo}`);
@@ -151,8 +155,11 @@ document.getElementById('fileInput')?.addEventListener('change', async (e) => {
         urlFotoFinal = await realizarUpload('logos', file);
         atualizarPreviewImagem('perfil', urlFotoFinal);
         btnSalvarPerfil.disabled = false;
-        btnSalvarPerfil.innerText = "Salvar Todas as Alterações";
-    } catch (err) { alert("Erro ao subir logo."); btnSalvarPerfil.disabled = false; }
+        btnSalvarPerfil.innerText = "Salvar Alterações";
+    } catch (err) { 
+        Swal.fire('Erro', 'Não foi possível subir a imagem.', 'error');
+        btnSalvarPerfil.disabled = false; 
+    }
 });
 
 document.getElementById('fileCapa')?.addEventListener('change', async (e) => {
@@ -164,21 +171,24 @@ document.getElementById('fileCapa')?.addEventListener('change', async (e) => {
         urlCapaFinal = await realizarUpload('capas', file);
         atualizarPreviewImagem('capa', urlCapaFinal);
         btnSalvarPerfil.disabled = false;
-        btnSalvarPerfil.innerText = "Salvar Todas as Alterações";
-    } catch (err) { alert("Erro ao subir capa."); btnSalvarPerfil.disabled = false; }
+        btnSalvarPerfil.innerText = "Salvar Alterações";
+    } catch (err) { 
+        Swal.fire('Erro', 'Não foi possível subir a capa.', 'error');
+        btnSalvarPerfil.disabled = false; 
+    }
 });
 
-// --- SALVAR PERFIL (FIRESTORE) ---
+// --- SALVAR TUDO NO FIRESTORE ---
 formPerfil?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const user = auth.currentUser;
     if(!user) return;
 
-    btnSalvarPerfil.innerText = "⏳ SALVANDO...";
+    btnSalvarPerfil.innerText = "⏳ SALVANDO TUDO...";
     btnSalvarPerfil.disabled = true;
 
     try {
-        const cor = document.querySelector('input[name="temaCor"]:checked')?.value || "#2563eb";
+        const corSelecionada = document.querySelector('input[name="temaCor"]:checked')?.value || "#2563eb";
         
         const novosDados = {
             nomeNegocio: document.getElementById('nomeNegocio').value.trim(),
@@ -187,8 +197,7 @@ formPerfil?.addEventListener('submit', async (e) => {
             horarioFechamento: document.getElementById('horarioFechamento').value,
             fotoPerfil: urlFotoFinal,
             fotoCapa: urlCapaFinal,
-            corTema: cor,
-            // NOVO: Estrutura de Logística
+            corTema: corSelecionada,
             configEntrega: {
                 tipo: tipoEntrega.value,
                 taxaFixa: parseFloat(taxaFixa.value) || 0,
@@ -205,34 +214,44 @@ formPerfil?.addEventListener('submit', async (e) => {
 
         await setDoc(doc(db, "usuarios", user.uid), novosDados, { merge: true });
 
-        alert("✨ Perfil e Configurações de Entrega atualizados!");
+        Swal.fire({
+            icon: 'success',
+            title: 'Perfil Atualizado!',
+            text: 'Suas informações foram salvas com sucesso.',
+            confirmButtonColor: corSelecionada
+        });
         
         if(sideNome) sideNome.innerText = novosDados.nomeNegocio;
         if(mobileNome) mobileNome.innerText = novosDados.nomeNegocio;
 
     } catch (err) {
         console.error(err);
-        alert("Erro ao salvar dados.");
+        Swal.fire('Erro', 'Ocorreu um erro ao salvar os dados.', 'error');
     } finally {
-        btnSalvarPerfil.innerText = "Salvar Todas as Alterações";
+        btnSalvarPerfil.innerText = "Salvar Alterações";
         btnSalvarPerfil.disabled = false;
     }
 });
 
-// --- EVENTOS GERAIS ---
+// --- MUDANÇA DE COR EM TEMPO REAL ---
 document.querySelectorAll('input[name="temaCor"]').forEach(r => {
     r.addEventListener('change', (e) => aplicarCor(e.target.value));
 });
 
-document.getElementById('btnCopiarLink')?.addEventListener('click', () => {
-    if(inputLink && inputLink.value.includes('http')) {
-        navigator.clipboard.writeText(inputLink.value);
-        alert("Link copiado!");
-    }
-});
+// --- FUNÇÃO SAIR ---
+const sair = async () => {
+    const result = await Swal.fire({
+        title: 'Sair do Sistema?',
+        text: "Você precisará fazer login novamente.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Sim, sair!',
+        cancelButtonText: 'Cancelar'
+    });
 
-const sair = () => {
-    if(confirm("Deseja realmente sair?")) {
+    if (result.isConfirmed) {
         signOut(auth).then(() => window.location.href="index.html");
     }
 };
