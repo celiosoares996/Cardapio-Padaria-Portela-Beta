@@ -59,6 +59,18 @@
         .hide-scroll::-webkit-scrollbar {
             display: none;
         }
+
+        /* Scroll customizado para itens selecionados */
+        .custom-scroll::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
     </style>
 </head>
 
@@ -121,10 +133,10 @@
             </button>
         </div>
 
-        <div class="flex gap-3 overflow-x-auto pb-6 hide-scroll mb-4">
-            <button class="px-8 py-3 bg-brand text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-blue-500/20">Todos</button>
-            <button class="px-8 py-3 bg-white text-slate-400 rounded-2xl text-xs font-black uppercase tracking-widest border border-slate-200 hover:bg-slate-50 transition-all">Pendentes</button>
-            <button class="px-8 py-3 bg-white text-slate-400 rounded-2xl text-xs font-black uppercase tracking-widest border border-slate-200 hover:bg-slate-50 transition-all">Concluídos</button>
+        <div id="containerFiltros" class="flex gap-3 overflow-x-auto pb-6 hide-scroll mb-4">
+            <button data-filter="status" class="px-8 py-3 bg-brand text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-blue-500/20 whitespace-nowrap">Todos</button>
+            <button data-filter="status" class="px-8 py-3 bg-white text-slate-400 rounded-2xl text-xs font-black uppercase tracking-widest border border-slate-200 hover:bg-slate-50 transition-all whitespace-nowrap">Pendentes</button>
+            <button data-filter="status" class="px-8 py-3 bg-white text-slate-400 rounded-2xl text-xs font-black uppercase tracking-widest border border-slate-200 hover:bg-slate-50 transition-all whitespace-nowrap">Concluídos</button>
         </div>
 
         <div id="listaPedidos" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -184,7 +196,7 @@
                 </div>
 
                 <div id="itensSelecionados" class="space-y-3 max-h-48 overflow-y-auto pr-2 custom-scroll">
-                </div>
+                    </div>
 
                 <div class="bg-slate-900 p-6 rounded-[2rem] flex justify-between items-center shadow-xl shadow-slate-200">
                     <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Total a Pagar</span>
@@ -204,6 +216,7 @@
     </div>
 
     <script>
+        // Inicializa ícones Lucide no HTML base
         lucide.createIcons();
     </script>
     <script type="module" src="./src/pedidos.js"></script>
