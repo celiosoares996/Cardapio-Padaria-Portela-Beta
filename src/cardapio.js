@@ -60,7 +60,7 @@ function renderizarUIStatus(aberto, texto, hora) {
         : `<span class="text-red-600 font-bold">${texto}</span> ${hora ? '• Abre às ' + hora : ''}`;
 }
 
-// --- 📍 LOCALIZAÇÃO E FRETE (SISTEMA KM ATIVADO) ---
+// --- 📍 LOCALIZAÇÃO E FRETE ---
 let timeoutCEP;
 window.mascaraCEP = (input) => {
     let v = input.value.replace(/\D/g, '');
@@ -94,7 +94,7 @@ async function buscarCEP(cep) {
         document.getElementById('textoEnderecoAuto').innerText = `${data.logradouro}, ${data.bairro}`;
         enderecoCompleto = { rua: data.logradouro, bairro: data.bairro, cidade: data.localidade, cep: cep };
 
-        statusCEP.innerText = "⏳ Calculando frete por KM...";
+        statusCEP.innerText = "⏳ Calculando frete...";
         try {
             const geoUrl = `https://us1.locationiq.com/v1/search?key=${API_KEY_LOCATIONIQ}&postalcode=${cep}&country=Brazil&format=json&limit=1`;
             const geo = await fetch(geoUrl);
@@ -113,7 +113,7 @@ async function buscarCEP(cep) {
                 throw new Error("Dados de localização incompletos");
             }
         } catch (mapError) {
-            console.warn("Usando taxa fixa (Mapa indisponível):", mapError);
+            console.warn("Caindo para taxa fixa:", mapError);
             distanciaCliente = 0; 
             statusCEP.innerText = "✅ Frete padrão aplicado";
         }
@@ -142,13 +142,18 @@ function calcularDistancia(lat1, lon1, lat2, lon2) {
 function recalcularTaxa() {
     if (modoPedido === 'retirada') {
         taxaEntregaAtual = 0;
-    } else if (configEntrega?.tipo === 'km' && distanciaCliente > 0) {
-        const valorKm = parseFloat(configEntrega.valorKm) || 0;
-        taxaEntregaAtual = distanciaCliente * valorKm;
-        console.log(`Log KM: ${distanciaCliente.toFixed(2)}km x R$${valorKm} = R$${taxaEntregaAtual}`);
     } else {
-        taxaEntregaAtual = parseFloat(configEntrega?.taxaFixa) || 0;
-        console.log(`Log Fixo: R$${taxaEntregaAtual}`);
+        // Normaliza o tipo para evitar erros de maiúsculas/minúsculas
+        const tipoEntrega = configEntrega?.tipo?.toLowerCase();
+        
+        if (tipoEntrega === 'km' && distanciaCliente > 0) {
+            const valorKm = parseFloat(configEntrega.valorKm) || 0;
+            taxaEntregaAtual = distanciaCliente * valorKm;
+            console.log(`📡 KM Ativo: ${distanciaCliente.toFixed(2)}km x R$${valorKm}`);
+        } else {
+            taxaEntregaAtual = parseFloat(configEntrega?.taxaFixa) || 0;
+            console.log(`📌 Fixo Ativo: R$${taxaEntregaAtual}`);
+        }
     }
     renderizarCarrinho();
 }
@@ -279,7 +284,6 @@ async function inicializar() {
             
             atualizarStatusLoja();
 
-            // Recuperar dados salvos do cliente
             const n = localStorage.getItem('c_nome');
             const w = localStorage.getItem('c_whats');
             if(n) document.getElementById('inputNome').value = n;
