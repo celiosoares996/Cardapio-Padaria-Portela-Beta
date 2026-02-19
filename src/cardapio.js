@@ -86,33 +86,42 @@ async function buscarCEP(cep) {
             return; 
         }
 
-        statusCEP.innerText = "";
+        statusCEP.innerText = "Calculando frete...";
         document.getElementById('camposEndereco').classList.remove('hidden');
-        document.getElementById('textoEnderecoAuto').innerText = `${data.logradouro}, ${data.bairro} - ${data.localidade}/${data.uf}`;
+        document.getElementById('textoEnderecoAuto').innerText = `${data.logradouro}, ${data.bairro}`;
         enderecoCompleto = { rua: data.logradouro, bairro: data.bairro, cidade: data.localidade, cep: cep };
 
-        // Cálculo de distância (OpenStreetMap)
+        // 🗺️ Busca Coordenadas do CEP do Cliente
         const geo = await fetch(`https://nominatim.openstreetmap.org/search?format=json&postalcode=${cep}&country=Brazil`);
         const geoData = await geo.json();
         
         if (geoData.length > 0 && configEntrega?.coords) {
+            // Suporte para lat/lng ou lat/log dependendo de como você salvou
+            const lojaLat = configEntrega.coords.lat;
+            const lojaLng = configEntrega.coords.lng || configEntrega.coords.log;
+
             distanciaCliente = calcularDistancia(
-                configEntrega.coords.lat, configEntrega.coords.lng || configEntrega.coords.log,
+                lojaLat, lojaLng,
                 geoData[0].lat, geoData[0].lon
             );
+            
+            console.log(`Distância calculada: ${distanciaCliente.toFixed(2)} km`);
         }
 
-        // DESTRAVA O BOTÃO: Mesmo que a distância falhe, liberamos para o cliente seguir com taxa fixa/padrão
+        statusCEP.innerText = "";
+        
+        // Importante: Recalcular e Renderizar antes de liberar o botão
+        recalcularTaxa();
+
         if(btnPgto) {
             btnPgto.disabled = false;
             btnPgto.classList.replace('bg-slate-200', 'bg-brand');
         }
-        
-        recalcularTaxa();
 
     } catch (e) { 
-        console.error("Erro na busca de CEP:", e);
-        // Se der erro na API, liberamos o botão assim mesmo para não travar a venda
+        console.error("Erro no processo de frete:", e);
+        statusCEP.innerText = "Erro ao calcular frete. Taxa padrão aplicada.";
+        recalcularTaxa();
         if(btnPgto) {
             btnPgto.disabled = false;
             btnPgto.classList.replace('bg-slate-200', 'bg-brand');
@@ -121,7 +130,7 @@ async function buscarCEP(cep) {
 }
 
 function calcularDistancia(lat1, lon1, lat2, lon2) {
-    const R = 6371;
+    const R = 6371; // Raio da Terra em KM
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
     const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
@@ -131,10 +140,11 @@ function calcularDistancia(lat1, lon1, lat2, lon2) {
 function recalcularTaxa() {
     if (modoPedido === 'retirada') {
         taxaEntregaAtual = 0;
-    } else if (configEntrega?.tipo === 'km') {
-        taxaEntregaAtual = distanciaCliente * (configEntrega.valorKm || 0);
+    } else if (configEntrega && configEntrega.tipo === 'km') {
+        const valorPorKm = Number(configEntrega.valorKm) || 0;
+        taxaEntregaAtual = distanciaCliente * valorPorKm;
     } else {
-        taxaEntregaAtual = Number(configEntrega?.taxaFixa || 0);
+        taxaEntregaAtual = Number(configEntrega?.taxaFixa) || 0;
     }
     renderizarCarrinho();
 }
@@ -143,7 +153,6 @@ window.atualizarModoPedidoJS = (modo) => {
     modoPedido = modo; 
     recalcularTaxa(); 
     
-    // Se mudar para retirada, libera o botão imediatamente
     if (modo === 'retirada') {
         const btnPgto = document.getElementById('btnProximo2');
         if (btnPgto) {
