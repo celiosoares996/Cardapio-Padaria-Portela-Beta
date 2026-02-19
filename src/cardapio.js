@@ -77,13 +77,10 @@ window.mascaraCEP = (input) => {
 async function buscarCEP(cep) {
     const statusCEP = document.getElementById('statusCEP');
     const btnPgto = document.getElementById('btnProximo2');
-    
-    // 🔑 Sua chave do LocationIQ inserida com sucesso!
     const API_KEY_LOCATIONIQ = "pk.e6ab2789e2668e794d7e2f02f4be127c"; 
 
     try {
         statusCEP.innerText = "⏳ Localizando endereço...";
-        
         const resp = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
         const data = await resp.json();
         
@@ -101,9 +98,7 @@ async function buscarCEP(cep) {
         try {
             const geoUrl = `https://us1.locationiq.com/v1/search?key=${API_KEY_LOCATIONIQ}&postalcode=${cep}&country=Brazil&format=json&limit=1`;
             const geo = await fetch(geoUrl);
-            
             if (!geo.ok) throw new Error("Erro na API de Geocodificação");
-
             const geoData = await geo.json();
             
             if (geoData && geoData.length > 0 && configEntrega?.coords) {
@@ -124,12 +119,10 @@ async function buscarCEP(cep) {
         }
 
         recalcularTaxa();
-
         if(btnPgto) {
             btnPgto.disabled = false;
             btnPgto.classList.replace('bg-slate-200', 'bg-brand');
         }
-
     } catch (e) { 
         console.error("Erro crítico:", e);
         statusCEP.innerText = "⚠️ CEP OK. Verifique o frete abaixo.";
@@ -147,15 +140,15 @@ function calcularDistancia(lat1, lon1, lat2, lon2) {
 }
 
 function recalcularTaxa() {
-    const subtotal = carrinho.reduce((a, b) => a + b.preco, 0);
-    
     if (modoPedido === 'retirada') {
         taxaEntregaAtual = 0;
     } else if (configEntrega?.tipo === 'km' && distanciaCliente > 0) {
         const valorKm = parseFloat(configEntrega.valorKm) || 0;
         taxaEntregaAtual = distanciaCliente * valorKm;
+        console.log(`Log KM: ${distanciaCliente.toFixed(2)}km x R$${valorKm} = R$${taxaEntregaAtual}`);
     } else {
         taxaEntregaAtual = parseFloat(configEntrega?.taxaFixa) || 0;
+        console.log(`Log Fixo: R$${taxaEntregaAtual}`);
     }
     renderizarCarrinho();
 }
@@ -226,6 +219,14 @@ function renderizarCarrinho() {
     }
 }
 
+// --- 👤 GERENCIAMENTO DE CLIENTE ---
+window.verificarCliente = () => {
+    const nome = document.getElementById('inputNome').value;
+    const whats = document.getElementById('inputWhatsApp').value;
+    if (nome) localStorage.setItem('c_nome', nome);
+    if (whats) localStorage.setItem('c_whats', whats);
+};
+
 // --- 📤 FINALIZAÇÃO ---
 window.enviarWhatsApp = async () => {
     const nome = document.getElementById('inputNome').value;
@@ -266,6 +267,7 @@ async function inicializar() {
             whatsappLoja = d.whatsapp || "";
             horariosSemana = d.horarios || {};
             configEntrega = d.configEntrega;
+            
             document.getElementById('nomeLoja').innerText = d.nomeNegocio || "Loja";
             document.getElementById('nomeLojaRodape').innerText = d.nomeNegocio || "Loja";
             if (d.corTema) document.documentElement.style.setProperty('--cor-primaria', d.corTema);
@@ -274,7 +276,14 @@ async function inicializar() {
                 img.src = d.fotoPerfil; img.classList.remove('hidden');
             }
             if (d.fotoCapa) document.getElementById('bannerLoja').style.backgroundImage = `url('${d.fotoCapa}')`;
+            
             atualizarStatusLoja();
+
+            // Recuperar dados salvos do cliente
+            const n = localStorage.getItem('c_nome');
+            const w = localStorage.getItem('c_whats');
+            if(n) document.getElementById('inputNome').value = n;
+            if(w) document.getElementById('inputWhatsApp').value = w;
         }
         const q = query(collection(db, "produtos"), where("userId", "==", userId));
         const snap = await getDocs(q);
