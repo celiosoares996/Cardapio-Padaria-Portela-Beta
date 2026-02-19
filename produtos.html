@@ -34,7 +34,6 @@
             box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.2);
         }
 
-        /* Estilização customizada para o scroll da lista */
         .custom-scroll::-webkit-scrollbar { width: 5px; }
         .custom-scroll::-webkit-scrollbar-track { background: transparent; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
@@ -86,7 +85,6 @@
     </nav>
 
     <main class="max-w-4xl mx-auto p-5 md:p-12">
-        
         <header class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div>
                 <p class="text-xs font-black text-brand uppercase tracking-widest mb-2">Gestão de Itens</p>
@@ -192,14 +190,14 @@
         <a href="dashboard.html" class="p-3 text-slate-400">
             <i data-lucide="home" class="w-6 h-6"></i>
         </a>
-        <a href="pedidos.html" class="p-3 text-slate-400">
-            <i data-lucide="receipt" class="w-6 h-6"></i>
-        </a>
         <a href="estoque.html" class="p-3 text-slate-400">
             <i data-lucide="boxes" class="w-6 h-6"></i>
         </a>
         <a href="produtos.html" class="p-4 bg-brand rounded-2xl text-white shadow-lg shadow-blue-500/40">
             <i data-lucide="shopping-bag" class="w-6 h-6"></i>
+        </a>
+        <a href="pedidos.html" class="p-3 text-slate-400">
+            <i data-lucide="receipt" class="w-6 h-6"></i>
         </a>
         <a href="perfil.html" class="p-3 text-slate-400">
             <i data-lucide="settings" class="w-6 h-6"></i>
@@ -207,10 +205,8 @@
     </div>
 
     <script>
-        // Inicialização de ícones
         lucide.createIcons();
 
-        // Lógica de Troca de Abas
         const btnVerCadastro = document.getElementById('btnVerCadastro');
         const btnVerLista = document.getElementById('btnVerLista');
         const secaoCadastro = document.getElementById('secaoCadastro');
@@ -237,7 +233,6 @@
                 btnVerCadastro.classList.remove(...activeClass);
                 btnVerCadastro.classList.add(...inactiveClass);
                 tituloPagina.innerText = "Meus Itens";
-                // Chama a função global definida no produtos.js
                 if(window.carregarProdutosLista) window.carregarProdutosLista();
             }
         }
@@ -245,7 +240,6 @@
         btnVerCadastro.addEventListener('click', () => alternarAba('cadastro'));
         btnVerLista.addEventListener('click', () => alternarAba('lista'));
 
-        // Preview da Foto
         document.getElementById('fotoProduto').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
