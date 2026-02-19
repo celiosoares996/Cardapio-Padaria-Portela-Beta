@@ -26,6 +26,7 @@ const novaSenhaAcesso = document.getElementById('novaSenhaAcesso');
 
 let urlFotoFinal = "";
 let urlCapaFinal = ""; 
+let emailUsuarioLogado = ""; // Variável global para garantir o e-mail
 
 // --- FUNÇÃO: APLICAR TEMA DINÂMICO ---
 function aplicarCor(cor) {
@@ -84,6 +85,8 @@ onAuthStateChanged(auth, async (user) => {
         return;
     }
 
+    // Tenta pegar o e-mail do auth, se não der, tentaremos do banco abaixo
+    emailUsuarioLogado = user.email; 
     processarLink(user.uid);
 
     try {
@@ -91,6 +94,9 @@ onAuthStateChanged(auth, async (user) => {
         if (docSnap.exists()) {
             const d = docSnap.data();
             
+            // Plano B: Se o Auth falhar, pegamos o e-mail salvo no Firestore
+            if (!emailUsuarioLogado) emailUsuarioLogado = d.email;
+
             document.getElementById('nomeNegocio').value = d.nomeNegocio || "";
             document.getElementById('whatsappNegocio').value = d.whatsapp || "";
             
@@ -103,9 +109,9 @@ onAuthStateChanged(auth, async (user) => {
                 lojaLog.value = d.configEntrega.coords?.log || "";
                 
                 if (d.configEntrega.tipo === 'raio') {
-                    document.getElementById('btnModoRaio').click();
+                    document.getElementById('btnModoRaio')?.click();
                 } else {
-                    document.getElementById('btnModoFixo').click();
+                    document.getElementById('btnModoFixo')?.click();
                 }
 
                 if (d.configEntrega.coords?.lat) {
@@ -126,9 +132,6 @@ onAuthStateChanged(auth, async (user) => {
                 atualizarPreviewImagem('capa', d.fotoCapa);
             }
             aplicarCor(d.corTema);
-        } else {
-            if(sideNome) sideNome.innerText = "Configurar Loja";
-            if(mobileNome) mobileNome.innerText = "Configurar Loja";
         }
     } catch (err) { console.error("Erro ao carregar perfil:", err); }
 });
@@ -199,6 +202,7 @@ formPerfil?.addEventListener('submit', async (e) => {
                 coords: { lat: lojaLat.value, log: lojaLog.value }
             },
             userId: user.uid,
+            email: user.email || emailUsuarioLogado, // Mantém o e-mail no banco
             ultimaAtualizacao: new Date().toISOString()
         };
 
@@ -211,9 +215,6 @@ formPerfil?.addEventListener('submit', async (e) => {
             confirmButtonColor: corSelecionada
         });
         
-        if(sideNome) sideNome.innerText = novosDados.nomeNegocio;
-        if(mobileNome) mobileNome.innerText = novosDados.nomeNegocio;
-
     } catch (err) {
         console.error(err);
         Swal.fire('Erro', 'Ocorreu um erro ao salvar os dados.', 'error');
@@ -223,10 +224,17 @@ formPerfil?.addEventListener('submit', async (e) => {
     }
 });
 
-// --- VINCULAR E-MAIL E SENHA (REFORTALECIDO) ---
+// --- VINCULAR E-MAIL E SENHA (PROTEÇÃO CONTRA MISSING-EMAIL) ---
 btnVincularSenha?.addEventListener('click', async () => {
     const user = auth.currentUser;
     const senha = novaSenhaAcesso.value;
+    
+    // Pegamos o e-mail da variável garantida
+    const emailFinal = user?.email || emailUsuarioLogado;
+
+    if (!emailFinal) {
+        return Swal.fire('Erro Crítico', 'E-mail do usuário não identificado. Tente fazer login novamente.', 'error');
+    }
 
     if (!senha || senha.length < 6) {
         return Swal.fire('Atenção', 'A senha deve ter pelo menos 6 caracteres.', 'warning');
@@ -235,59 +243,55 @@ btnVincularSenha?.addEventListener('click', async () => {
     try {
         Swal.fire({ title: 'Processando...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
         
-        const credential = EmailAuthProvider.credential(user.email, senha);
+        // Agora usamos a variável emailFinal que validamos acima
+        const credential = EmailAuthProvider.credential(emailFinal, senha);
         
-        // Tentativa de vínculo direto
         await linkWithCredential(user, credential);
         
         Swal.fire({
             icon: 'success',
             title: 'Senha Definida!',
-            text: 'Vínculo realizado com sucesso. Agora você pode entrar com e-mail e senha.',
+            text: 'Agora você pode entrar com seu e-mail e senha.',
             confirmButtonColor: '#2563eb'
         });
         novaSenhaAcesso.value = "";
 
     } catch (err) {
-        console.error("ERRO COMPLETO DO FIREBASE:", err); // IMPORTANTE: Ver no F12 se falhar
+        console.error("ERRO FIREBASE:", err.code);
         
         if (err.code === 'auth/requires-recent-login') {
-            // Se pedir login recente, vamos forçar um popup do Google rapidinho para validar
             const confirmacao = await Swal.fire({
-                title: 'Confirmação Necessária',
-                text: 'Para sua segurança, precisamos validar seu acesso Google antes de criar uma senha.',
+                title: 'Segurança',
+                text: 'Precisamos validar seu Google novamente para criar a senha.',
                 icon: 'info',
                 showCancelButton: true,
-                confirmButtonText: 'Validar agora'
+                confirmButtonText: 'Validar'
             });
 
             if (confirmacao.isConfirmed) {
                 try {
                     const provider = new GoogleAuthProvider();
                     await reauthenticateWithPopup(user, provider);
-                    // Tenta vincular de novo após reautenticar
-                    const credential = EmailAuthProvider.credential(user.email, senha);
+                    const credential = EmailAuthProvider.credential(emailFinal, senha);
                     await linkWithCredential(user, credential);
-                    Swal.fire('Sucesso!', 'Senha definida com sucesso após validação.', 'success');
+                    Swal.fire('Sucesso!', 'Senha definida!', 'success');
                 } catch (reauthErr) {
-                    Swal.fire('Erro', 'Falha na validação. Tente sair e entrar novamente.', 'error');
+                    Swal.fire('Erro', 'Falha na validação.', 'error');
                 }
             }
-        } else if (err.code === 'auth/operation-not-allowed') {
-             Swal.fire('Erro de Configuração', 'O provedor E-mail/Senha está desativado no Firebase Console.', 'error');
         } else if (err.code === 'auth/credential-already-in-use') {
-            Swal.fire('Erro', 'Este e-mail já possui uma senha vinculada.', 'error');
+            Swal.fire('Erro', 'Este e-mail já tem senha.', 'error');
         } else {
-            Swal.fire('Erro', `Falha ao definir senha: ${err.message}`, 'error');
+            Swal.fire('Erro', `Falha: ${err.code}`, 'error');
         }
     }
 });
 
-// --- AUXILIARES (COPIAR, GPS, SAIR) ---
+// --- AUXILIARES ---
 document.getElementById('btnCopiarLink')?.addEventListener('click', () => {
     if(inputLink && inputLink.value) {
         navigator.clipboard.writeText(inputLink.value);
-        Swal.fire({ icon: 'success', title: 'Copiado!', text: 'Link copiado.', timer: 1500, showConfirmButton: false });
+        Swal.fire({ icon: 'success', title: 'Copiado!', timer: 1500, showConfirmButton: false });
     }
 });
 
@@ -297,22 +301,17 @@ document.getElementById('btnCapturarGps')?.addEventListener('click', () => {
         lojaLat.value = pos.coords.latitude;
         lojaLog.value = pos.coords.longitude;
         statusGPS.innerHTML = "✅ Localização Base Fixada";
-        Swal.fire('Sucesso', 'Localização capturada com sucesso!', 'success');
-    }, (err) => {
+    }, () => {
         statusGPS.innerHTML = "❌ Erro ao localizar";
-        Swal.fire('Erro', 'Ative o GPS e permita o acesso.', 'error');
     });
 });
 
 const sair = async () => {
     const result = await Swal.fire({
-        title: 'Sair do Sistema?',
-        text: "Você precisará fazer login novamente.",
+        title: 'Sair?',
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#ef4444',
-        confirmButtonText: 'Sim, sair!',
-        cancelButtonText: 'Cancelar'
+        confirmButtonText: 'Sim, sair!'
     });
     if (result.isConfirmed) {
         signOut(auth).then(() => window.location.href="index.html");
