@@ -23,12 +23,10 @@ const selectProduto = document.getElementById('selectProduto');
 const containerItens = document.getElementById('itensSelecionados');
 const valorTotalPedidoTxt = document.getElementById('valorTotalPedido');
 
-// Colunas Kanban
 const colNovo = document.getElementById('lista-novo');
 const colPreparo = document.getElementById('lista-preparo');
 const colConcluido = document.getElementById('lista-concluido');
 
-// Contadores
 const countNovoTxt = document.getElementById('count-novo');
 const countPreparoTxt = document.getElementById('count-preparo');
 const countConcluidoTxt = document.getElementById('count-concluido');
@@ -144,7 +142,7 @@ window.removerItem = (index) => {
 };
 
 // -------------------------------------------------------------------------
-// 4. DISTRIBUIÇÃO KANBAN (LOGICA CENTRAL)
+// 4. DISTRIBUIÇÃO KANBAN (MAPEAMENTO FLEXÍVEL)
 // -------------------------------------------------------------------------
 async function carregarPedidos() {
     const user = auth.currentUser;
@@ -162,24 +160,26 @@ async function carregarPedidos() {
         pedidosArray.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
 
         pedidosArray.forEach(p => {
-            const isDelivery = p.origem === "Delivery" || p.tipo?.includes("Delivery");
+            const isDelivery = p.origem === "Delivery" || p.tipo?.toLowerCase().includes("delivery");
             const corBadge = isDelivery ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600';
             const iconeBadge = isDelivery ? 'truck' : 'store';
             
-            // CORREÇÃO AQUI: Tratamento para evitar NaN no cálculo dos itens
+            // MAPEADOR: Tenta ler de vários nomes possíveis para evitar o 0x e R$ 0,00
             const itensHtml = p.itens ? p.itens.map(i => {
-                const qtd = Number(i.qtd) || 0;
-                const preco = Number(i.preco) || 0;
+                const qtd = Number(i.qtd || i.quantidade || 1); 
+                const preco = Number(i.preco || i.valor || i.precoUnitario || 0);
+                const nome = i.nome || i.produto || "Item";
                 const subtotal = qtd * preco;
+
                 return `
                     <div class="flex justify-between text-[11px] mb-1">
-                        <span class="font-bold text-slate-600">${qtd}x ${i.nome || 'Item'}</span>
+                        <span class="font-bold text-slate-600">${qtd}x ${nome}</span>
                         <span class="font-black text-slate-800">${formatador.format(subtotal)}</span>
                     </div>
                 `;
             }).join('') : "";
 
-            const totalPedido = Number(p.total) || 0;
+            const totalPedido = Number(p.total || p.valorTotal || 0);
 
             const cardHtml = `
                 <div class="card-pedido bg-white rounded-3xl p-5 shadow-sm border border-slate-100 flex flex-col gap-3">
