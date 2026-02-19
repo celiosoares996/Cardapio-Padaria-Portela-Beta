@@ -76,7 +76,7 @@ async function carregarProdutosSelect(user) {
             
             selectProduto.innerHTML += `
                 <option value="${docSnap.id}" ${disabled}>
-                    ${p.nome} - ${formatador.format(p.preco)} ${textoEstoque}
+                    ${p.nome} - ${formatador.format(p.preco || 0)} ${textoEstoque}
                 </option>`;
         });
     } catch (e) { console.error("📦 Erro ao carregar produtos:", e); }
@@ -102,7 +102,12 @@ selectProduto.onchange = (e) => {
     if (itemNoCarrinho) {
         itemNoCarrinho.qtd++;
     } else {
-        itensNoCarrinho.push({ id: produto.id, nome: produto.nome, preco: parseFloat(produto.preco), qtd: 1 });
+        itensNoCarrinho.push({ 
+            id: produto.id, 
+            nome: produto.nome, 
+            preco: parseFloat(produto.preco || 0), 
+            qtd: 1 
+        });
     }
     
     e.target.value = "";
@@ -113,14 +118,15 @@ function renderizarCarrinho() {
     containerItens.innerHTML = "";
     let total = 0;
     itensNoCarrinho.forEach((item, index) => {
-        total += item.preco * item.qtd;
+        const subtotal = (item.preco || 0) * (item.qtd || 0);
+        total += subtotal;
         containerItens.innerHTML += `
             <div class="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-2">
                 <div class="flex items-center gap-3">
                     <div class="bg-brand text-white w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs">${item.qtd}x</div>
                     <div>
-                        <p class="text-xs font-extrabold text-slate-700 uppercase">${item.nome}</p>
-                        <p class="text-[10px] text-slate-400 font-bold">${formatador.format(item.preco)}</p>
+                        <p class="text-xs font-extrabold text-slate-700 uppercase">${item.nome || 'Produto'}</p>
+                        <p class="text-[10px] text-slate-400 font-bold">${formatador.format(item.preco || 0)}</p>
                     </div>
                 </div>
                 <button type="button" onclick="removerItem(${index})" class="text-slate-300 hover:text-red-500 p-2">
@@ -148,7 +154,6 @@ async function carregarPedidos() {
         const q = query(collection(db, "pedidos"), where("userId", "==", user.uid));
         const querySnapshot = await getDocs(q);
         
-        // Limpar colunas e contadores
         colNovo.innerHTML = ""; colPreparo.innerHTML = ""; colConcluido.innerHTML = "";
         let cNovo = 0, cPreparo = 0, cConcluido = 0;
 
@@ -161,12 +166,20 @@ async function carregarPedidos() {
             const corBadge = isDelivery ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600';
             const iconeBadge = isDelivery ? 'truck' : 'store';
             
-            const itensHtml = p.itens ? p.itens.map(i => `
-                <div class="flex justify-between text-xs mb-1">
-                    <span class="font-bold text-slate-600">${i.qtd}x ${i.nome}</span>
-                    <span class="font-black text-slate-800">${formatador.format(i.preco * i.qtd)}</span>
-                </div>
-            `).join('') : "";
+            // CORREÇÃO AQUI: Tratamento para evitar NaN no cálculo dos itens
+            const itensHtml = p.itens ? p.itens.map(i => {
+                const qtd = Number(i.qtd) || 0;
+                const preco = Number(i.preco) || 0;
+                const subtotal = qtd * preco;
+                return `
+                    <div class="flex justify-between text-[11px] mb-1">
+                        <span class="font-bold text-slate-600">${qtd}x ${i.nome || 'Item'}</span>
+                        <span class="font-black text-slate-800">${formatador.format(subtotal)}</span>
+                    </div>
+                `;
+            }).join('') : "";
+
+            const totalPedido = Number(p.total) || 0;
 
             const cardHtml = `
                 <div class="card-pedido bg-white rounded-3xl p-5 shadow-sm border border-slate-100 flex flex-col gap-3">
@@ -187,25 +200,21 @@ async function carregarPedidos() {
                     <div class="bg-slate-50 rounded-2xl p-3 border border-slate-100/50">${itensHtml}</div>
 
                     <div class="flex justify-between items-center mt-2">
-                        <p class="text-xl font-black text-brand">${formatador.format(p.total)}</p>
+                        <p class="text-xl font-black text-brand">${formatador.format(totalPedido)}</p>
                         
-                        <div class="flex gap-2">
-                             <select onchange="atualizarStatusPedido('${p.id}', this.value)" class="bg-slate-100 text-slate-700 text-[10px] font-black rounded-xl px-3 py-2 outline-none border-none cursor-pointer">
-                                <option value="Novo" ${p.status === 'Novo' ? 'selected' : ''}>🟡 Pendente</option>
-                                <option value="Preparo" ${p.status === 'Preparo' ? 'selected' : ''}>🔵 Preparo</option>
-                                <option value="Concluido" ${p.status === 'Concluido' ? 'selected' : ''}>🟢 Concluído</option>
-                            </select>
-                        </div>
+                        <select onchange="atualizarStatusPedido('${p.id}', this.value)" class="bg-slate-100 text-slate-700 text-[10px] font-black rounded-xl px-3 py-2 outline-none border-none cursor-pointer">
+                            <option value="Novo" ${p.status === 'Novo' ? 'selected' : ''}>🟡 Pendente</option>
+                            <option value="Preparo" ${p.status === 'Preparo' ? 'selected' : ''}>🔵 Preparo</option>
+                            <option value="Concluido" ${p.status === 'Concluido' ? 'selected' : ''}>🟢 Concluído</option>
+                        </select>
                     </div>
                 </div>`;
 
-            // Distribuir nas colunas
             if (p.status === "Novo") { colNovo.innerHTML += cardHtml; cNovo++; }
             else if (p.status === "Preparo") { colPreparo.innerHTML += cardHtml; cPreparo++; }
             else { colConcluido.innerHTML += cardHtml; cConcluido++; }
         });
 
-        // Atualizar Contadores
         countNovoTxt.innerText = cNovo;
         countPreparoTxt.innerText = cPreparo;
         countConcluidoTxt.innerText = cConcluido;
@@ -224,14 +233,14 @@ form.onsubmit = async (e) => {
     const btnSubmit = form.querySelector('button[type="submit"]');
     btnSubmit.disabled = true;
 
-    const totalVenda = itensNoCarrinho.reduce((acc, i) => acc + (i.preco * i.qtd), 0);
+    const totalVenda = itensNoCarrinho.reduce((acc, i) => acc + ((Number(i.preco) || 0) * (Number(i.qtd) || 0)), 0);
     const novoPedido = {
         cliente: document.getElementById('cliente').value || "Consumidor Balcão",
         itens: itensNoCarrinho,
         total: totalVenda,
         userId: auth.currentUser.uid,
         origem: "Balcão",
-        status: "Novo", // Começa como Pendente (Novo)
+        status: "Novo",
         createdAt: serverTimestamp(),
         horaEntrega: new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})
     };
