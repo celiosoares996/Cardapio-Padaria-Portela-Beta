@@ -85,17 +85,23 @@ onAuthStateChanged(auth, async (user) => {
         return;
     }
 
-    // Tenta pegar o e-mail do auth, se não der, tentaremos do banco abaixo
+    // Tenta pegar o e-mail do auth imediatamente
     emailUsuarioLogado = user.email; 
     processarLink(user.uid);
 
     try {
-        const docSnap = await getDoc(doc(db, "usuarios", user.uid));
+        const docRef = doc(db, "usuarios", user.uid);
+        const docSnap = await getDoc(docRef);
+        
         if (docSnap.exists()) {
             const d = docSnap.data();
             
-            // Plano B: Se o Auth falhar, pegamos o e-mail salvo no Firestore
-            if (!emailUsuarioLogado) emailUsuarioLogado = d.email;
+            // Redundância: Se o objeto user.email do Firebase vier nulo, 
+            // usamos o e-mail que salvamos anteriormente no Firestore.
+            if (!emailUsuarioLogado && d.email) {
+                emailUsuarioLogado = d.email;
+                console.log("E-mail recuperado do Firestore:", emailUsuarioLogado);
+            }
 
             document.getElementById('nomeNegocio').value = d.nomeNegocio || "";
             document.getElementById('whatsappNegocio').value = d.whatsapp || "";
@@ -202,7 +208,8 @@ formPerfil?.addEventListener('submit', async (e) => {
                 coords: { lat: lojaLat.value, log: lojaLog.value }
             },
             userId: user.uid,
-            email: user.email || emailUsuarioLogado, // Mantém o e-mail no banco
+            // Importante: Salva o e-mail no banco para futuras recuperações
+            email: user.email || emailUsuarioLogado || "", 
             ultimaAtualizacao: new Date().toISOString()
         };
 
@@ -229,11 +236,23 @@ btnVincularSenha?.addEventListener('click', async () => {
     const user = auth.currentUser;
     const senha = novaSenhaAcesso.value;
     
-    // Pegamos o e-mail da variável garantida
-    const emailFinal = user?.email || emailUsuarioLogado;
+    // Verificação robusta de e-mail
+    let emailFinal = user?.email || emailUsuarioLogado;
+
+    // Se ainda estiver vazio, tentamos uma última busca direta no Firestore
+    if (!emailFinal && user) {
+        const snapshot = await getDoc(doc(db, "usuarios", user.uid));
+        if (snapshot.exists()) {
+            emailFinal = snapshot.data().email;
+        }
+    }
 
     if (!emailFinal) {
-        return Swal.fire('Erro Crítico', 'E-mail do usuário não identificado. Tente fazer login novamente.', 'error');
+        return Swal.fire({
+            icon: 'error',
+            title: 'Identificação Pendente',
+            text: 'Não conseguimos detectar seu e-mail. Por favor, clique em "Salvar Configurações" uma vez e depois tente definir a senha.',
+        });
     }
 
     if (!senha || senha.length < 6) {
@@ -243,7 +262,6 @@ btnVincularSenha?.addEventListener('click', async () => {
     try {
         Swal.fire({ title: 'Processando...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
         
-        // Agora usamos a variável emailFinal que validamos acima
         const credential = EmailAuthProvider.credential(emailFinal, senha);
         
         await linkWithCredential(user, credential);
@@ -251,7 +269,7 @@ btnVincularSenha?.addEventListener('click', async () => {
         Swal.fire({
             icon: 'success',
             title: 'Senha Definida!',
-            text: 'Agora você pode entrar com seu e-mail e senha.',
+            text: `Agora você pode logar usando o e-mail: ${emailFinal}`,
             confirmButtonColor: '#2563eb'
         });
         novaSenhaAcesso.value = "";
@@ -262,36 +280,37 @@ btnVincularSenha?.addEventListener('click', async () => {
         if (err.code === 'auth/requires-recent-login') {
             const confirmacao = await Swal.fire({
                 title: 'Segurança',
-                text: 'Precisamos validar seu Google novamente para criar a senha.',
+                text: 'Para definir uma senha, precisamos validar seu acesso Google novamente.',
                 icon: 'info',
                 showCancelButton: true,
-                confirmButtonText: 'Validar'
+                confirmButtonText: 'Validar com Google'
             });
 
             if (confirmacao.isConfirmed) {
                 try {
                     const provider = new GoogleAuthProvider();
                     await reauthenticateWithPopup(user, provider);
+                    // Tenta o vínculo novamente com o e-mail validado
                     const credential = EmailAuthProvider.credential(emailFinal, senha);
                     await linkWithCredential(user, credential);
-                    Swal.fire('Sucesso!', 'Senha definida!', 'success');
+                    Swal.fire('Sucesso!', 'Senha definida com sucesso!', 'success');
                 } catch (reauthErr) {
-                    Swal.fire('Erro', 'Falha na validação.', 'error');
+                    Swal.fire('Erro', 'Falha na validação de identidade.', 'error');
                 }
             }
         } else if (err.code === 'auth/credential-already-in-use') {
-            Swal.fire('Erro', 'Este e-mail já tem senha.', 'error');
+            Swal.fire('Aviso', 'Este e-mail já possui uma senha vinculada.', 'warning');
         } else {
-            Swal.fire('Erro', `Falha: ${err.code}`, 'error');
+            Swal.fire('Erro', `Não foi possível definir a senha: ${err.code}`, 'error');
         }
     }
 });
 
-// --- AUXILIARES ---
+// --- AUXILIARES (COPIAR, GPS, SAIR) ---
 document.getElementById('btnCopiarLink')?.addEventListener('click', () => {
     if(inputLink && inputLink.value) {
         navigator.clipboard.writeText(inputLink.value);
-        Swal.fire({ icon: 'success', title: 'Copiado!', timer: 1500, showConfirmButton: false });
+        Swal.fire({ icon: 'success', title: 'Copiado!', text: 'Link do cardápio pronto para compartilhar.', timer: 1500, showConfirmButton: false });
     }
 });
 
@@ -301,17 +320,22 @@ document.getElementById('btnCapturarGps')?.addEventListener('click', () => {
         lojaLat.value = pos.coords.latitude;
         lojaLog.value = pos.coords.longitude;
         statusGPS.innerHTML = "✅ Localização Base Fixada";
-    }, () => {
+        Swal.fire('Sucesso', 'Coordenadas capturadas!', 'success');
+    }, (err) => {
         statusGPS.innerHTML = "❌ Erro ao localizar";
+        Swal.fire('Erro', 'Por favor, ative o GPS do navegador.', 'error');
     });
 });
 
 const sair = async () => {
     const result = await Swal.fire({
-        title: 'Sair?',
+        title: 'Sair do Sistema?',
+        text: "Você precisará fazer login novamente para acessar.",
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonText: 'Sim, sair!'
+        confirmButtonColor: '#ef4444',
+        confirmButtonText: 'Sim, sair!',
+        cancelButtonText: 'Cancelar'
     });
     if (result.isConfirmed) {
         signOut(auth).then(() => window.location.href="index.html");
