@@ -32,8 +32,6 @@ let emailUsuarioLogado = "";
 function aplicarCor(cor) {
     if (!cor) return;
     document.documentElement.style.setProperty('--cor-primaria', cor);
-    const radio = document.querySelector(`input[name="temaCor"][value="${cor}"]`);
-    if (radio) radio.checked = true;
 }
 
 // --- FUNÇÃO: EXIBIR IMAGENS (PREVIEW) ---
@@ -85,9 +83,7 @@ onAuthStateChanged(auth, async (user) => {
         return;
     }
 
-    // Tenta pegar o e-mail de todas as fontes possíveis do Auth
     emailUsuarioLogado = user.email || user.providerData?.[0]?.email || "";
-    
     processarLink(user.uid);
 
     try {
@@ -104,6 +100,7 @@ onAuthStateChanged(auth, async (user) => {
             document.getElementById('nomeNegocio').value = d.nomeNegocio || "";
             document.getElementById('whatsappNegocio').value = d.whatsapp || "";
             
+            // Carregar Configurações de Entrega
             if (d.configEntrega) {
                 tipoEntrega.value = d.configEntrega.tipo || 'fixo';
                 taxaFixa.value = d.configEntrega.taxaFixa || "";
@@ -121,6 +118,22 @@ onAuthStateChanged(auth, async (user) => {
                 if (d.configEntrega.coords?.lat) {
                     statusGPS.innerHTML = "✅ Localização Base Fixada";
                 }
+            }
+
+            // --- NOVO: Carregar Horários de Funcionamento ---
+            if (d.horarios) {
+                const dias = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domingo"];
+                dias.forEach(dia => {
+                    if (d.horarios[dia]) {
+                        const inputAbre = document.querySelector(`input[name="abre_${dia}"]`);
+                        const inputFecha = document.querySelector(`input[name="fecha_${dia}"]`);
+                        const checkStatus = document.querySelector(`input[name="status_${dia}"]`);
+
+                        if (inputAbre) inputAbre.value = d.horarios[dia].abre || "";
+                        if (inputFecha) inputFecha.value = d.horarios[dia].fecha || "";
+                        if (checkStatus) checkStatus.checked = d.horarios[dia].aberto;
+                    }
+                });
             }
 
             const titulo = d.nomeNegocio || "Minha Loja";
@@ -192,12 +205,25 @@ formPerfil?.addEventListener('submit', async (e) => {
     try {
         const corSelecionada = document.querySelector('input[name="temaCor"]:checked')?.value || "#2563eb";
         
+        // --- NOVO: Capturar Horários ---
+        const horarios = {};
+        const diasSemana = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domingo"];
+        
+        diasSemana.forEach(dia => {
+            horarios[dia] = {
+                abre: document.querySelector(`input[name="abre_${dia}"]`).value,
+                fecha: document.querySelector(`input[name="fecha_${dia}"]`).value,
+                aberto: document.querySelector(`input[name="status_${dia}"]`).checked
+            };
+        });
+
         const novosDados = {
             nomeNegocio: document.getElementById('nomeNegocio').value.trim(),
             whatsapp: document.getElementById('whatsappNegocio').value.trim(),
             fotoPerfil: urlFotoFinal,
             fotoCapa: urlCapaFinal,
             corTema: corSelecionada,
+            horarios: horarios, // Salvando o objeto de horários
             configEntrega: {
                 tipo: tipoEntrega.value,
                 taxaFixa: parseFloat(taxaFixa.value) || 0,
@@ -215,7 +241,7 @@ formPerfil?.addEventListener('submit', async (e) => {
         Swal.fire({
             icon: 'success',
             title: 'Perfil Atualizado!',
-            text: 'Suas informações foram salvas com sucesso.',
+            text: 'Suas informações, incluindo horários, foram salvas.',
             confirmButtonColor: corSelecionada
         });
         
@@ -228,7 +254,7 @@ formPerfil?.addEventListener('submit', async (e) => {
     }
 });
 
-// --- VINCULAR E-MAIL E SENHA (VERSÃO ULTRA-RESISTENTE) ---
+// --- VINCULAR E-MAIL E SENHA ---
 btnVincularSenha?.addEventListener('click', async () => {
     const user = auth.currentUser;
     const senha = novaSenhaAcesso.value;
@@ -248,7 +274,7 @@ btnVincularSenha?.addEventListener('click', async () => {
         return Swal.fire({
             icon: 'error',
             title: 'Identificação Pendente',
-            text: 'Ainda não identificamos seu e-mail. Por favor, clique no botão "Salvar Todas as Configurações" no fim da página primeiro.',
+            text: 'Por favor, salve as configurações no fim da página primeiro.',
         });
     }
 
@@ -258,7 +284,6 @@ btnVincularSenha?.addEventListener('click', async () => {
 
     try {
         Swal.fire({ title: 'Vinculando...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
-        
         const credential = EmailAuthProvider.credential(emailFinal, senha);
         await linkWithCredential(user, credential);
         
@@ -271,39 +296,12 @@ btnVincularSenha?.addEventListener('click', async () => {
         novaSenhaAcesso.value = "";
 
     } catch (err) {
-        console.error("ERRO FIREBASE:", err.code);
-
         if (err.code === 'auth/requires-recent-login') {
-            const confirmacao = await Swal.fire({
-                title: 'Segurança',
-                text: 'Para criar uma senha, valide seu acesso Google novamente.',
-                icon: 'info',
-                showCancelButton: true,
-                confirmButtonText: 'Validar'
-            });
-
-            if (confirmacao.isConfirmed) {
-                try {
-                    const provider = new GoogleAuthProvider();
-                    await reauthenticateWithPopup(user, provider);
-                    const cred = EmailAuthProvider.credential(emailFinal, senha);
-                    await linkWithCredential(user, cred);
-                    Swal.fire('Sucesso!', 'Senha definida!', 'success');
-                } catch (reErr) {
-                    Swal.fire('Erro', 'Falha na validação.', 'error');
-                }
-            }
-        } else if (err.code === 'auth/credential-already-in-use') {
-            Swal.fire('Aviso', 'Este e-mail já possui uma senha vinculada a outra conta.', 'warning');
-        } else if (err.code === 'auth/provider-already-linked') {
-            // TRATATIVA PARA USUÁRIO QUE JÁ TEM SENHA
-            Swal.fire({
-                icon: 'info',
-                title: 'Acesso já configurado',
-                text: 'Esta conta já possui uma senha definida. Se desejar alterá-la, use a função de recuperação de senha no login.',
-                confirmButtonColor: '#2563eb'
-            });
-            novaSenhaAcesso.value = "";
+            const provider = new GoogleAuthProvider();
+            await reauthenticateWithPopup(user, provider);
+            const cred = EmailAuthProvider.credential(emailFinal, senha);
+            await linkWithCredential(user, cred);
+            Swal.fire('Sucesso!', 'Senha definida!', 'success');
         } else {
             Swal.fire('Erro', `Falha: ${err.code}`, 'error');
         }
@@ -343,4 +341,3 @@ const sair = async () => {
 };
 
 document.getElementById('btnSairDesktop')?.addEventListener('click', sair);
-document.getElementById('btnSairMobile')?.addEventListener('click', sair);
