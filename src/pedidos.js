@@ -119,12 +119,16 @@ window.removerItem = (index) => {
     renderizarCarrinho();
 };
 
-// --- 4. CARREGAR PEDIDOS ---
+// --- 4. CARREGAR PEDIDOS (COM MENSAGENS DINÂMICAS) ---
 async function carregarPedidos() {
     const user = auth.currentUser;
     if (!user) return;
 
-    listaPedidos.innerHTML = `<div class="col-span-full py-20 text-center"><div class="w-12 h-12 border-4 border-slate-100 border-t-brand rounded-full animate-spin mx-auto mb-4"></div></div>`;
+    listaPedidos.innerHTML = `
+        <div class="col-span-full py-20 text-center">
+            <div class="w-12 h-12 border-4 border-slate-100 border-t-brand rounded-full animate-spin mx-auto mb-4"></div>
+            <p class="text-slate-400 font-bold italic">Sincronizando banco de dados...</p>
+        </div>`;
 
     try {
         const q = query(collection(db, "pedidos"), where("userId", "==", user.uid));
@@ -135,49 +139,64 @@ async function carregarPedidos() {
             pedidosArray.push({ id: docSnap.id, ...docSnap.data() });
         });
 
+        // Ordenar por data (mais recentes primeiro)
         pedidosArray.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
 
+        // Filtragem Logística
         if (filtroStatus !== "Todos") {
             pedidosArray = pedidosArray.filter(p => p.status === filtroStatus);
         }
 
         listaPedidos.innerHTML = "";
+
+        // Verificação de Lista Vazia com Mensagem Dinâmica
         if (pedidosArray.length === 0) {
-            listaPedidos.innerHTML = `<div class="col-span-full py-20 text-center"><p class="text-slate-400 font-medium italic">Nenhum pedido em "${filtroStatus}".</p></div>`;
+            let msg = "";
+            if (filtroStatus === "Todos") msg = "Nenhum pedido registrado ainda.";
+            else if (filtroStatus === "Pendente") msg = "Nenhum pedido pendente por aqui.";
+            else if (filtroStatus === "Concluído") msg = "Você ainda não possui vendas concluídas.";
+
+            listaPedidos.innerHTML = `
+                <div class="col-span-full py-20 text-center animate-pulse">
+                    <i data-lucide="inbox" class="w-12 h-12 text-slate-200 mx-auto mb-4"></i>
+                    <p class="text-slate-400 font-medium italic">${msg}</p>
+                </div>`;
+            if (window.lucide) lucide.createIcons();
             return;
         }
 
+        // Renderização dos Cards
         pedidosArray.forEach(p => {
             const itensHtml = p.itens ? p.itens.map(i => `<div class="flex justify-between text-[11px] mb-1"><span>${i.qtd}x ${i.nome}</span><span>${formatador.format(i.preco * i.qtd)}</span></div>`).join('') : "";
             const badgeOrigem = p.origem === "Online" ? "bg-blue-50 text-blue-600" : "bg-purple-50 text-purple-600";
             const badgeStatus = p.status === "Pendente" ? "bg-amber-50 text-amber-600 border-amber-100" : "bg-green-50 text-green-600 border-green-100";
 
             listaPedidos.innerHTML += `
-                <div class="bg-white p-7 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col">
+                <div class="bg-white p-7 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col hover:shadow-md transition-shadow">
                     <div class="flex justify-between items-start mb-6">
                         <div class="flex flex-col gap-2">
                             <span class="text-[9px] font-black uppercase px-2.5 py-1 rounded-lg ${badgeOrigem}">${p.origem || 'Balcão'}</span>
                             <span class="text-[9px] font-black uppercase px-2.5 py-1 rounded-lg border ${badgeStatus}">${p.status}</span>
                         </div>
                         <div class="flex gap-1">
-                            ${p.status === 'Pendente' ? `<button onclick="finalizarPedido('${p.id}')" class="bg-green-500 text-white p-2.5 rounded-xl"><i data-lucide="check" class="w-4 h-4"></i></button>` : ''}
-                            <button onclick="excluirPedido('${p.id}')" class="text-slate-300 hover:text-red-500 p-2.5 rounded-xl"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                            ${p.status === 'Pendente' ? `<button onclick="finalizarPedido('${p.id}')" class="bg-green-500 text-white p-2.5 rounded-xl hover:bg-green-600 transition-colors"><i data-lucide="check" class="w-4 h-4"></i></button>` : ''}
+                            <button onclick="excluirPedido('${p.id}')" class="text-slate-300 hover:text-red-500 p-2.5 rounded-xl transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                         </div>
                     </div>
                     <h4 class="font-black text-slate-800 text-xl mb-1">${p.cliente || 'Consumidor Final'}</h4>
-                    <div class="bg-slate-50/50 p-5 rounded-[1.5rem] mb-6 flex-1 text-slate-500">${itensHtml}</div>
+                    <div class="bg-slate-50/50 p-5 rounded-[1.5rem] mb-6 flex-1 text-slate-500 border border-slate-100/50">${itensHtml}</div>
                     <div class="flex justify-between items-center pt-5 border-t border-dashed border-slate-200">
                         <span class="text-2xl font-black text-brand">${formatador.format(p.total)}</span>
+                        <span class="text-[10px] text-slate-300 font-bold uppercase">${p.horaEntrega || ''}</span>
                     </div>
                 </div>`;
         });
         if (window.lucide) lucide.createIcons();
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error("Erro ao listar pedidos:", e); }
 }
 
-// --- 5. LÓGICA DE FILTROS (REFEITA PARA FUNCIONAR) ---
+// --- 5. LÓGICA DE FILTROS ---
 function configurarFiltros() {
-    // Seleciona apenas os botões dentro da div de filtros
     const containerFiltros = document.querySelector('.overflow-x-auto.pb-6');
     if (!containerFiltros) return;
 
@@ -187,20 +206,20 @@ function configurarFiltros() {
         btn.addEventListener('click', () => {
             const texto = btn.innerText.trim();
             
-            // 1. Atualiza o estado global do filtro
+            // Atualiza o filtro global
             if (texto === "Todos") filtroStatus = "Todos";
             else if (texto === "Pendentes") filtroStatus = "Pendente";
             else if (texto === "Concluídos") filtroStatus = "Concluído";
 
-            // 2. Atualiza visualmente os botões
+            // Reset visual dos botões
             botoes.forEach(b => {
                 b.className = "px-8 py-3 bg-white text-slate-400 rounded-2xl text-xs font-black uppercase tracking-widest border border-slate-200 hover:bg-slate-50 transition-all";
             });
 
-            // Aplica o estilo de "Ativo" no botão clicado
+            // Ativa o botão selecionado
             btn.className = "px-8 py-3 bg-brand text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-blue-500/20";
 
-            // 3. Recarrega a lista
+            // Recarrega os dados com o novo filtro
             carregarPedidos();
         });
     });
@@ -234,8 +253,12 @@ form.onsubmit = async (e) => {
         fecharEPrincipal();
         carregarPedidos();
         carregarProdutosSelect(auth.currentUser);
-    } catch (e) { console.error(e); }
-    finally { btnSubmit.disabled = false; }
+    } catch (e) { 
+        console.error(e);
+        Swal.fire("Erro", "Não foi possível registrar a venda.", "error");
+    } finally { 
+        btnSubmit.disabled = false; 
+    }
 };
 
 // --- AÇÕES DE ATUALIZAÇÃO ---
@@ -247,7 +270,17 @@ window.finalizarPedido = async (id) => {
 };
 
 window.excluirPedido = async (id) => {
-    const confirm = await Swal.fire({ title: 'Excluir?', showCancelButton: true, confirmButtonColor: '#ef4444' });
+    const confirm = await Swal.fire({ 
+        title: 'Excluir Pedido?', 
+        text: "Esta ação não pode ser desfeita!",
+        icon: 'warning',
+        showCancelButton: true, 
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#cbd5e1',
+        confirmButtonText: 'Sim, excluir',
+        cancelButtonText: 'Cancelar'
+    });
+
     if(confirm.isConfirmed) {
         try {
             await deleteDoc(doc(db, "pedidos", id));
@@ -278,7 +311,7 @@ onAuthStateChanged(auth, (user) => {
         carregarPreferencias(user);
         carregarProdutosSelect(user);
         carregarPedidos();
-        configurarFiltros(); // Chamada importante aqui!
+        configurarFiltros(); 
     } else {
         window.location.href = "index.html";
     }
