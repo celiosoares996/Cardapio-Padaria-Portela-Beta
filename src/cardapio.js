@@ -101,7 +101,6 @@ async function buscarCEP(cep) {
             const geoData = await geo.json();
             
             if (geoData && geoData.length > 0 && configEntrega?.coords) {
-                // CORREÇÃO: parseFloat garante Number e aceita lng ou log
                 const latLoja = parseFloat(configEntrega.coords.lat);
                 const lngLoja = parseFloat(configEntrega.coords.lng || configEntrega.coords.log);
                 const latCliente = parseFloat(geoData[0].lat);
@@ -110,7 +109,6 @@ async function buscarCEP(cep) {
                 distanciaCliente = calcularDistancia(latLoja, lngLoja, latCliente, lngCliente);
                 statusCEP.innerText = `✅ Entrega a ${distanciaCliente.toFixed(1)}km`;
                 
-                // Forçamos o recálculo após definir a distância
                 recalcularTaxa();
             }
         } catch (mapError) {
@@ -148,9 +146,10 @@ function recalcularTaxa() {
         console.log("--- 🛠️ DEBUG FRETE ---");
         console.log("Tipo:", tipoEntrega, "| Distância:", distanciaCliente.toFixed(2), "| Valor/KM:", vKm);
 
-        if (tipoEntrega === 'km' && distanciaCliente > 0) {
+        // CORREÇÃO: Aceita 'km' ou 'raio' para disparar o cálculo por distância
+        if ((tipoEntrega === 'km' || tipoEntrega === 'raio') && distanciaCliente > 0) {
             taxaEntregaAtual = Math.round((distanciaCliente * vKm) * 100) / 100;
-            console.log(`✅ KM Ativo: R$ ${taxaEntregaAtual}`);
+            console.log(`✅ KM/RAIO Ativo: R$ ${taxaEntregaAtual}`);
         } else {
             taxaEntregaAtual = parseFloat(configEntrega?.taxaFixa) || 0;
             console.log(`📌 Fixo Ativo: R$ ${taxaEntregaAtual}`);
