@@ -61,7 +61,7 @@ window.verificarCliente = async (valor) => {
             }
         }
     } catch (e) {
-        console.error("❌ Erro ao verificar cliente:", e);
+        console.error("Erro ao verificar cliente:", e);
     }
 };
 
@@ -142,7 +142,7 @@ window.buscarCEP = async () => {
             }
         }
     } catch (error) {
-        console.error("❌ Erro no cálculo de frete:", error);
+        console.error("Erro no cálculo de frete:", error);
     } finally {
         cepInput.classList.remove('animate-pulse');
         renderizarCarrinho();
@@ -173,12 +173,7 @@ window.atualizarModoPedidoJS = (modo) => {
 // --- RENDERIZAÇÃO ---
 window.adicionarAoCarrinho = (nome, preco) => {
     if (!lojaAberta) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Loja Fechada',
-            text: 'Desculpe, não estamos aceitando pedidos no momento.',
-            confirmButtonColor: '#f59e0b'
-        });
+        alert("Loja Fechada no momento!");
         return;
     }
     carrinho.push({ nome, preco: Number(preco) });
@@ -247,13 +242,8 @@ window.fecharCarrinho = () => {
     document.getElementById('modalCarrinho')?.classList.add('hidden');
 };
 
-// --- FINALIZAÇÃO E WHATSAPP ---
+// --- FINALIZAÇÃO, FIREBASE E WHATSAPP ---
 window.enviarWhatsApp = async () => {
-    if (!lojaAberta) {
-        alert("A loja fechou enquanto você montava o carrinho.");
-        return;
-    }
-
     const radios = document.getElementsByName('pagamento');
     radios.forEach(r => { if (r.checked) formaPagamento = r.value; });
 
@@ -312,19 +302,22 @@ window.enviarWhatsApp = async () => {
         msg += `_Pedido registrado no sistema._`;
 
         const linkWhats = `https://wa.me/${numDestino}?text=${encodeURIComponent(msg)}`;
+
+        // Redirecionamento compatível com mobile/Safari
         window.location.assign(linkWhats);
 
+        // Limpa o estado
         carrinho = [];
         fecharCarrinho();
         atualizarBadgeCarrinho();
 
     } catch (e) {
-        console.error("❌ Erro ao processar pedido:", e);
+        console.error("Erro ao processar pedido:", e);
         alert("Houve um erro ao salvar seu pedido.");
     }
 };
 
-// --- CONTROLE DE HORÁRIO ---
+// --- FIREBASE E INICIALIZAÇÃO ---
 function verificarSeEstaAberto(abertura, fechamento) {
     if (!abertura || !fechamento) return true;
     const agora = new Date();
@@ -334,7 +327,6 @@ function verificarSeEstaAberto(abertura, fechamento) {
     const minAbre = hAbre * 60 + mAbre;
     const minFecha = hFecha * 60 + mFecha;
     
-    // Lógica para horários que passam da meia-noite
     if (minFecha < minAbre) return horaAtual >= minAbre || horaAtual <= minFecha;
     return horaAtual >= minAbre && horaAtual <= minFecha;
 }
@@ -352,7 +344,6 @@ async function inicializar() {
             document.getElementById('nomeLoja').innerText = d.nomeNegocio || "Loja";
             document.getElementById('nomeLojaRodape').innerText = d.nomeNegocio || "";
 
-            // --- Branding ---
             const imgPerfil = document.getElementById('logoLoja');
             const emojiPerfil = document.getElementById('emojiLoja');
             const urlFoto = d.fotoPerfil || d.fotoLogo;
@@ -368,32 +359,19 @@ async function inicializar() {
             const banner = document.getElementById('bannerLoja');
             if (banner && d.fotoCapa) banner.style.backgroundImage = `url('${d.fotoCapa}')`;
 
-            // --- Status de Funcionamento ---
             lojaAberta = verificarSeEstaAberto(d.horarioAbertura, d.horarioFechamento);
             const labelStatus = document.getElementById('labelStatus');
             const dotStatus = document.getElementById('dotStatus');
-            const bannerFechado = document.getElementById('bannerFechado');
-            const btnFinalizar = document.getElementById('btnFinalizarPedido');
 
             if (lojaAberta) {
                 if (dotStatus) dotStatus.className = "w-2 h-2 rounded-full bg-green-500 ping-aberto";
                 if (labelStatus) labelStatus.innerHTML = `<span class="text-green-600 font-bold">Aberto</span> até ${d.horarioFechamento}`;
-                if (bannerFechado) bannerFechado.classList.add('hidden');
             } else {
                 if (dotStatus) dotStatus.className = "w-2 h-2 rounded-full bg-red-500";
                 if (labelStatus) labelStatus.innerHTML = `<span class="text-red-600 font-bold">Fechado</span>`;
-                if (bannerFechado) bannerFechado.classList.remove('hidden');
-                
-                // Desativa botão final para evitar pedidos fora de hora
-                if (btnFinalizar) {
-                    btnFinalizar.disabled = true;
-                    btnFinalizar.innerText = "Loja Fechada";
-                    btnFinalizar.classList.replace('bg-brand', 'bg-slate-300');
-                }
             }
         }
 
-        // --- Produtos ---
         const q = query(collection(db, "produtos"), where("userId", "==", userId));
         const snap = await getDocs(q);
         const prods = {};
@@ -431,7 +409,7 @@ async function inicializar() {
         }
         document.getElementById('loading-overlay').classList.add('loader-hidden');
     } catch (e) {
-        console.error("❌ Erro na inicialização:", e);
+        console.error(e);
     }
 }
 
