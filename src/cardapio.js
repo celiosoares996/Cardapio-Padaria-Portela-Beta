@@ -65,57 +65,75 @@ window.mascaraCEP = (input) => {
     let v = input.value.replace(/\D/g, '');
     if (v.length > 5) v = v.substring(0, 5) + '-' + v.substring(5, 8);
     input.value = v;
-    if (v.replace('-', '').length === 8) buscarCEP(v.replace('-', ''));
+    
+    // Só dispara a busca se tiver os 8 números completos
+    const cepLimpo = v.replace('-', '');
+    if (cepLimpo.length === 8) {
+        buscarCEP(cepLimpo);
+    }
 };
 
 async function buscarCEP(cep) {
     const statusCEP = document.getElementById('statusCEP');
     const btnPgto = document.getElementById('btnProximo2');
+    
+    // Evita múltiplas chamadas simultâneas
+    if (statusCEP.innerText === "⏳ Calculando frete...") return;
+
     try {
+        statusCEP.innerText = "⏳ Calculando frete...";
+        
+        // 1. Busca Endereço (ViaCEP)
         const resp = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
         const data = await resp.json();
+        
         if (data.erro) { 
             statusCEP.innerText = "📍 CEP não encontrado"; 
             if(btnPgto) btnPgto.disabled = true;
             return; 
         }
-        statusCEP.innerText = "⏳ Calculando frete...";
+
         document.getElementById('camposEndereco').classList.remove('hidden');
         document.getElementById('textoEnderecoAuto').innerText = `${data.logradouro}, ${data.bairro}`;
         enderecoCompleto = { rua: data.logradouro, bairro: data.bairro, cidade: data.localidade, cep: cep };
 
-        // 🗺️ Busca de coordenadas por CEP (Nominatim)
-        const geo = await fetch(`https://nominatim.openstreetmap.org/search?format=json&postalcode=${cep}&country=Brazil`);
+        // 2. Busca Coordenadas (Nominatim) com cabeçalhos de identificação para evitar CORS
+        const geo = await fetch(`https://nominatim.openstreetmap.org/search?format=json&postalcode=${cep}&country=Brazil`, {
+            headers: {
+                'Accept': 'application/json',
+                'User-Agent': 'PadariaPortelaApp/1.0'
+            }
+        });
+
         const geoData = await geo.json();
         
         if (geoData.length > 0 && configEntrega?.coords) {
-            // Suporte para lat/lng ou lat/log (padrão Firebase)
             const latLoja = parseFloat(configEntrega.coords.lat);
             const lngLoja = parseFloat(configEntrega.coords.lng || configEntrega.coords.log);
             const latCliente = parseFloat(geoData[0].lat);
             const lngCliente = parseFloat(geoData[0].lon);
 
             distanciaCliente = calcularDistancia(latLoja, lngLoja, latCliente, lngCliente);
-            console.log("Distância calculada:", distanciaCliente, "km");
+            console.log("📍 Distância calculada:", distanciaCliente.toFixed(2), "km");
         }
 
         statusCEP.innerText = "✅ Frete calculado!";
-        recalcularTaxa(); // Atualiza os valores globais
+        recalcularTaxa();
 
         if(btnPgto) {
             btnPgto.disabled = false;
             btnPgto.classList.replace('bg-slate-200', 'bg-brand');
         }
+
     } catch (e) { 
-        console.error("Erro no cálculo de frete:", e);
-        statusCEP.innerText = "⚠️ Erro ao calcular frete.";
+        console.error("Erro no frete:", e);
+        statusCEP.innerText = "⚠️ Erro ao calcular. Tente novamente.";
         recalcularTaxa();
-        if(btnPgto) btnPgto.disabled = false;
     }
 }
 
 function calcularDistancia(lat1, lon1, lat2, lon2) {
-    const R = 6371; // Raio da Terra em KM
+    const R = 6371; 
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
     const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
@@ -126,11 +144,9 @@ function recalcularTaxa() {
     if (modoPedido === 'retirada') {
         taxaEntregaAtual = 0;
     } else if (configEntrega?.tipo === 'km') {
-        // CORREÇÃO: Aplica valorKm sobre a distância calculada
         const valorKm = parseFloat(configEntrega.valorKm) || 0;
         taxaEntregaAtual = distanciaCliente > 0 ? (distanciaCliente * valorKm) : 0;
     } else {
-        // Taxa Fixa
         taxaEntregaAtual = parseFloat(configEntrega?.taxaFixa) || 0;
     }
     renderizarCarrinho();
@@ -177,7 +193,6 @@ function renderizarCarrinho() {
                 </div>`;
     }).join('');
 
-    // Passo 1: Totaliza apenas Itens
     if (totalP1) {
         totalP1.innerHTML = `<div class="flex justify-between items-center p-4 bg-slate-900 rounded-2xl text-white">
                                 <span class="text-[9px] font-bold uppercase opacity-60">Subtotal</span>
@@ -185,7 +200,6 @@ function renderizarCarrinho() {
                              </div>`;
     }
 
-    // Passo 3: Detalhamento Final
     if (resumo) {
         const totalFinal = subtotal + taxaEntregaAtual;
         const textoFrete = (modoPedido === 'entrega' && configEntrega?.tipo === 'km' && distanciaCliente > 0) 
@@ -232,7 +246,6 @@ window.enviarWhatsApp = async () => {
     } catch (e) { alert("Erro ao salvar pedido."); }
 };
 
-// Adicionado para silenciar o erro do HTML onblur
 window.verificarCliente = () => { console.log("Verificando..."); };
 
 // --- 🚀 INÍCIO ---
