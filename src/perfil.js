@@ -66,10 +66,11 @@ function processarLink(uid) {
                 qrcodePrintDiv.innerHTML = "";
                 new QRCode(qrcodePrintDiv, { 
                     text: link, 
-                    width: 250, 
-                    height: 250,
+                    width: 200, 
+                    height: 200,
                     colorDark: "#000000",
-                    colorLight: "#ffffff"
+                    colorLight: "#ffffff",
+                    correctLevel : QRCode.CorrectLevel.H
                 });
             }
         }, 1000);
@@ -109,6 +110,7 @@ onAuthStateChanged(auth, async (user) => {
                 lojaLat.value = d.configEntrega.coords?.lat || "";
                 lojaLog.value = d.configEntrega.coords?.log || "";
                 
+                // Simular clique para abrir a aba correta visualmente
                 if (d.configEntrega.tipo === 'raio') {
                     document.getElementById('btnModoRaio')?.click();
                 } else {
@@ -120,7 +122,7 @@ onAuthStateChanged(auth, async (user) => {
                 }
             }
 
-            // --- CARREGAR HORÁRIOS (Compatível com Accordion) ---
+            // --- CARREGAR HORÁRIOS ---
             if (d.horarios) {
                 const diasTratar = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domingo"];
                 diasTratar.forEach(dia => {
@@ -153,7 +155,7 @@ onAuthStateChanged(auth, async (user) => {
     } catch (err) { console.error("Erro ao carregar perfil:", err); }
 });
 
-// --- UPLOADS ---
+// --- LÓGICA DE UPLOAD ---
 const realizarUpload = async (tipo, file) => {
     const nomeArquivo = `${Date.now()}_${file.name}`;
     const sRef = ref(storage, `${tipo}/${auth.currentUser.uid}/${nomeArquivo}`);
@@ -203,10 +205,9 @@ formPerfil?.addEventListener('submit', async (e) => {
     btnSalvarPerfil.disabled = true;
 
     try {
-        // Capturar cor (mesmo que não esteja explícita no HTML, mantemos a lógica ou pegamos do CSS)
         const corSelecionada = getComputedStyle(document.documentElement).getPropertyValue('--cor-primaria').trim() || "#2563eb";
         
-        // --- CAPTURAR HORÁRIOS DA SEMANA ---
+        // Capturar Horários
         const horarios = {};
         const diasSemana = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domingo"];
         
@@ -246,7 +247,7 @@ formPerfil?.addEventListener('submit', async (e) => {
         Swal.fire({
             icon: 'success',
             title: 'Perfil Atualizado!',
-            text: 'Suas informações, incluindo horários, foram salvas.',
+            text: 'Suas informações foram salvas com sucesso.',
             confirmButtonColor: corSelecionada
         });
         
@@ -259,27 +260,18 @@ formPerfil?.addEventListener('submit', async (e) => {
     }
 });
 
-// --- VINCULAR E-MAIL E SENHA ---
+// --- VINCULAR E-MAIL E SENHA (ACESSO DIRETO) ---
 btnVincularSenha?.addEventListener('click', async () => {
     const user = auth.currentUser;
     const senha = novaSenhaAcesso.value;
     
-    let emailFinal = user?.email || 
-                     user?.providerData?.find(p => p.email)?.email || 
-                     emailUsuarioLogado;
-
-    if (!emailFinal && user) {
-        try {
-            const snap = await getDoc(doc(db, "usuarios", user.uid));
-            if (snap.exists()) emailFinal = snap.data().email;
-        } catch (e) { console.error("Falha no resgate de e-mail:", e); }
-    }
+    let emailFinal = user?.email || user?.providerData?.find(p => p.email)?.email || emailUsuarioLogado;
 
     if (!emailFinal) {
         return Swal.fire({
             icon: 'error',
-            title: 'Identificação Pendente',
-            text: 'Por favor, salve as configurações no fim da página primeiro.',
+            title: 'E-mail não encontrado',
+            text: 'Salve as configurações da página antes de definir uma senha.',
         });
     }
 
@@ -295,7 +287,7 @@ btnVincularSenha?.addEventListener('click', async () => {
         Swal.fire({
             icon: 'success',
             title: 'Senha Definida!',
-            text: `Agora você pode logar com seu e-mail: ${emailFinal}`,
+            text: `Acesso liberado com o e-mail: ${emailFinal}`,
             confirmButtonColor: '#2563eb'
         });
         novaSenhaAcesso.value = "";
@@ -306,14 +298,16 @@ btnVincularSenha?.addEventListener('click', async () => {
             await reauthenticateWithPopup(user, provider);
             const cred = EmailAuthProvider.credential(emailFinal, senha);
             await linkWithCredential(user, cred);
-            Swal.fire('Sucesso!', 'Senha definida!', 'success');
+            Swal.fire('Sucesso!', 'Senha definida após reautenticação!', 'success');
         } else {
             Swal.fire('Erro', `Falha: ${err.code}`, 'error');
         }
     }
 });
 
-// --- AUXILIARES ---
+// --- AUXILIARES E EVENTOS ---
+
+// Copiar Link
 document.getElementById('btnCopiarLink')?.addEventListener('click', () => {
     if(inputLink && inputLink.value) {
         navigator.clipboard.writeText(inputLink.value);
@@ -321,6 +315,7 @@ document.getElementById('btnCopiarLink')?.addEventListener('click', () => {
     }
 });
 
+// Capturar Localização GPS
 document.getElementById('btnCapturarGps')?.addEventListener('click', () => {
     statusGPS.innerHTML = "⏳ Localizando...";
     navigator.geolocation.getCurrentPosition((pos) => {
@@ -329,20 +324,32 @@ document.getElementById('btnCapturarGps')?.addEventListener('click', () => {
         statusGPS.innerHTML = "✅ Localização Base Fixada";
     }, (err) => {
         statusGPS.innerHTML = "❌ Erro ao localizar";
-        Swal.fire('Erro', 'Ative o GPS do seu dispositivo.', 'error');
+        Swal.fire('Erro', 'Por favor, ative o GPS do seu dispositivo.', 'error');
     });
 });
 
+// Função Sair (Logoff)
 const sair = async () => {
     const result = await Swal.fire({
-        title: 'Sair?',
+        title: 'Deseja sair?',
+        text: "Sua sessão será encerrada neste dispositivo.",
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonText: 'Sair'
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#f1f5f9',
+        confirmButtonText: 'Sim, sair',
+        cancelButtonText: 'Cancelar'
     });
+    
     if (result.isConfirmed) {
-        signOut(auth).then(() => window.location.href="index.html");
+        try {
+            await signOut(auth);
+            window.location.href = "index.html";
+        } catch (error) {
+            Swal.fire('Erro', 'Não foi possível sair.', 'error');
+        }
     }
 };
 
+// Listener para o botão de sair (Desktop e futuramente Mobile se adicionado)
 document.getElementById('btnSairDesktop')?.addEventListener('click', sair);
