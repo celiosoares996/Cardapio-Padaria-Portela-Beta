@@ -1,7 +1,7 @@
 import { db, auth, storage } from './firebase-config.js';
 import { doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
-import { signOut, onAuthStateChanged, EmailAuthProvider, linkWithCredential } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { signOut, onAuthStateChanged, EmailAuthProvider, linkWithCredential, GoogleAuthProvider, reauthenticateWithPopup } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 // --- REFERÊNCIAS DO DOM ---
 const inputLink = document.getElementById('linkCardapio');
@@ -223,7 +223,7 @@ formPerfil?.addEventListener('submit', async (e) => {
     }
 });
 
-// --- VINCULAR E-MAIL E SENHA (COM TRATAMENTO DE SEGURANÇA) ---
+// --- VINCULAR E-MAIL E SENHA (REFORTALECIDO) ---
 btnVincularSenha?.addEventListener('click', async () => {
     const user = auth.currentUser;
     const senha = novaSenhaAcesso.value;
@@ -233,32 +233,52 @@ btnVincularSenha?.addEventListener('click', async () => {
     }
 
     try {
-        Swal.fire({ title: 'Vinculando...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
+        Swal.fire({ title: 'Processando...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
         
         const credential = EmailAuthProvider.credential(user.email, senha);
+        
+        // Tentativa de vínculo direto
         await linkWithCredential(user, credential);
         
         Swal.fire({
             icon: 'success',
             title: 'Senha Definida!',
-            text: 'Agora você pode entrar usando seu e-mail e esta senha.',
+            text: 'Vínculo realizado com sucesso. Agora você pode entrar com e-mail e senha.',
             confirmButtonColor: '#2563eb'
         });
         novaSenhaAcesso.value = "";
+
     } catch (err) {
-        console.error("Erro ao vincular:", err.code);
+        console.error("ERRO COMPLETO DO FIREBASE:", err); // IMPORTANTE: Ver no F12 se falhar
         
         if (err.code === 'auth/requires-recent-login') {
-            Swal.fire({
+            // Se pedir login recente, vamos forçar um popup do Google rapidinho para validar
+            const confirmacao = await Swal.fire({
+                title: 'Confirmação Necessária',
+                text: 'Para sua segurança, precisamos validar seu acesso Google antes de criar uma senha.',
                 icon: 'info',
-                title: 'Ação de Segurança',
-                text: 'Para definir uma senha, você precisa ter feito login recentemente. Por favor, saia e entre novamente com o Google.',
-                confirmButtonText: 'Entendi'
+                showCancelButton: true,
+                confirmButtonText: 'Validar agora'
             });
+
+            if (confirmacao.isConfirmed) {
+                try {
+                    const provider = new GoogleAuthProvider();
+                    await reauthenticateWithPopup(user, provider);
+                    // Tenta vincular de novo após reautenticar
+                    const credential = EmailAuthProvider.credential(user.email, senha);
+                    await linkWithCredential(user, credential);
+                    Swal.fire('Sucesso!', 'Senha definida com sucesso após validação.', 'success');
+                } catch (reauthErr) {
+                    Swal.fire('Erro', 'Falha na validação. Tente sair e entrar novamente.', 'error');
+                }
+            }
+        } else if (err.code === 'auth/operation-not-allowed') {
+             Swal.fire('Erro de Configuração', 'O provedor E-mail/Senha está desativado no Firebase Console.', 'error');
         } else if (err.code === 'auth/credential-already-in-use') {
             Swal.fire('Erro', 'Este e-mail já possui uma senha vinculada.', 'error');
         } else {
-            Swal.fire('Erro', 'Não foi possível definir a senha. Verifique se o provedor "E-mail/Senha" está ativo no Firebase.', 'error');
+            Swal.fire('Erro', `Falha ao definir senha: ${err.message}`, 'error');
         }
     }
 });
