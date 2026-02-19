@@ -142,7 +142,7 @@ window.removerItem = (index) => {
 };
 
 // -------------------------------------------------------------------------
-// 4. DISTRIBUIÇÃO KANBAN (MAPEAMENTO FLEXÍVEL)
+// 4. DISTRIBUIÇÃO KANBAN (DIFERENCIANDO BALCÃO VS ONLINE)
 // -------------------------------------------------------------------------
 async function carregarPedidos() {
     const user = auth.currentUser;
@@ -153,18 +153,23 @@ async function carregarPedidos() {
         const querySnapshot = await getDocs(q);
         
         colNovo.innerHTML = ""; colPreparo.innerHTML = ""; colConcluido.innerHTML = "";
-        let cNovo = 0, cPreparo = 0, cConcluido = 0;
+        
+        // Contadores específicos por origem
+        let cNovo = { balcao: 0, online: 0 };
+        let cPreparo = { balcao: 0, online: 0 };
+        let cConcluido = { balcao: 0, online: 0 };
 
         let pedidosArray = [];
         querySnapshot.forEach(docSnap => pedidosArray.push({ id: docSnap.id, ...docSnap.data() }));
         pedidosArray.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
 
         pedidosArray.forEach(p => {
-            const isDelivery = p.origem === "Delivery" || p.tipo?.toLowerCase().includes("delivery");
-            const corBadge = isDelivery ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600';
-            const iconeBadge = isDelivery ? 'truck' : 'store';
+            // Identifica se é online pelo campo origem ou tipo
+            const isOnline = p.origem === "Delivery" || p.origem === "Online" || p.tipo?.toLowerCase().includes("delivery");
+            const corBadge = isOnline ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600';
+            const iconeBadge = isOnline ? 'globe' : 'store';
+            const labelOrigem = isOnline ? 'Online' : 'Balcão';
             
-            // MAPEADOR: Tenta ler de vários nomes possíveis para evitar o 0x e R$ 0,00
             const itensHtml = p.itens ? p.itens.map(i => {
                 const qtd = Number(i.qtd || i.quantidade || 1); 
                 const preco = Number(i.preco || i.valor || i.precoUnitario || 0);
@@ -185,7 +190,7 @@ async function carregarPedidos() {
                 <div class="card-pedido bg-white rounded-3xl p-5 shadow-sm border border-slate-100 flex flex-col gap-3">
                     <div class="flex justify-between items-start">
                         <span class="px-3 py-1 rounded-full text-[9px] font-black uppercase flex items-center gap-1 ${corBadge}">
-                            <i data-lucide="${iconeBadge}" class="w-3 h-3"></i> ${isDelivery ? 'Delivery' : 'Balcão'}
+                            <i data-lucide="${iconeBadge}" class="w-3 h-3"></i> ${labelOrigem}
                         </span>
                         <button onclick="excluirPedido('${p.id}')" class="text-slate-200 hover:text-red-500 transition-colors">
                             <i data-lucide="trash-2" class="w-4 h-4"></i>
@@ -210,14 +215,24 @@ async function carregarPedidos() {
                     </div>
                 </div>`;
 
-            if (p.status === "Novo") { colNovo.innerHTML += cardHtml; cNovo++; }
-            else if (p.status === "Preparo") { colPreparo.innerHTML += cardHtml; cPreparo++; }
-            else { colConcluido.innerHTML += cardHtml; cConcluido++; }
+            // Incrementa contadores e distribui nas colunas
+            const tipo = isOnline ? 'online' : 'balcao';
+            if (p.status === "Novo") { 
+                colNovo.innerHTML += cardHtml; 
+                cNovo[tipo]++; 
+            } else if (p.status === "Preparo") { 
+                colPreparo.innerHTML += cardHtml; 
+                cPreparo[tipo]++; 
+            } else { 
+                colConcluido.innerHTML += cardHtml; 
+                cConcluido[tipo]++; 
+            }
         });
 
-        countNovoTxt.innerText = cNovo;
-        countPreparoTxt.innerText = cPreparo;
-        countConcluidoTxt.innerText = cConcluido;
+        // Atualiza os círculos de contagem com a diferenciação (Balcão | Online)
+        countNovoTxt.innerHTML = `<small class="text-purple-600">${cNovo.balcao}</small><span class="mx-1 text-slate-300">|</span><small class="text-blue-600">${cNovo.online}</small>`;
+        countPreparoTxt.innerHTML = `<small class="text-purple-600">${cPreparo.balcao}</small><span class="mx-1 text-slate-300">|</span><small class="text-blue-600">${cPreparo.online}</small>`;
+        countConcluidoTxt.innerHTML = `<small class="text-purple-600">${cConcluido.balcao}</small><span class="mx-1 text-slate-300">|</span><small class="text-blue-600">${cConcluido.online}</small>`;
 
         if (window.lucide) lucide.createIcons();
     } catch (e) { console.error("❌ Erro ao listar pedidos:", e); }
