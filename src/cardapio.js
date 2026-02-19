@@ -60,16 +60,18 @@ function renderizarUIStatus(aberto, texto, hora) {
         : `<span class="text-red-600 font-bold">${texto}</span> ${hora ? '• Abre às ' + hora : ''}`;
 }
 
-// --- 📍 LOCALIZAÇÃO E FRETE ---
+// --- 📍 LOCALIZAÇÃO E FRETE (CORREÇÃO CORS) ---
+let timeoutCEP;
 window.mascaraCEP = (input) => {
     let v = input.value.replace(/\D/g, '');
     if (v.length > 5) v = v.substring(0, 5) + '-' + v.substring(5, 8);
     input.value = v;
     
-    // Só dispara a busca se tiver os 8 números completos
     const cepLimpo = v.replace('-', '');
     if (cepLimpo.length === 8) {
-        buscarCEP(cepLimpo);
+        // Debounce: Espera 500ms após o último dígito para evitar múltiplas requisições
+        clearTimeout(timeoutCEP);
+        timeoutCEP = setTimeout(() => buscarCEP(cepLimpo), 500);
     }
 };
 
@@ -77,13 +79,10 @@ async function buscarCEP(cep) {
     const statusCEP = document.getElementById('statusCEP');
     const btnPgto = document.getElementById('btnProximo2');
     
-    // Evita múltiplas chamadas simultâneas
-    if (statusCEP.innerText === "⏳ Calculando frete...") return;
-
     try {
-        statusCEP.innerText = "⏳ Calculando frete...";
+        statusCEP.innerText = "⏳ Localizando endereço...";
         
-        // 1. Busca Endereço (ViaCEP)
+        // 1. VIA CEP (Não tem bloqueio de CORS agressivo)
         const resp = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
         const data = await resp.json();
         
@@ -97,27 +96,32 @@ async function buscarCEP(cep) {
         document.getElementById('textoEnderecoAuto').innerText = `${data.logradouro}, ${data.bairro}`;
         enderecoCompleto = { rua: data.logradouro, bairro: data.bairro, cidade: data.localidade, cep: cep };
 
-        // 2. Busca Coordenadas (Nominatim) com cabeçalhos de identificação para evitar CORS
-        const geo = await fetch(`https://nominatim.openstreetmap.org/search?format=json&postalcode=${cep}&country=Brazil`, {
-            headers: {
-                'Accept': 'application/json',
-                'User-Agent': 'PadariaPortelaApp/1.0'
-            }
+        // 2. GEOLOCALIZAÇÃO (Fallback para Nominatim com Proxy se necessário)
+        statusCEP.innerText = "⏳ Calculando frete...";
+        
+        // Tentamos o Nominatim com uma URL ligeiramente diferente para evitar cache
+        const geoUrl = `https://nominatim.openstreetmap.org/search?postalcode=${cep}&country=Brazil&format=json&limit=1`;
+        
+        const geo = await fetch(geoUrl, {
+            headers: { 'Accept-Language': 'pt-BR' }
         });
 
         const geoData = await geo.json();
         
-        if (geoData.length > 0 && configEntrega?.coords) {
+        if (geoData && geoData.length > 0) {
             const latLoja = parseFloat(configEntrega.coords.lat);
             const lngLoja = parseFloat(configEntrega.coords.lng || configEntrega.coords.log);
             const latCliente = parseFloat(geoData[0].lat);
             const lngCliente = parseFloat(geoData[0].lon);
 
             distanciaCliente = calcularDistancia(latLoja, lngLoja, latCliente, lngCliente);
-            console.log("📍 Distância calculada:", distanciaCliente.toFixed(2), "km");
+        } else {
+            // Se o mapa falhar, não travamos o pedido, mas avisamos
+            console.warn("Coordenadas não encontradas para este CEP.");
+            distanciaCliente = 0;
         }
 
-        statusCEP.innerText = "✅ Frete calculado!";
+        statusCEP.innerText = "✅ Frete atualizado!";
         recalcularTaxa();
 
         if(btnPgto) {
@@ -127,8 +131,9 @@ async function buscarCEP(cep) {
 
     } catch (e) { 
         console.error("Erro no frete:", e);
-        statusCEP.innerText = "⚠️ Erro ao calcular. Tente novamente.";
+        statusCEP.innerText = "⚠️ Erro de conexão. Prossiga para o resumo.";
         recalcularTaxa();
+        if(btnPgto) btnPgto.disabled = false;
     }
 }
 
@@ -141,11 +146,14 @@ function calcularDistancia(lat1, lon1, lat2, lon2) {
 }
 
 function recalcularTaxa() {
+    const subtotal = carrinho.reduce((a, b) => a + b.preco, 0);
+    
     if (modoPedido === 'retirada') {
         taxaEntregaAtual = 0;
     } else if (configEntrega?.tipo === 'km') {
         const valorKm = parseFloat(configEntrega.valorKm) || 0;
-        taxaEntregaAtual = distanciaCliente > 0 ? (distanciaCliente * valorKm) : 0;
+        // Se a distância for 0 (erro de API), podemos aplicar a taxa fixa como fallback se desejar
+        taxaEntregaAtual = distanciaCliente > 0 ? (distanciaCliente * valorKm) : (parseFloat(configEntrega.taxaFixa) || 0);
     } else {
         taxaEntregaAtual = parseFloat(configEntrega?.taxaFixa) || 0;
     }
@@ -193,6 +201,7 @@ function renderizarCarrinho() {
                 </div>`;
     }).join('');
 
+    // Passo 1: SEMPRE mostra apenas o Subtotal
     if (totalP1) {
         totalP1.innerHTML = `<div class="flex justify-between items-center p-4 bg-slate-900 rounded-2xl text-white">
                                 <span class="text-[9px] font-bold uppercase opacity-60">Subtotal</span>
@@ -200,18 +209,19 @@ function renderizarCarrinho() {
                              </div>`;
     }
 
+    // Passo 3: Detalha tudo com ícones profissionais
     if (resumo) {
         const totalFinal = subtotal + taxaEntregaAtual;
-        const textoFrete = (modoPedido === 'entrega' && configEntrega?.tipo === 'km' && distanciaCliente > 0) 
-            ? `${distanciaCliente.toFixed(1)}km` 
-            : modoPedido;
+        const infoEntrega = (modoPedido === 'entrega' && distanciaCliente > 0) 
+            ? `🛵 Entrega (${distanciaCliente.toFixed(1)}km)` 
+            : (modoPedido === 'retirada' ? '🛍️ Retirada' : '🛵 Entrega');
 
         resumo.innerHTML = `
         <div class="space-y-1 text-[11px] font-bold">
             <div class="flex justify-between opacity-60"><span>Subtotal</span><span>R$ ${subtotal.toFixed(2)}</span></div>
             <div class="flex justify-between opacity-60">
-                <span>Entrega (${textoFrete})</span>
-                <span>${taxaEntregaAtual > 0 ? 'R$ ' + taxaEntregaAtual.toFixed(2) : 'A calcular'}</span>
+                <span>${infoEntrega}</span>
+                <span>${taxaEntregaAtual > 0 ? 'R$ ' + taxaEntregaAtual.toFixed(2) : 'R$ 0,00'}</span>
             </div>
             <div class="flex justify-between text-base font-black border-t border-white/10 pt-2 mt-2"><span>TOTAL</span><span>R$ ${totalFinal.toFixed(2)}</span></div>
         </div>`;
@@ -225,30 +235,32 @@ window.enviarWhatsApp = async () => {
     const pag = document.querySelector('input[name="pagamento"]:checked')?.value;
     const num = document.getElementById('inputNumero').value;
 
-    if (!nome || !pag) { alert("⚠️ Preencha seu nome e pagamento!"); return; }
+    if (!nome || !pag) { alert("⚠️ Preencha nome e forma de pagamento!"); return; }
 
     const subtotal = carrinho.reduce((a, b) => a + b.preco, 0);
     const total = subtotal + taxaEntregaAtual;
-    const pedido = {
-        userId, cliente: nome, whatsapp: whats, itens: carrinho, 
-        total, taxa: taxaEntregaAtual, tipo: modoPedido,
-        endereco: modoPedido === 'entrega' ? `${enderecoCompleto.rua}, ${num}` : 'Retirada',
-        pagamento: pag, createdAt: serverTimestamp()
-    };
-
+    
     try {
+        const pedido = {
+            userId, cliente: nome, whatsapp: whats, itens: carrinho, 
+            total, taxa: taxaEntregaAtual, tipo: modoPedido,
+            endereco: modoPedido === 'entrega' ? `${enderecoCompleto.rua}, ${num}` : 'Retirada',
+            pagamento: pag, createdAt: serverTimestamp()
+        };
         await addDoc(collection(db, "pedidos"), pedido);
+        
         let msg = `*NOVO PEDIDO*\n*Cliente:* ${nome}\n*Tipo:* ${modoPedido}\n`;
         carrinho.forEach(i => msg += `• ${i.nome}\n`);
-        if(modoPedido === 'entrega') msg += `*Frete:* R$ ${taxaEntregaAtual.toFixed(2)}\n`;
+        msg += `*Frete:* R$ ${taxaEntregaAtual.toFixed(2)}\n`;
         msg += `*Total:* R$ ${total.toFixed(2)}\n*Pagamento:* ${pag}`;
+        
         window.open(`https://wa.me/55${whatsappLoja.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`);
-    } catch (e) { alert("Erro ao salvar pedido."); }
+    } catch (e) { alert("Erro ao processar pedido."); }
 };
 
-window.verificarCliente = () => { console.log("Verificando..."); };
+window.verificarCliente = () => {};
 
-// --- 🚀 INÍCIO ---
+// --- 🚀 INICIALIZAÇÃO ---
 async function inicializar() {
     if (!userId) return;
     try {
