@@ -3,182 +3,204 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cardápio Digital Dark</title>
+    <title>Cardápio Digital</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
-        :root { --cor-primaria: #ffca28; }
-        body { font-family: 'Inter', sans-serif; background-color: #0f1115; color: #ffffff; -webkit-tap-highlight-color: transparent; }
-        .app-container { max-width: 500px; margin: 0 auto; background-color: #16191e; min-height: 100vh; position: relative; }
-        .category-tab { white-space: nowrap; padding: 10px 20px; border-radius: 50px; background: #23272f; color: #94a3b8; font-size: 13px; font-weight: 700; transition: all 0.3s; }
-        .category-tab.active { background: var(--cor-primaria); color: #000; }
-        .product-card { display: flex; padding: 16px; gap: 12px; border-bottom: 1px solid #23272f; cursor: pointer; align-items: center; }
-        .product-info { flex: 1; }
-        .product-img { width: 100px; height: 100px; border-radius: 12px; object-fit: cover; }
-        #modalCarrinho .modal-content { background-color: #1a1d24; border-top: 2px solid var(--cor-primaria); }
+        :root { --cor-primaria: #f59e0b; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .bg-brand { background-color: var(--cor-primaria) !important; }
+        .text-brand { color: var(--cor-primaria) !important; }
+        .border-brand { border-color: var(--cor-primaria) !important; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        #loading-overlay { background: #0f1115; transition: opacity 0.5s; }
-        .loader-hidden { opacity: 0; pointer-events: none; }
-        .step-content { display: none; }
-        .step-content.active { display: block; animation: slideUp 0.3s ease; }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .ping-aberto { animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite; }
-        @keyframes ping { 75%, 100% { transform: scale(2); opacity: 0; } }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .category-tab.active { color: var(--cor-primaria); border-bottom: 3px solid var(--cor-primaria); }
+        .product-card:active { transform: scale(0.97); }
+        .ping-aberto { animation: pulse-green 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse-green { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+        #loading-overlay { transition: opacity 0.5s ease, visibility 0.5s; }
+        .loader-hidden { opacity: 0; visibility: hidden; }
+        html { scroll-behavior: smooth; }
+        .banner-overlay { background: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.4) 100%); }
+        .content-wrapper { padding-bottom: 120px; }
+        .step-content { display: none; animation: fadeIn 0.3s ease; }
+        .step-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Ajuste para garantir que a foto preencha o círculo da logo */
+        #logoLoja:not(.hidden) + #emojiLoja { display: none; }
     </style>
 </head>
-<body>
+<body class="bg-slate-50 min-h-screen">
 
-    <div class="app-container">
-        <div id="loading-overlay" class="fixed inset-0 z-[100] flex flex-col items-center justify-center max-w-[500px] mx-auto">
-            <div class="w-12 h-12 border-4 border-white/10 border-t-[var(--cor-primaria)] rounded-full animate-spin"></div>
+    <div id="loading-overlay" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white/80 backdrop-blur-md">
+        <div class="relative">
+            <div class="w-16 h-16 border-4 border-slate-100 border-t-brand rounded-full animate-spin"></div>
+            <div class="absolute inset-0 flex items-center justify-center font-bold text-xl">🥐</div>
+        </div>
+        <p class="mt-4 text-slate-500 font-black uppercase tracking-[0.3em] text-[10px] animate-pulse">Preparando Cardápio</p>
+    </div>
+
+    <div class="content-wrapper">
+        <div id="bannerLoja" class="relative h-44 bg-slate-200 w-full bg-center bg-cover transition-all duration-700">
+            <div class="absolute inset-0 banner-overlay"></div>
+            <div class="absolute -bottom-10 left-1/2 -translate-x-1/2 z-10">
+                <div class="w-24 h-24 bg-white rounded-3xl shadow-xl p-1.5">
+                    <div id="wrapperLogo" class="w-full h-full bg-slate-200 rounded-[1.4rem] flex items-center justify-center overflow-hidden relative">
+                        <img id="logoLoja" class="hidden w-full h-full object-cover z-20">
+                        <span id="emojiLoja" class="text-4xl z-10">🍞</span>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <header class="relative">
-            <div id="bannerLoja" class="h-56 bg-cover bg-center relative">
-                <div class="absolute inset-0 bg-gradient-to-t from-[#16191e] to-transparent"></div>
+        <section class="mt-14 px-6 text-center">
+            <h1 id="nomeLoja" class="text-2xl font-extrabold text-slate-800 tracking-tight leading-tight uppercase italic text-brand">Carregando...</h1>
+            <div id="horarioLoja" class="flex items-center justify-center gap-2 mt-2">
+                <span id="dotStatus" class="w-2 h-2 rounded-full bg-slate-300"></span>
+                <p id="labelStatus" class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Verificando...</p>
             </div>
-            <div class="px-6 -mt-16 relative z-10">
-                <div class="w-24 h-24 bg-[#1a1d24] rounded-2xl p-1 border border-white/10 shadow-2xl">
-                    <img id="logoLoja" class="w-full h-full object-cover rounded-xl hidden">
-                    <span id="emojiLoja" class="w-full h-full flex items-center justify-center text-4xl">🍔</span>
-                </div>
-                <h1 id="nomeLoja" class="mt-4 text-2xl font-black italic tracking-tighter uppercase">...</h1>
-                <div class="flex items-center gap-2 mt-1">
-                    <span id="dotStatus" class="w-2 h-2 rounded-full bg-slate-500"></span>
-                    <p id="labelStatus" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Carregando...</p>
-                </div>
-            </div>
-        </header>
+        </section>
 
-        <nav class="sticky top-0 z-40 bg-[#16191e]/90 backdrop-blur-md mt-6 border-b border-white/5">
-            <div id="navCategorias" class="flex gap-2 p-4 overflow-x-auto no-scrollbar"></div>
+        <nav class="sticky top-0 z-50 bg-white/90 backdrop-blur-lg border-b border-slate-100 mt-6 overflow-x-auto no-scrollbar flex items-center px-4 shadow-sm">
+            <div id="navCategorias" class="flex gap-8 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest"></div>
         </nav>
 
-        <main id="mainContainer" class="pb-40 px-2"></main>
-
-        <div id="btnCarrinho" class="fixed bottom-6 left-1/2 -translate-x-1/2 w-full max-w-[460px] px-4 z-50 hidden">
-            <button onclick="abrirCarrinho()" class="w-full bg-[#ffca28] text-black h-16 rounded-2xl shadow-2xl flex items-center justify-between px-6 transition-transform active:scale-95">
-                <div class="flex items-center gap-3">
-                    <div class="bg-black/10 p-2 rounded-lg relative">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                        </svg>
-                        <span id="qtdItensCarrinho" class="absolute -top-1 -right-1 bg-black text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold">0</span>
-                    </div>
-                    <span class="font-black uppercase text-sm">Ver Sacola</span>
-                </div>
-                <span id="valorTotalCarrinho" class="font-black text-xl">R$ 0,00</span>
-            </button>
-        </div>
+        <main id="mainContainer" class="p-4 space-y-8"></main>
     </div>
 
-    <div id="modalCarrinho" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] hidden flex items-end justify-center">
-        <div class="modal-content w-full max-w-[500px] rounded-t-[32px] p-6 max-h-[90vh] flex flex-col">
+    <div id="btnCarrinho" class="fixed bottom-16 left-0 right-0 px-6 z-50 hidden">
+        <button onclick="abrirCarrinho()" class="w-full bg-brand text-white h-14 rounded-2xl shadow-2xl flex items-center justify-between px-6 active:scale-95 transition-all">
+            <div class="flex items-center gap-3">
+                <span class="font-black uppercase tracking-widest text-[10px]">Revisar Pedido</span>
+            </div>
+            <span id="qtdItensCarrinho" class="bg-white text-brand font-black px-2.5 py-0.5 rounded-full text-[10px]">0</span>
+        </button>
+    </div>
+
+    <div id="modalCarrinho" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] hidden flex items-end md:items-center justify-center">
+        <div class="bg-white w-full max-w-lg rounded-t-[2.5rem] md:rounded-[2.5rem] p-6 shadow-2xl max-h-[90vh] flex flex-col transition-all">
+            
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-xl font-black uppercase italic">Meu Pedido</h2>
-                <button onclick="fecharCarrinho()" class="text-slate-500 font-bold">FECHAR</button>
+                <div>
+                    <h2 class="text-lg font-black text-slate-800 uppercase italic leading-none">Minha Sacola</h2>
+                    <p id="subtituloModal" class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Passo 1 de 3</p>
+                </div>
+                <button onclick="fecharCarrinho()" class="bg-slate-100 text-slate-400 w-8 h-8 rounded-full flex items-center justify-center font-bold">✕</button>
             </div>
 
-            <div id="passo1" class="step-content active overflow-y-auto no-scrollbar flex-1">
-                <div class="space-y-3 mb-6">
-                    <input type="text" id="inputNome" placeholder="Seu Nome" class="w-full p-4 rounded-xl bg-[#23272f] border-none text-white font-bold focus:ring-2 focus:ring-[#ffca28] outline-none">
-                    <input type="tel" id="inputWhatsApp" onblur="window.verificarCliente(this.value)" placeholder="WhatsApp (DDD + Número)" class="w-full p-4 rounded-xl bg-[#23272f] border-none text-white font-bold focus:ring-2 focus:ring-[#ffca28] outline-none">
+            <div id="passo1" class="step-content active flex-1 overflow-y-auto no-scrollbar">
+                <div class="bg-slate-50 p-4 rounded-2xl mb-4 border border-slate-100 space-y-3">
+                    <input type="text" id="inputNome" placeholder="Seu Nome Completo" class="w-full p-3 rounded-xl border border-slate-200 text-sm font-bold outline-brand">
+                    <input type="tel" id="inputWhatsApp" onblur="window.verificarCliente(this.value)" placeholder="WhatsApp (DDD) 00000-0000" class="w-full p-3 rounded-xl border border-slate-200 text-sm font-bold outline-brand">
+                    <div id="statusCliente" class="text-[9px] px-1 uppercase font-bold text-slate-400"></div>
                 </div>
-                <div id="listaItensCarrinho" class="space-y-4 mb-6 text-sm"></div>
-                <div id="totalPasso1" class="p-4 bg-black/20 rounded-xl"></div>
+
+                <div id="listaItensCarrinho" class="space-y-3 mb-6"></div>
                 
-                <div class="grid grid-cols-2 gap-3 mt-6">
-                    <button onclick="definirModo('entrega')" id="optEntrega" class="p-4 rounded-2xl bg-[#23272f] border-2 border-transparent text-center font-bold transition-all">🛵 Entrega</button>
-                    <button onclick="definirModo('retirada')" id="optRetirada" class="p-4 rounded-2xl bg-[#23272f] border-2 border-transparent text-center font-bold transition-all">🛍️ Retirada</button>
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Como deseja receber?</p>
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <button onclick="definirModo('entrega')" id="optEntrega" class="flex flex-col items-center justify-center p-4 rounded-2xl border-2 border-slate-100 bg-slate-50 gap-2 transition-all">
+                        <span class="text-xl">🛵</span>
+                        <span class="text-[10px] font-black uppercase">Entrega</span>
+                    </button>
+                    <button onclick="definirModo('retirada')" id="optRetirada" class="flex flex-col items-center justify-center p-4 rounded-2xl border-2 border-slate-100 bg-slate-50 gap-2 transition-all">
+                        <span class="text-xl">🛍️</span>
+                        <span class="text-[10px] font-black uppercase">Retirada</span>
+                    </button>
                 </div>
-                <button onclick="irParaPasso(2)" id="btnProximo1" disabled class="w-full bg-slate-700 text-white py-5 rounded-2xl font-black mt-6 opacity-50 transition-all">CONTINUAR</button>
+                <div id="totalPasso1" class="mb-4"></div>
+                <button onclick="irParaPasso(2)" id="btnProximo1" disabled class="w-full bg-slate-200 text-white py-4 rounded-2xl font-black uppercase text-[11px] transition-all">Continuar</button>
             </div>
 
-            <div id="passo2" class="step-content overflow-y-auto no-scrollbar flex-1">
+            <div id="passo2" class="step-content flex-1 overflow-y-auto no-scrollbar">
                 <div id="blocoEntrega" class="space-y-4">
-                    <input type="text" id="inputCEP" maxlength="9" oninput="window.mascaraCEP(this)" placeholder="Seu CEP (00000-000)" class="w-full p-4 rounded-xl bg-[#23272f] border-none text-white text-center font-bold">
-                    <div id="statusCEP" class="text-center text-[10px] text-yellow-500 font-bold uppercase"></div>
-                    <div id="camposEndereco" class="hidden space-y-4">
-                        <div class="p-4 bg-[#23272f] rounded-xl text-xs text-slate-400" id="textoEnderecoAuto"></div>
-                        <input type="text" id="inputNumero" placeholder="Número/Apto/Bloco" class="w-full p-4 rounded-xl bg-[#23272f] border-none text-white font-bold">
+                    <div class="bg-slate-50 p-5 rounded-3xl border border-slate-100">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2 px-1">Seu CEP</label>
+                        <input type="text" id="inputCEP" maxlength="9" oninput="window.mascaraCEP(this)" placeholder="00000-000" 
+                               class="w-full p-4 rounded-xl bg-white text-sm border border-slate-200 outline-brand font-bold text-center">
+                        <div id="statusCEP" class="mt-2 text-[10px] font-bold px-1 text-red-500"></div>
+                        <div id="camposEndereco" class="hidden space-y-3 mt-4">
+                            <div class="p-4 bg-white rounded-xl border border-slate-200">
+                                <p id="textoEnderecoAuto" class="text-xs font-bold text-slate-700"></p>
+                            </div>
+                            <input type="text" id="inputNumero" placeholder="Número / Apto / Complemento" 
+                                   class="w-full p-4 rounded-xl bg-white text-sm border border-slate-200 outline-brand font-bold">
+                        </div>
                     </div>
                 </div>
-                <div id="blocoRetirada" class="hidden text-center py-10 font-bold text-slate-400">
-                    Você escolheu retirar na loja.<br><span class="text-[var(--cor-primaria)]">Economize o valor do frete!</span>
+                <div id="blocoRetirada" class="hidden text-center py-10">
+                    <div class="text-4xl mb-4">🏠</div>
+                    <p class="font-bold text-slate-700">Tudo pronto para retirada!</p>
                 </div>
-                <div class="flex gap-3 mt-8">
-                    <button onclick="irParaPasso(1)" class="w-1/3 bg-white/5 py-4 rounded-xl font-bold">Voltar</button>
-                    <button onclick="irParaPasso(3)" id="btnProximo2" class="w-2/3 bg-[#ffca28] text-black py-4 rounded-xl font-black">PAGAMENTO</button>
+                <div class="flex gap-3 mt-6">
+                    <button onclick="irParaPasso(1)" class="w-1/3 bg-slate-100 text-slate-500 py-4 rounded-2xl font-black uppercase text-[10px]">Voltar</button>
+                    <button onclick="irParaPasso(3)" id="btnProximo2" disabled class="w-2/3 bg-slate-200 text-white py-4 rounded-2xl font-black uppercase text-[11px]">Pagamento</button>
                 </div>
             </div>
 
-            <div id="passo3" class="step-content overflow-y-auto no-scrollbar flex-1">
-                <h3 class="text-xs font-bold text-slate-500 uppercase mb-4 tracking-widest">Forma de pagamento:</h3>
-                <div class="space-y-3" id="opcoesPagamento">
-                    <label class="flex items-center gap-3 p-4 bg-[#23272f] rounded-xl cursor-pointer hover:bg-[#2a2f38]">
-                        <input type="radio" name="pagamento" value="Pix" class="w-5 h-5 accent-[#ffca28]">
-                        <span class="font-bold">PIX</span>
+            <div id="passo3" class="step-content flex-1 overflow-y-auto no-scrollbar">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 px-1">Escolha como pagar</p>
+                <div class="space-y-3 mb-6">
+                    <label class="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100 cursor-pointer">
+                        <input type="radio" name="pagamento" value="Pix" class="w-4 h-4 accent-brand">
+                        <span class="text-sm font-bold text-slate-700">PIX</span>
                     </label>
-                    <label class="flex items-center gap-3 p-4 bg-[#23272f] rounded-xl cursor-pointer hover:bg-[#2a2f38]">
-                        <input type="radio" name="pagamento" value="Cartão (Maquininha)" class="w-5 h-5 accent-[#ffca28]">
-                        <span class="font-bold">Cartão (Maquininha)</span>
+                    <label class="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100 cursor-pointer">
+                        <input type="radio" name="pagamento" value="Cartão" class="w-4 h-4 accent-brand">
+                        <span class="text-sm font-bold text-slate-700">Cartão na Entrega</span>
                     </label>
-                    <label class="flex items-center gap-3 p-4 bg-[#23272f] rounded-xl cursor-pointer hover:bg-[#2a2f38]">
-                        <input type="radio" name="pagamento" value="Dinheiro" class="w-5 h-5 accent-[#ffca28]">
-                        <span class="font-bold">Dinheiro</span>
+                    <label class="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100 cursor-pointer">
+                        <input type="radio" name="pagamento" value="Dinheiro" class="w-4 h-4 accent-brand">
+                        <span class="text-sm font-bold text-slate-700">Dinheiro</span>
                     </label>
                 </div>
-                <div id="resumoFinal" class="mt-6 p-4 bg-black/40 rounded-xl border border-white/5"></div>
-                <button onclick="window.enviarWhatsApp()" class="w-full bg-[#ffca28] text-black py-5 rounded-2xl font-black mt-6 shadow-xl active:scale-95 transition-transform">FINALIZAR PEDIDO</button>
-                <button onclick="irParaPasso(2)" class="w-full text-slate-500 py-3 font-bold text-sm mt-2">Voltar ao endereço</button>
+                <div id="resumoFinal" class="bg-slate-900 text-white p-5 rounded-3xl mb-6 shadow-xl"></div>
+                <div class="flex gap-3">
+                    <button onclick="irParaPasso(2)" class="w-1/3 bg-slate-100 text-slate-500 py-4 rounded-2xl font-black uppercase text-[10px]">Voltar</button>
+                    <button onclick="window.enviarWhatsApp()" class="w-2/3 bg-brand text-white py-4 rounded-2xl font-black uppercase text-[11px] shadow-xl">Finalizar Pedido</button>
+                </div>
             </div>
         </div>
     </div>
 
-    <script type="module" src="src/cardapio.js"></script>
+    <footer class="fixed bottom-0 left-0 right-0 z-40 bg-white py-3 px-6 text-center border-t border-slate-100">
+        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Desenvolvido por <span class="text-brand">Vacy Sistemas</span></p>
+        <p class="text-[8px] font-bold text-slate-300 mt-0.5">© <span id="anoAtual"></span> <span id="nomeLojaRodape"></span></p>
+    </footer>
+
     <script>
-        // Funções de UI Global
-        window.fecharCarrinho = () => document.getElementById('modalCarrinho').classList.add('hidden');
-        window.abrirCarrinho = () => {
-            document.getElementById('modalCarrinho').classList.remove('hidden');
-            if(window.renderizarCarrinho) window.renderizarCarrinho();
+        let modoEscolhido = null;
+
+        window.definirModo = (modo) => {
+            modoEscolhido = modo;
+            document.getElementById('optEntrega').classList.toggle('border-brand', modo === 'entrega');
+            document.getElementById('optRetirada').classList.toggle('border-brand', modo === 'retirada');
+            const btnProx = document.getElementById('btnProximo1');
+            btnProx.disabled = false;
+            btnProx.classList.replace('bg-slate-200', 'bg-brand');
+            if(window.atualizarModoPedidoJS) window.atualizarModoPedidoJS(modo);
         };
 
         window.irParaPasso = (n) => {
-            // Validação simples de nome e whats no passo 1
+            document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
+            document.getElementById(`passo${n}`).classList.add('active');
+            document.getElementById('subtituloModal').innerText = `Passo ${n} de 3`;
             if(n === 2) {
-                const nome = document.getElementById('inputNome').value;
-                const whats = document.getElementById('inputWhatsApp').value;
-                if(!nome || whats.length < 10) {
-                    alert("Por favor, preencha seu nome e WhatsApp.");
-                    return;
+                const isRetirada = modoEscolhido === 'retirada';
+                document.getElementById('blocoRetirada').classList.toggle('hidden', !isRetirada);
+                document.getElementById('blocoEntrega').classList.toggle('hidden', isRetirada);
+                if(isRetirada) {
+                    const b = document.getElementById('btnProximo2');
+                    b.disabled = false; b.classList.replace('bg-slate-200', 'bg-brand');
                 }
             }
-
-            document.querySelectorAll('.step-content').forEach(s => s.classList.remove('active'));
-            document.getElementById('passo' + n).classList.add('active');
-            
-            if(n === 2) {
-                const modo = window.getModoPedido ? window.getModoPedido() : 'entrega';
-                document.getElementById('blocoEntrega').classList.toggle('hidden', modo === 'retirada');
-                document.getElementById('blocoRetirada').classList.toggle('hidden', modo === 'entrega');
-            }
         };
 
-        window.definirModo = (m) => {
-            // Estilo visual
-            document.getElementById('optEntrega').style.borderColor = m === 'entrega' ? '#ffca28' : 'transparent';
-            document.getElementById('optRetirada').style.borderColor = m === 'retirada' ? '#ffca28' : 'transparent';
-            
-            // Ativa botão Continuar
-            const btn = document.getElementById('btnProximo1');
-            btn.disabled = false;
-            btn.classList.remove('opacity-50', 'bg-slate-700');
-            btn.classList.add('bg-[#ffca28]', 'text-black');
-
-            // Atualiza lógica no JS principal
-            if(window.atualizarModoPedidoJS) window.atualizarModoPedidoJS(m);
-        };
+        window.fecharCarrinho = () => { document.getElementById('modalCarrinho').classList.add('hidden'); };
+        document.getElementById('anoAtual').innerText = new Date().getFullYear();
+        window.onclick = function(e) { if (e.target.id == 'modalCarrinho') fecharCarrinho(); }
     </script>
+    <script type="module" src="src/cardapio.js"></script>
 </body>
 </html>
