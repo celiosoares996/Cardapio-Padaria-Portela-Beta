@@ -1,7 +1,7 @@
 import { db, auth, storage } from './firebase-config.js';
 import { doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
-import { signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { signOut, onAuthStateChanged, EmailAuthProvider, linkWithCredential } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 // --- REFERÊNCIAS DO DOM ---
 const inputLink = document.getElementById('linkCardapio');
@@ -20,6 +20,10 @@ const lojaLat = document.getElementById('lojaLat');
 const lojaLog = document.getElementById('lojaLog');
 const statusGPS = document.getElementById('statusGPS');
 
+// Referências para Segurança
+const btnVincularSenha = document.getElementById('btnVincularSenha');
+const novaSenhaAcesso = document.getElementById('novaSenhaAcesso');
+
 let urlFotoFinal = "";
 let urlCapaFinal = ""; 
 
@@ -27,7 +31,6 @@ let urlCapaFinal = "";
 function aplicarCor(cor) {
     if (!cor) return;
     document.documentElement.style.setProperty('--cor-primaria', cor);
-    // Caso você adicione inputs de seleção de cor no futuro:
     const radio = document.querySelector(`input[name="temaCor"][value="${cor}"]`);
     if (radio) radio.checked = true;
 }
@@ -101,7 +104,6 @@ onAuthStateChanged(auth, async (user) => {
                 lojaLat.value = d.configEntrega.coords?.lat || "";
                 lojaLog.value = d.configEntrega.coords?.log || "";
                 
-                // Sincroniza os botões visuais (Fixo/Raio)
                 if (d.configEntrega.tipo === 'raio') {
                     document.getElementById('btnModoRaio').click();
                 } else {
@@ -113,12 +115,10 @@ onAuthStateChanged(auth, async (user) => {
                 }
             }
 
-            // Atualizar Nomes na Sidebar e Navbar Mobile
             const titulo = d.nomeNegocio || "Minha Loja";
             if(sideNome) sideNome.innerText = titulo;
             if(mobileNome) mobileNome.innerText = titulo;
             
-            // Imagens
             if (d.fotoPerfil) {
                 urlFotoFinal = d.fotoPerfil;
                 atualizarPreviewImagem('perfil', d.fotoPerfil);
@@ -185,7 +185,6 @@ formPerfil?.addEventListener('submit', async (e) => {
     btnSalvarPerfil.disabled = true;
 
     try {
-        // Pega a cor do tema se houver inputs, senão usa o padrão azul
         const corSelecionada = document.querySelector('input[name="temaCor"]:checked')?.value || "#2563eb";
         
         const novosDados = {
@@ -229,17 +228,46 @@ formPerfil?.addEventListener('submit', async (e) => {
     }
 });
 
+// --- VINCULAR E-MAIL E SENHA (SEGURANÇA) ---
+btnVincularSenha?.addEventListener('click', async () => {
+    const user = auth.currentUser;
+    const senha = novaSenhaAcesso.value;
+
+    if (!senha || senha.length < 6) {
+        return Swal.fire('Atenção', 'A senha deve ter pelo menos 6 caracteres.', 'warning');
+    }
+
+    try {
+        Swal.fire({ title: 'Vinculando...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
+        
+        // Cria a credencial com o e-mail logado e a nova senha escolhida
+        const credential = EmailAuthProvider.credential(user.email, senha);
+        
+        // Vincula ao usuário atual do Google
+        await linkWithCredential(user, credential);
+        
+        Swal.fire({
+            icon: 'success',
+            title: 'Senha Definida!',
+            text: 'Agora você pode entrar usando seu e-mail e esta senha.',
+            confirmButtonColor: '#2563eb'
+        });
+        novaSenhaAcesso.value = "";
+    } catch (err) {
+        console.error(err);
+        if (err.code === 'auth/credential-already-in-use') {
+            Swal.fire('Erro', 'Este método de login já está em uso.', 'error');
+        } else {
+            Swal.fire('Erro', 'Não foi possível definir a senha. Tente novamente.', 'error');
+        }
+    }
+});
+
 // --- COPIAR LINK ---
 document.getElementById('btnCopiarLink')?.addEventListener('click', () => {
     if(inputLink && inputLink.value) {
         navigator.clipboard.writeText(inputLink.value);
-        Swal.fire({
-            icon: 'success',
-            title: 'Copiado!',
-            text: 'Link do cardápio copiado para a área de transferência.',
-            timer: 1500,
-            showConfirmButton: false
-        });
+        Swal.fire({ icon: 'success', title: 'Copiado!', text: 'Link copiado.', timer: 1500, showConfirmButton: false });
     }
 });
 
