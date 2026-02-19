@@ -55,7 +55,6 @@ async function carregarProdutosSelect(user) {
             const estoque = p.estoqueAtual || 0;
             produtosDisponiveis.push({ id: docSnap.id, ...p });
             
-            // Desabilita visualmente no select se não houver estoque
             const disabled = estoque <= 0 ? 'disabled' : '';
             const textoEstoque = estoque <= 0 ? '(ESGOTADO)' : `(Estoque: ${estoque})`;
             
@@ -73,8 +72,6 @@ selectProduto.onchange = (e) => {
     if (!produtoId) return;
 
     const produto = produtosDisponiveis.find(p => p.id === produtoId);
-    
-    // Validação extra de estoque antes de adicionar ao carrinho
     const itemNoCarrinho = itensNoCarrinho.find(item => item.id === produtoId);
     const qtdAtualNoCarrinho = itemNoCarrinho ? itemNoCarrinho.qtd : 0;
 
@@ -152,7 +149,6 @@ async function carregarPedidos() {
             pedidosArray.push({ id: docSnap.id, ...docSnap.data() });
         });
 
-        // Ordenação por data decrescente
         pedidosArray.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
 
         if (filtroStatus !== "Todos") {
@@ -225,20 +221,26 @@ async function carregarPedidos() {
     } catch (e) { console.error("Erro ao carregar pedidos:", e); }
 }
 
-// --- 5. LÓGICA DE FILTROS ---
+// --- 5. LÓGICA DE FILTROS (ATUALIZADA E CORRIGIDA) ---
 document.querySelectorAll('button').forEach(btn => {
     btn.addEventListener('click', (e) => {
-        const texto = e.target.innerText.trim();
-        if (['Todos', 'Pendentes', 'Concluídos'].includes(texto)) {
+        // Usamos currentTarget para capturar o botão mesmo se clicar em ícones internos
+        const texto = e.currentTarget.innerText.trim();
+        const filtrosValidos = ['Todos', 'Pendentes', 'Concluídos'];
+
+        if (filtrosValidos.includes(texto)) {
+            // Mapeamento correto para o Status do Banco de Dados
             filtroStatus = texto === "Todos" ? "Todos" : (texto === "Pendentes" ? "Pendente" : "Concluído");
             
-            // Atualizar UI dos botões de filtro
+            // Atualizar UI: Resetar todos os botões de filtro
             document.querySelectorAll('button').forEach(b => {
-                if (['Todos', 'Pendentes', 'Concluídos'].includes(b.innerText.trim())) {
+                if (filtrosValidos.includes(b.innerText.trim())) {
                     b.className = "px-8 py-3 bg-white text-slate-400 rounded-2xl text-xs font-black uppercase tracking-widest border border-slate-200 hover:bg-slate-50 transition-all";
                 }
             });
-            btn.className = "px-8 py-3 bg-brand text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-blue-500/20";
+
+            // Aplicar estilo ativo no botão clicado
+            e.currentTarget.className = "px-8 py-3 bg-brand text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-blue-500/20";
             
             carregarPedidos();
         }
@@ -269,10 +271,8 @@ form.onsubmit = async (e) => {
     };
 
     try {
-        // 1. Salva o pedido
         await addDoc(collection(db, "pedidos"), novoPedido);
 
-        // 2. Atualiza estoque de cada item
         for (const item of itensNoCarrinho) {
             const produtoRef = doc(db, "produtos", item.id);
             await updateDoc(produtoRef, {
@@ -284,7 +284,7 @@ form.onsubmit = async (e) => {
 
         fecharEPrincipal();
         carregarPedidos();
-        carregarProdutosSelect(auth.currentUser); // Atualiza o select com o novo estoque
+        carregarProdutosSelect(auth.currentUser);
     } catch (e) { 
         console.error(e); 
         Swal.fire("Erro", "Falha ao registrar venda.", "error");
