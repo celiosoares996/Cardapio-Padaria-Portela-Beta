@@ -142,7 +142,7 @@ window.removerItem = (index) => {
 };
 
 // -------------------------------------------------------------------------
-// 4. DISTRIBUIÇÃO KANBAN (DIFERENCIANDO BALCÃO VS ONLINE)
+// 4. DISTRIBUIÇÃO KANBAN (DETECÇÃO RÍGIDA DE ORIGEM)
 // -------------------------------------------------------------------------
 async function carregarPedidos() {
     const user = auth.currentUser;
@@ -154,7 +154,6 @@ async function carregarPedidos() {
         
         colNovo.innerHTML = ""; colPreparo.innerHTML = ""; colConcluido.innerHTML = "";
         
-        // Contadores específicos por origem
         let cNovo = { balcao: 0, online: 0 };
         let cPreparo = { balcao: 0, online: 0 };
         let cConcluido = { balcao: 0, online: 0 };
@@ -164,8 +163,11 @@ async function carregarPedidos() {
         pedidosArray.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
 
         pedidosArray.forEach(p => {
-            // Identifica se é online pelo campo origem ou tipo
-            const isOnline = p.origem === "Delivery" || p.origem === "Online" || p.tipo?.toLowerCase().includes("delivery");
+            // LÓGICA DE CORREÇÃO: Força ser Online se tiver campos que o balcão não usa
+            // ou se a origem não for explicitamente "Balcão"
+            const camposOnline = p.endereco || p.whatsapp || p.taxaEntrega || p.bairro;
+            const isOnline = (p.origem !== "Balcão" && p.origem !== undefined) || !!camposOnline;
+            
             const corBadge = isOnline ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600';
             const iconeBadge = isOnline ? 'globe' : 'store';
             const labelOrigem = isOnline ? 'Online' : 'Balcão';
@@ -173,18 +175,14 @@ async function carregarPedidos() {
             const itensHtml = p.itens ? p.itens.map(i => {
                 const qtd = Number(i.qtd || i.quantidade || 1); 
                 const preco = Number(i.preco || i.valor || i.precoUnitario || 0);
-                const nome = i.nome || i.produto || "Item";
                 const subtotal = qtd * preco;
-
                 return `
                     <div class="flex justify-between text-[11px] mb-1">
-                        <span class="font-bold text-slate-600">${qtd}x ${nome}</span>
+                        <span class="font-bold text-slate-600">${qtd}x ${i.nome || i.produto || 'Item'}</span>
                         <span class="font-black text-slate-800">${formatador.format(subtotal)}</span>
                     </div>
                 `;
             }).join('') : "";
-
-            const totalPedido = Number(p.total || p.valorTotal || 0);
 
             const cardHtml = `
                 <div class="card-pedido bg-white rounded-3xl p-5 shadow-sm border border-slate-100 flex flex-col gap-3">
@@ -205,8 +203,7 @@ async function carregarPedidos() {
                     <div class="bg-slate-50 rounded-2xl p-3 border border-slate-100/50">${itensHtml}</div>
 
                     <div class="flex justify-between items-center mt-2">
-                        <p class="text-xl font-black text-brand">${formatador.format(totalPedido)}</p>
-                        
+                        <p class="text-xl font-black text-brand">${formatador.format(Number(p.total || p.valorTotal || 0))}</p>
                         <select onchange="atualizarStatusPedido('${p.id}', this.value)" class="bg-slate-100 text-slate-700 text-[10px] font-black rounded-xl px-3 py-2 outline-none border-none cursor-pointer">
                             <option value="Novo" ${p.status === 'Novo' ? 'selected' : ''}>🟡 Pendente</option>
                             <option value="Preparo" ${p.status === 'Preparo' ? 'selected' : ''}>🔵 Preparo</option>
@@ -215,31 +212,22 @@ async function carregarPedidos() {
                     </div>
                 </div>`;
 
-            // Incrementa contadores e distribui nas colunas
             const tipo = isOnline ? 'online' : 'balcao';
-            if (p.status === "Novo") { 
-                colNovo.innerHTML += cardHtml; 
-                cNovo[tipo]++; 
-            } else if (p.status === "Preparo") { 
-                colPreparo.innerHTML += cardHtml; 
-                cPreparo[tipo]++; 
-            } else { 
-                colConcluido.innerHTML += cardHtml; 
-                cConcluido[tipo]++; 
-            }
+            if (p.status === "Novo") { colNovo.innerHTML += cardHtml; cNovo[tipo]++; }
+            else if (p.status === "Preparo") { colPreparo.innerHTML += cardHtml; cPreparo[tipo]++; }
+            else { colConcluido.innerHTML += cardHtml; cConcluido[tipo]++; }
         });
 
-        // Atualiza os círculos de contagem com a diferenciação (Balcão | Online)
-        countNovoTxt.innerHTML = `<small class="text-purple-600">${cNovo.balcao}</small><span class="mx-1 text-slate-300">|</span><small class="text-blue-600">${cNovo.online}</small>`;
-        countPreparoTxt.innerHTML = `<small class="text-purple-600">${cPreparo.balcao}</small><span class="mx-1 text-slate-300">|</span><small class="text-blue-600">${cPreparo.online}</small>`;
-        countConcluidoTxt.innerHTML = `<small class="text-purple-600">${cConcluido.balcao}</small><span class="mx-1 text-slate-300">|</span><small class="text-blue-600">${cConcluido.online}</small>`;
+        countNovoTxt.innerHTML = `<small class="text-purple-600 font-bold">${cNovo.balcao}</small><span class="mx-1 text-slate-300">|</span><small class="text-blue-600 font-bold">${cNovo.online}</small>`;
+        countPreparoTxt.innerHTML = `<small class="text-purple-600 font-bold">${cPreparo.balcao}</small><span class="mx-1 text-slate-300">|</span><small class="text-blue-600 font-bold">${cPreparo.online}</small>`;
+        countConcluidoTxt.innerHTML = `<small class="text-purple-600 font-bold">${cConcluido.balcao}</small><span class="mx-1 text-slate-300">|</span><small class="text-blue-600 font-bold">${cConcluido.online}</small>`;
 
         if (window.lucide) lucide.createIcons();
     } catch (e) { console.error("❌ Erro ao listar pedidos:", e); }
 }
 
 // -------------------------------------------------------------------------
-// 5. FINALIZAR VENDA BALCÃO
+// 5. FINALIZAR VENDA BALCÃO (AQUI DEFINIMOS COMO BALCÃO)
 // -------------------------------------------------------------------------
 form.onsubmit = async (e) => {
     e.preventDefault();
@@ -254,7 +242,7 @@ form.onsubmit = async (e) => {
         itens: itensNoCarrinho,
         total: totalVenda,
         userId: auth.currentUser.uid,
-        origem: "Balcão",
+        origem: "Balcão", // Marcamos explicitamente como Balcão aqui
         status: "Novo",
         createdAt: serverTimestamp(),
         horaEntrega: new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})
@@ -269,37 +257,26 @@ form.onsubmit = async (e) => {
         carregarPedidos();
         carregarProdutosSelect(auth.currentUser);
         Swal.fire({ icon: 'success', title: 'Venda Realizada!', timer: 1500, showConfirmButton: false });
-    } catch (e) { 
-        console.error(e);
-        Swal.fire("Erro", "Falha ao registrar venda.", "error");
-    } finally { btnSubmit.disabled = false; }
+    } catch (e) { console.error(e); } 
+    finally { btnSubmit.disabled = false; }
 };
 
 // -------------------------------------------------------------------------
-// AÇÕES DE ATUALIZAÇÃO
+// AÇÕES DE ATUALIZAÇÃO E INICIALIZAÇÃO
 // -------------------------------------------------------------------------
 window.atualizarStatusPedido = async (id, novoStatus) => {
     try {
         await updateDoc(doc(db, "pedidos", id), { status: novoStatus });
         carregarPedidos();
-    } catch (e) { console.error("Erro ao atualizar status:", e); }
+    } catch (e) { console.error(e); }
 };
 
 window.excluirPedido = async (id) => {
     const confirm = await Swal.fire({ 
-        title: 'Excluir Pedido?', 
-        text: "Deseja remover este registro?",
-        icon: 'warning',
-        showCancelButton: true, 
-        confirmButtonColor: '#ef4444',
-        confirmButtonText: 'Sim, excluir'
+        title: 'Excluir?', icon: 'warning', showCancelButton: true, confirmButtonText: 'Sim' 
     });
-
     if(confirm.isConfirmed) {
-        try {
-            await deleteDoc(doc(db, "pedidos", id));
-            carregarPedidos();
-        } catch (e) { console.error(e); }
+        try { await deleteDoc(doc(db, "pedidos", id)); carregarPedidos(); } catch (e) { console.error(e); }
     }
 };
 
@@ -314,15 +291,10 @@ document.getElementById('abrirModalPedido').onclick = () => modal.classList.remo
 document.getElementById('fecharModalPedido').onclick = fecharModal;
 document.getElementById('btnSairDesktop')?.addEventListener('click', () => signOut(auth));
 
-// -------------------------------------------------------------------------
-// INICIALIZAÇÃO
-// -------------------------------------------------------------------------
 onAuthStateChanged(auth, (user) => {
     if (user) {
         carregarPreferencias(user);
         carregarProdutosSelect(user);
         carregarPedidos();
-    } else {
-        window.location.href = "index.html";
-    }
+    } else { window.location.href = "index.html"; }
 });
