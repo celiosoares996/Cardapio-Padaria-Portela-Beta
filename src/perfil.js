@@ -91,11 +91,9 @@ onAuthStateChanged(auth, async (user) => {
         if (docSnap.exists()) {
             const d = docSnap.data();
             
-            // Preencher Campos de Texto
             document.getElementById('nomeNegocio').value = d.nomeNegocio || "";
             document.getElementById('whatsappNegocio').value = d.whatsapp || "";
             
-            // Configurações de Entrega
             if (d.configEntrega) {
                 tipoEntrega.value = d.configEntrega.tipo || 'fixo';
                 taxaFixa.value = d.configEntrega.taxaFixa || "";
@@ -135,7 +133,7 @@ onAuthStateChanged(auth, async (user) => {
     } catch (err) { console.error("Erro ao carregar perfil:", err); }
 });
 
-// --- UPLOADS PARA FIREBASE STORAGE ---
+// --- UPLOADS ---
 const realizarUpload = async (tipo, file) => {
     const nomeArquivo = `${Date.now()}_${file.name}`;
     const sRef = ref(storage, `${tipo}/${auth.currentUser.uid}/${nomeArquivo}`);
@@ -198,10 +196,7 @@ formPerfil?.addEventListener('submit', async (e) => {
                 taxaFixa: parseFloat(taxaFixa.value) || 0,
                 raioMaximo: parseFloat(raioMaximo.value) || 0,
                 valorKm: parseFloat(valorKm.value) || 0,
-                coords: {
-                    lat: lojaLat.value,
-                    log: lojaLog.value
-                }
+                coords: { lat: lojaLat.value, log: lojaLog.value }
             },
             userId: user.uid,
             ultimaAtualizacao: new Date().toISOString()
@@ -228,7 +223,7 @@ formPerfil?.addEventListener('submit', async (e) => {
     }
 });
 
-// --- VINCULAR E-MAIL E SENHA (SEGURANÇA) ---
+// --- VINCULAR E-MAIL E SENHA (COM TRATAMENTO DE SEGURANÇA) ---
 btnVincularSenha?.addEventListener('click', async () => {
     const user = auth.currentUser;
     const senha = novaSenhaAcesso.value;
@@ -240,10 +235,7 @@ btnVincularSenha?.addEventListener('click', async () => {
     try {
         Swal.fire({ title: 'Vinculando...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
         
-        // Cria a credencial com o e-mail logado e a nova senha escolhida
         const credential = EmailAuthProvider.credential(user.email, senha);
-        
-        // Vincula ao usuário atual do Google
         await linkWithCredential(user, credential);
         
         Swal.fire({
@@ -254,16 +246,24 @@ btnVincularSenha?.addEventListener('click', async () => {
         });
         novaSenhaAcesso.value = "";
     } catch (err) {
-        console.error(err);
-        if (err.code === 'auth/credential-already-in-use') {
-            Swal.fire('Erro', 'Este método de login já está em uso.', 'error');
+        console.error("Erro ao vincular:", err.code);
+        
+        if (err.code === 'auth/requires-recent-login') {
+            Swal.fire({
+                icon: 'info',
+                title: 'Ação de Segurança',
+                text: 'Para definir uma senha, você precisa ter feito login recentemente. Por favor, saia e entre novamente com o Google.',
+                confirmButtonText: 'Entendi'
+            });
+        } else if (err.code === 'auth/credential-already-in-use') {
+            Swal.fire('Erro', 'Este e-mail já possui uma senha vinculada.', 'error');
         } else {
-            Swal.fire('Erro', 'Não foi possível definir a senha. Tente novamente.', 'error');
+            Swal.fire('Erro', 'Não foi possível definir a senha. Verifique se o provedor "E-mail/Senha" está ativo no Firebase.', 'error');
         }
     }
 });
 
-// --- COPIAR LINK ---
+// --- AUXILIARES (COPIAR, GPS, SAIR) ---
 document.getElementById('btnCopiarLink')?.addEventListener('click', () => {
     if(inputLink && inputLink.value) {
         navigator.clipboard.writeText(inputLink.value);
@@ -271,7 +271,6 @@ document.getElementById('btnCopiarLink')?.addEventListener('click', () => {
     }
 });
 
-// --- CAPTURAR GPS ---
 document.getElementById('btnCapturarGps')?.addEventListener('click', () => {
     statusGPS.innerHTML = "⏳ Localizando...";
     navigator.geolocation.getCurrentPosition((pos) => {
@@ -281,23 +280,20 @@ document.getElementById('btnCapturarGps')?.addEventListener('click', () => {
         Swal.fire('Sucesso', 'Localização capturada com sucesso!', 'success');
     }, (err) => {
         statusGPS.innerHTML = "❌ Erro ao localizar";
-        Swal.fire('Erro', 'Por favor, ative o GPS e permita o acesso.', 'error');
+        Swal.fire('Erro', 'Ative o GPS e permita o acesso.', 'error');
     });
 });
 
-// --- FUNÇÃO SAIR ---
 const sair = async () => {
     const result = await Swal.fire({
         title: 'Sair do Sistema?',
-        text: "Você precisará fazer login novamente para acessar.",
+        text: "Você precisará fazer login novamente.",
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#ef4444',
-        cancelButtonColor: '#64748b',
         confirmButtonText: 'Sim, sair!',
         cancelButtonText: 'Cancelar'
     });
-
     if (result.isConfirmed) {
         signOut(auth).then(() => window.location.href="index.html");
     }
