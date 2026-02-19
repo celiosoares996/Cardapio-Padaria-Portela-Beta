@@ -8,49 +8,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
     <style>
         :root { --cor-primaria: #ffca28; }
-        body { 
-            font-family: 'Inter', sans-serif; 
-            background-color: #0f1115; 
-            color: #ffffff;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .app-container {
-            max-width: 500px;
-            margin: 0 auto;
-            background-color: #16191e;
-            min-height: 100vh;
-            position: relative;
-        }
-        .category-tab {
-            white-space: nowrap;
-            padding: 10px 20px;
-            border-radius: 50px;
-            background: #23272f;
-            color: #94a3b8;
-            font-size: 13px;
-            font-weight: 700;
-            transition: all 0.3s;
-        }
+        body { font-family: 'Inter', sans-serif; background-color: #0f1115; color: #ffffff; -webkit-tap-highlight-color: transparent; }
+        .app-container { max-width: 500px; margin: 0 auto; background-color: #16191e; min-height: 100vh; position: relative; }
+        .category-tab { white-space: nowrap; padding: 10px 20px; border-radius: 50px; background: #23272f; color: #94a3b8; font-size: 13px; font-weight: 700; transition: all 0.3s; }
         .category-tab.active { background: var(--cor-primaria); color: #000; }
-        .product-card {
-            display: flex;
-            padding: 16px;
-            gap: 12px;
-            border-bottom: 1px solid #23272f;
-            cursor: pointer;
-            align-items: center;
-        }
+        .product-card { display: flex; padding: 16px; gap: 12px; border-bottom: 1px solid #23272f; cursor: pointer; align-items: center; }
         .product-info { flex: 1; }
-        .product-img {
-            width: 100px;
-            height: 100px;
-            border-radius: 12px;
-            object-fit: cover;
-        }
-        #modalCarrinho .modal-content {
-            background-color: #1a1d24;
-            border-top: 2px solid var(--cor-primaria);
-        }
+        .product-img { width: 100px; height: 100px; border-radius: 12px; object-fit: cover; }
+        #modalCarrinho .modal-content { background-color: #1a1d24; border-top: 2px solid var(--cor-primaria); }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         #loading-overlay { background: #0f1115; transition: opacity 0.5s; }
         .loader-hidden { opacity: 0; pointer-events: none; }
@@ -120,26 +85,26 @@
                     <input type="tel" id="inputWhatsApp" onblur="window.verificarCliente(this.value)" placeholder="WhatsApp (DDD + Número)" class="w-full p-4 rounded-xl bg-[#23272f] border-none text-white font-bold focus:ring-2 focus:ring-[#ffca28] outline-none">
                 </div>
                 <div id="listaItensCarrinho" class="space-y-4 mb-6 text-sm"></div>
-                <div id="totalPasso1"></div>
+                <div id="totalPasso1" class="p-4 bg-black/20 rounded-xl"></div>
                 
                 <div class="grid grid-cols-2 gap-3 mt-6">
-                    <button onclick="definirModo('entrega')" id="optEntrega" class="p-4 rounded-2xl bg-[#23272f] border-2 border-transparent text-center font-bold">🛵 Entrega</button>
-                    <button onclick="definirModo('retirada')" id="optRetirada" class="p-4 rounded-2xl bg-[#23272f] border-2 border-transparent text-center font-bold">🛍️ Retirada</button>
+                    <button onclick="definirModo('entrega')" id="optEntrega" class="p-4 rounded-2xl bg-[#23272f] border-2 border-transparent text-center font-bold transition-all">🛵 Entrega</button>
+                    <button onclick="definirModo('retirada')" id="optRetirada" class="p-4 rounded-2xl bg-[#23272f] border-2 border-transparent text-center font-bold transition-all">🛍️ Retirada</button>
                 </div>
-                <button onclick="irParaPasso(2)" id="btnProximo1" disabled class="w-full bg-slate-700 text-white py-5 rounded-2xl font-black mt-6 opacity-50">CONTINUAR</button>
+                <button onclick="irParaPasso(2)" id="btnProximo1" disabled class="w-full bg-slate-700 text-white py-5 rounded-2xl font-black mt-6 opacity-50 transition-all">CONTINUAR</button>
             </div>
 
             <div id="passo2" class="step-content overflow-y-auto no-scrollbar flex-1">
                 <div id="blocoEntrega" class="space-y-4">
                     <input type="text" id="inputCEP" maxlength="9" oninput="window.mascaraCEP(this)" placeholder="Seu CEP (00000-000)" class="w-full p-4 rounded-xl bg-[#23272f] border-none text-white text-center font-bold">
-                    <div id="statusCEP" class="text-center text-[10px] text-yellow-500 font-bold"></div>
+                    <div id="statusCEP" class="text-center text-[10px] text-yellow-500 font-bold uppercase"></div>
                     <div id="camposEndereco" class="hidden space-y-4">
                         <div class="p-4 bg-[#23272f] rounded-xl text-xs text-slate-400" id="textoEnderecoAuto"></div>
                         <input type="text" id="inputNumero" placeholder="Número/Apto/Bloco" class="w-full p-4 rounded-xl bg-[#23272f] border-none text-white font-bold">
                     </div>
                 </div>
                 <div id="blocoRetirada" class="hidden text-center py-10 font-bold text-slate-400">
-                    Você escolheu retirar na loja.<br>Não haverá cobrança de frete.
+                    Você escolheu retirar na loja.<br><span class="text-[var(--cor-primaria)]">Economize o valor do frete!</span>
                 </div>
                 <div class="flex gap-3 mt-8">
                     <button onclick="irParaPasso(1)" class="w-1/3 bg-white/5 py-4 rounded-xl font-bold">Voltar</button>
@@ -148,53 +113,70 @@
             </div>
 
             <div id="passo3" class="step-content overflow-y-auto no-scrollbar flex-1">
-                <h3 class="text-xs font-bold text-slate-500 uppercase mb-4">Escolha a forma de pagamento:</h3>
+                <h3 class="text-xs font-bold text-slate-500 uppercase mb-4 tracking-widest">Forma de pagamento:</h3>
                 <div class="space-y-3" id="opcoesPagamento">
-                    <label class="flex items-center gap-3 p-4 bg-[#23272f] rounded-xl cursor-pointer">
+                    <label class="flex items-center gap-3 p-4 bg-[#23272f] rounded-xl cursor-pointer hover:bg-[#2a2f38]">
                         <input type="radio" name="pagamento" value="Pix" class="w-5 h-5 accent-[#ffca28]">
                         <span class="font-bold">PIX</span>
                     </label>
-                    <label class="flex items-center gap-3 p-4 bg-[#23272f] rounded-xl cursor-pointer">
+                    <label class="flex items-center gap-3 p-4 bg-[#23272f] rounded-xl cursor-pointer hover:bg-[#2a2f38]">
                         <input type="radio" name="pagamento" value="Cartão (Maquininha)" class="w-5 h-5 accent-[#ffca28]">
                         <span class="font-bold">Cartão (Maquininha)</span>
                     </label>
-                    <label class="flex items-center gap-3 p-4 bg-[#23272f] rounded-xl cursor-pointer">
+                    <label class="flex items-center gap-3 p-4 bg-[#23272f] rounded-xl cursor-pointer hover:bg-[#2a2f38]">
                         <input type="radio" name="pagamento" value="Dinheiro" class="w-5 h-5 accent-[#ffca28]">
                         <span class="font-bold">Dinheiro</span>
                     </label>
                 </div>
-                <div id="resumoFinal" class="mt-6 p-4 bg-black/40 rounded-xl"></div>
-                <button onclick="window.enviarWhatsApp()" class="w-full bg-[#ffca28] text-black py-5 rounded-2xl font-black mt-6 shadow-xl">FINALIZAR PEDIDO</button>
-                <button onclick="irParaPasso(2)" class="w-full text-slate-500 py-3 font-bold text-sm">Voltar ao endereço</button>
+                <div id="resumoFinal" class="mt-6 p-4 bg-black/40 rounded-xl border border-white/5"></div>
+                <button onclick="window.enviarWhatsApp()" class="w-full bg-[#ffca28] text-black py-5 rounded-2xl font-black mt-6 shadow-xl active:scale-95 transition-transform">FINALIZAR PEDIDO</button>
+                <button onclick="irParaPasso(2)" class="w-full text-slate-500 py-3 font-bold text-sm mt-2">Voltar ao endereço</button>
             </div>
         </div>
     </div>
 
     <script type="module" src="src/cardapio.js"></script>
     <script>
-        // Funções de controle de UI globais
+        // Funções de UI Global
         window.fecharCarrinho = () => document.getElementById('modalCarrinho').classList.add('hidden');
         window.abrirCarrinho = () => {
             document.getElementById('modalCarrinho').classList.remove('hidden');
             if(window.renderizarCarrinho) window.renderizarCarrinho();
         };
+
         window.irParaPasso = (n) => {
+            // Validação simples de nome e whats no passo 1
+            if(n === 2) {
+                const nome = document.getElementById('inputNome').value;
+                const whats = document.getElementById('inputWhatsApp').value;
+                if(!nome || whats.length < 10) {
+                    alert("Por favor, preencha seu nome e WhatsApp.");
+                    return;
+                }
+            }
+
             document.querySelectorAll('.step-content').forEach(s => s.classList.remove('active'));
             document.getElementById('passo' + n).classList.add('active');
             
-            // Controle de visibilidade dos blocos de entrega/retirada no Passo 2
             if(n === 2) {
                 const modo = window.getModoPedido ? window.getModoPedido() : 'entrega';
                 document.getElementById('blocoEntrega').classList.toggle('hidden', modo === 'retirada');
                 document.getElementById('blocoRetirada').classList.toggle('hidden', modo === 'entrega');
             }
         };
+
         window.definirModo = (m) => {
+            // Estilo visual
             document.getElementById('optEntrega').style.borderColor = m === 'entrega' ? '#ffca28' : 'transparent';
             document.getElementById('optRetirada').style.borderColor = m === 'retirada' ? '#ffca28' : 'transparent';
-            document.getElementById('btnProximo1').disabled = false;
-            document.getElementById('btnProximo1').classList.remove('opacity-50', 'bg-slate-700');
-            document.getElementById('btnProximo1').classList.add('bg-[#ffca28]', 'text-black');
+            
+            // Ativa botão Continuar
+            const btn = document.getElementById('btnProximo1');
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'bg-slate-700');
+            btn.classList.add('bg-[#ffca28]', 'text-black');
+
+            // Atualiza lógica no JS principal
             if(window.atualizarModoPedidoJS) window.atualizarModoPedidoJS(m);
         };
     </script>
