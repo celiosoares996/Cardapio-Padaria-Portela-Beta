@@ -84,30 +84,38 @@ async function buscarCEP(cep) {
         document.getElementById('textoEnderecoAuto').innerText = `${data.logradouro}, ${data.bairro}`;
         enderecoCompleto = { rua: data.logradouro, bairro: data.bairro, cidade: data.localidade, cep: cep };
 
+        // 🗺️ Busca de coordenadas por CEP (Nominatim)
         const geo = await fetch(`https://nominatim.openstreetmap.org/search?format=json&postalcode=${cep}&country=Brazil`);
         const geoData = await geo.json();
         
         if (geoData.length > 0 && configEntrega?.coords) {
-            distanciaCliente = calcularDistancia(
-                configEntrega.coords.lat, (configEntrega.coords.lng || configEntrega.coords.log),
-                geoData[0].lat, geoData[0].lon
-            );
+            // Suporte para lat/lng ou lat/log (padrão Firebase)
+            const latLoja = parseFloat(configEntrega.coords.lat);
+            const lngLoja = parseFloat(configEntrega.coords.lng || configEntrega.coords.log);
+            const latCliente = parseFloat(geoData[0].lat);
+            const lngCliente = parseFloat(geoData[0].lon);
+
+            distanciaCliente = calcularDistancia(latLoja, lngLoja, latCliente, lngCliente);
+            console.log("Distância calculada:", distanciaCliente, "km");
         }
+
         statusCEP.innerText = "✅ Frete calculado!";
-        recalcularTaxa();
+        recalcularTaxa(); // Atualiza os valores globais
+
         if(btnPgto) {
             btnPgto.disabled = false;
             btnPgto.classList.replace('bg-slate-200', 'bg-brand');
         }
     } catch (e) { 
-        console.error(e);
+        console.error("Erro no cálculo de frete:", e);
+        statusCEP.innerText = "⚠️ Erro ao calcular frete.";
         recalcularTaxa();
         if(btnPgto) btnPgto.disabled = false;
     }
 }
 
 function calcularDistancia(lat1, lon1, lat2, lon2) {
-    const R = 6371;
+    const R = 6371; // Raio da Terra em KM
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
     const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
@@ -118,17 +126,20 @@ function recalcularTaxa() {
     if (modoPedido === 'retirada') {
         taxaEntregaAtual = 0;
     } else if (configEntrega?.tipo === 'km') {
-        taxaEntregaAtual = distanciaCliente > 0 ? (distanciaCliente * (configEntrega.valorKm || 0)) : 0;
+        // CORREÇÃO: Aplica valorKm sobre a distância calculada
+        const valorKm = parseFloat(configEntrega.valorKm) || 0;
+        taxaEntregaAtual = distanciaCliente > 0 ? (distanciaCliente * valorKm) : 0;
     } else {
-        taxaEntregaAtual = Number(configEntrega?.taxaFixa || 0);
+        // Taxa Fixa
+        taxaEntregaAtual = parseFloat(configEntrega?.taxaFixa) || 0;
     }
     renderizarCarrinho();
 }
 
 window.atualizarModoPedidoJS = (modo) => { 
     modoPedido = modo; 
-    distanciaCliente = 0; // Reseta distância para evitar cálculos antigos
-    taxaEntregaAtual = 0; // Zera a taxa para não interferir no Passo 1
+    distanciaCliente = 0; 
+    taxaEntregaAtual = 0; 
     recalcularTaxa(); 
     if (modo === 'retirada') {
         const btnPgto = document.getElementById('btnProximo2');
@@ -166,8 +177,7 @@ function renderizarCarrinho() {
                 </div>`;
     }).join('');
 
-    // --- LOGICA DAS ABAS ---
-    // Passo 1: Mostra apenas o Subtotal (sem frete)
+    // Passo 1: Totaliza apenas Itens
     if (totalP1) {
         totalP1.innerHTML = `<div class="flex justify-between items-center p-4 bg-slate-900 rounded-2xl text-white">
                                 <span class="text-[9px] font-bold uppercase opacity-60">Subtotal</span>
@@ -175,14 +185,18 @@ function renderizarCarrinho() {
                              </div>`;
     }
 
-    // Passo 3: Mostra Detalhamento Completo
+    // Passo 3: Detalhamento Final
     if (resumo) {
         const totalFinal = subtotal + taxaEntregaAtual;
+        const textoFrete = (modoPedido === 'entrega' && configEntrega?.tipo === 'km' && distanciaCliente > 0) 
+            ? `${distanciaCliente.toFixed(1)}km` 
+            : modoPedido;
+
         resumo.innerHTML = `
         <div class="space-y-1 text-[11px] font-bold">
             <div class="flex justify-between opacity-60"><span>Subtotal</span><span>R$ ${subtotal.toFixed(2)}</span></div>
             <div class="flex justify-between opacity-60">
-                <span>Entrega (${modoPedido === 'entrega' && configEntrega?.tipo === 'km' && distanciaCliente > 0 ? distanciaCliente.toFixed(1) + 'km' : modoPedido})</span>
+                <span>Entrega (${textoFrete})</span>
                 <span>${taxaEntregaAtual > 0 ? 'R$ ' + taxaEntregaAtual.toFixed(2) : 'A calcular'}</span>
             </div>
             <div class="flex justify-between text-base font-black border-t border-white/10 pt-2 mt-2"><span>TOTAL</span><span>R$ ${totalFinal.toFixed(2)}</span></div>
@@ -217,6 +231,9 @@ window.enviarWhatsApp = async () => {
         window.open(`https://wa.me/55${whatsappLoja.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`);
     } catch (e) { alert("Erro ao salvar pedido."); }
 };
+
+// Adicionado para silenciar o erro do HTML onblur
+window.verificarCliente = () => { console.log("Verificando..."); };
 
 // --- 🚀 INÍCIO ---
 async function inicializar() {
