@@ -40,13 +40,15 @@
         .step-content { display: none; }
         .step-content.active { display: block; animation: fadeIn 0.3s ease; }
 
-        /* Estilo da Logo para preencher o container */
         #logoLoja { width: 100%; height: 100%; object-fit: cover; }
+        
+        /* Classe para esconder o loading suavemente */
+        .loader-hidden { opacity: 0; pointer-events: none; transition: opacity 0.5s ease; }
     </style>
 </head>
 <body class="min-h-screen text-slate-900">
 
-    <div id="loading-overlay" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white">
+    <div id="loading-overlay" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white transition-opacity duration-500">
         <div class="relative flex items-center justify-center">
             <div class="w-20 h-20 border-[6px] border-slate-100 border-t-brand rounded-full animate-spin"></div>
             <div class="absolute font-bold text-2xl">🥐</div>
@@ -61,7 +63,7 @@
             <div class="absolute -bottom-12 left-1/2 -translate-x-1/2 z-10">
                 <div class="w-28 h-28 bg-white rounded-[2.5rem] shadow-[0_20px_40px_rgba(0,0,0,0.15)] p-1.5 border border-white/50">
                     <div id="wrapperLogo" class="w-full h-full bg-slate-100 rounded-[2.2rem] flex items-center justify-center overflow-hidden relative ring-4 ring-white/20">
-                        <img id="logoLoja" class="hidden z-20">
+                        <img id="logoLoja" class="hidden z-20" alt="Logo">
                         <span id="emojiLoja" class="text-5xl z-10">🍞</span>
                     </div>
                 </div>
@@ -105,7 +107,7 @@
                     <h2 class="text-xl font-black text-slate-800 uppercase italic">Minha Sacola</h2>
                     <p id="subtituloModal" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Identificação • Passo 1</p>
                 </div>
-                <button onclick="fecharCarrinho()" class="bg-slate-100 text-slate-500 w-10 h-10 rounded-full flex items-center justify-center transition-colors hover:bg-slate-200">
+                <button onclick="fecharCarrinho()" class="bg-slate-100 text-slate-500 w-10 h-10 rounded-full flex items-center justify-center hover:bg-slate-200">
                     <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
             </div>
@@ -118,7 +120,7 @@
                     </div>
                     <div class="bg-slate-50 p-4 rounded-[1.8rem] border border-slate-100 focus-within:border-brand transition-all">
                         <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">WhatsApp</label>
-                        <input type="tel" id="inputWhatsApp" onblur="window.verificarCliente(this.value)" placeholder="(00) 00000-0000" class="w-full bg-transparent p-1 text-sm font-bold outline-none text-slate-700">
+                        <input type="tel" id="inputWhatsApp" onblur="window.verificarCliente ? window.verificarCliente(this.value) : null" placeholder="(00) 00000-0000" class="w-full bg-transparent p-1 text-sm font-bold outline-none text-slate-700">
                         <div id="statusCliente" class="text-[8px] mt-1 uppercase font-black text-slate-300 tracking-tighter"></div>
                     </div>
                 </div>
@@ -143,7 +145,7 @@
                 <div id="blocoEntrega" class="space-y-6">
                     <div class="bg-slate-50 p-6 rounded-[2.5rem] border border-slate-100">
                         <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-3 text-center">Informe seu CEP</label>
-                        <input type="text" id="inputCEP" maxlength="9" oninput="window.mascaraCEP(this)" placeholder="00000-000" 
+                        <input type="text" id="inputCEP" maxlength="9" oninput="window.mascaraCEP ? window.mascaraCEP(this) : null" placeholder="00000-000" 
                                class="w-full p-5 rounded-2xl bg-white text-lg border border-slate-200 outline-brand font-black text-center tracking-widest text-slate-700 shadow-inner">
                         <div id="statusCEP" class="mt-3 text-[10px] font-bold text-center text-red-500"></div>
                         
@@ -188,7 +190,7 @@
                 <div id="resumoFinal" class="bg-slate-900 text-white p-6 rounded-[2.5rem] mb-8 shadow-xl"></div>
                 <div class="flex gap-4">
                     <button onclick="irParaPasso(2)" class="w-1/3 bg-slate-100 text-slate-500 py-5 rounded-[2rem] font-black uppercase text-[10px]">Voltar</button>
-                    <button onclick="window.enviarWhatsApp()" class="w-2/3 bg-brand text-white py-5 rounded-[2rem] font-black uppercase text-xs shadow-[0_15px_30px_rgba(245,158,11,0.3)]">Finalizar Agora</button>
+                    <button onclick="window.enviarWhatsApp ? window.enviarWhatsApp() : alert('Erro ao carregar script de envio.')" class="w-2/3 bg-brand text-white py-5 rounded-[2rem] font-black uppercase text-xs shadow-[0_15px_30px_rgba(245,158,11,0.3)]">Finalizar Agora</button>
                 </div>
             </div>
         </div>
@@ -201,25 +203,28 @@
     <script>
         let modoEscolhido = null;
 
-        // Inicializar ícones Lucide
-        lucide.createIcons();
+        // Inicializar ícones
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.lucide) lucide.createIcons();
+        });
 
         window.definirModo = (modo) => {
             modoEscolhido = modo;
             const optE = document.getElementById('optEntrega');
             const optR = document.getElementById('optRetirada');
             
-            optE.className = modo === 'entrega' 
-                ? 'flex flex-col items-center justify-center p-6 rounded-[2rem] border-2 border-brand bg-amber-50 gap-3 transition-all scale-105 shadow-md'
-                : 'flex flex-col items-center justify-center p-6 rounded-[2rem] border-2 border-slate-100 bg-slate-50 gap-3 transition-all opacity-60';
-            
-            optR.className = modo === 'retirada'
-                ? 'flex flex-col items-center justify-center p-6 rounded-[2rem] border-2 border-brand bg-amber-50 gap-3 transition-all scale-105 shadow-md'
-                : 'flex flex-col items-center justify-center p-6 rounded-[2rem] border-2 border-slate-100 bg-slate-50 gap-3 transition-all opacity-60';
+            if (modo === 'entrega') {
+                optE.className = 'flex flex-col items-center justify-center p-6 rounded-[2rem] border-2 border-brand bg-amber-50 gap-3 transition-all scale-105 shadow-md';
+                optR.className = 'flex flex-col items-center justify-center p-6 rounded-[2rem] border-2 border-slate-100 bg-slate-50 gap-3 transition-all opacity-60';
+            } else {
+                optR.className = 'flex flex-col items-center justify-center p-6 rounded-[2rem] border-2 border-brand bg-amber-50 gap-3 transition-all scale-105 shadow-md';
+                optE.className = 'flex flex-col items-center justify-center p-6 rounded-[2rem] border-2 border-slate-100 bg-slate-50 gap-3 transition-all opacity-60';
+            }
 
             const btnProx = document.getElementById('btnProximo1');
             btnProx.disabled = false;
             btnProx.classList.replace('bg-slate-200', 'bg-brand');
+            
             if(window.atualizarModoPedidoJS) window.atualizarModoPedidoJS(modo);
         };
 
@@ -240,10 +245,11 @@
                 document.getElementById('blocoEntrega').classList.toggle('hidden', isRet);
                 if(isRet) {
                     const b = document.getElementById('btnProximo2');
-                    b.disabled = false; b.classList.replace('bg-slate-200', 'bg-brand');
+                    b.disabled = false; 
+                    b.classList.replace('bg-slate-200', 'bg-brand');
                 }
             }
-            lucide.createIcons();
+            if (window.lucide) lucide.createIcons();
         };
 
         window.fecharCarrinho = () => { 
@@ -254,12 +260,21 @@
         window.abrirCarrinho = () => {
             document.getElementById('modalCarrinho').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
-            lucide.createIcons();
+            if (window.lucide) lucide.createIcons();
         };
 
-        document.getElementById('anoAtual') ? document.getElementById('anoAtual').innerText = new Date().getFullYear() : null;
+        // Segurança para destravar a tela caso o Firebase falhe ou o ID não seja passado
+        setTimeout(() => {
+            const loader = document.getElementById('loading-overlay');
+            if (loader && !loader.classList.contains('loader-hidden')) {
+                console.warn("Sincronização demorou demais. Verifique o ID na URL ou conexão.");
+                // loader.classList.add('loader-hidden'); // Descomente para forçar a entrada
+            }
+        }, 10000);
+
         window.onclick = function(e) { if (e.target.id == 'modalCarrinho') fecharCarrinho(); }
     </script>
-    <script type="module" src="src/cardapio.js"></script>
+
+    <script type="module" src="cardapio.js"></script>
 </body>
 </html>
