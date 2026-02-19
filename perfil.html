@@ -59,11 +59,11 @@
     <aside class="hidden md:flex fixed left-0 top-0 h-full w-72 bg-white border-r border-slate-200 flex-col p-8 z-50">
         <div class="flex items-center gap-3 mb-12">
             <div class="w-10 h-10 bg-brand rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-200">
-                <i data-lucide="layout-dashboard" class="w-6 h-6"></i>
+                <i data-lucide="settings" class="w-6 h-6"></i>
             </div>
             <div class="flex flex-col">
-                <h2 id="sideNomeNegocio" class="text-lg font-extrabold tracking-tight text-slate-800 uppercase italic leading-tight">Painel</h2>
-                <span class="text-[10px] font-bold text-slate-400 tracking-widest uppercase">Digitaliza Menu</span>
+                <h2 id="sideNomeNegocio" class="text-lg font-extrabold tracking-tight text-slate-800 uppercase italic leading-tight">Configurações</h2>
+                <span class="text-[10px] font-bold text-slate-400 tracking-widest uppercase">Painel Administrativo</span>
             </div>
         </div>
 
@@ -72,13 +72,13 @@
                 <i data-lucide="home" class="w-5 h-5"></i> Início
             </a>
             <a href="estoque.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:text-brand hover:bg-blue-50 transition-all font-semibold group">
-                <i data-lucide="package" class="w-5 h-5"></i> Estoque
+                <i data-lucide="boxes" class="w-5 h-5"></i> Estoque
             </a>
             <a href="produtos.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:text-brand hover:bg-blue-50 transition-all font-semibold group">
-                <i data-lucide="shopping-cart" class="w-5 h-5"></i> Produtos
+                <i data-lucide="shopping-bag" class="w-5 h-5"></i> Produtos
             </a>
             <a href="pedidos.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:text-brand hover:bg-blue-50 transition-all font-semibold group">
-                <i data-lucide="clipboard-list" class="w-5 h-5"></i> Vendas
+                <i data-lucide="receipt" class="w-5 h-5"></i> Vendas
             </a>
             <a href="perfil.html" class="flex items-center gap-3 p-4 rounded-2xl nav-item-active font-bold transition-all">
                 <i data-lucide="user-cog" class="w-5 h-5"></i> Perfil
@@ -92,8 +92,8 @@
 
     <nav class="md:hidden bg-white/80 backdrop-blur-md sticky top-0 z-40 p-5 flex justify-between items-center border-b border-slate-100">
         <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-brand rounded-xl flex items-center justify-center text-white">
-                <i data-lucide="user-cog" class="w-5 h-5"></i>
+            <div class="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500">
+                <i data-lucide="settings" class="w-5 h-5"></i>
             </div>
             <h2 id="mobileNomeNegocio" class="text-lg font-black text-slate-800 uppercase italic">Meu Perfil</h2>
         </div>
@@ -105,7 +105,7 @@
     <main class="max-w-5xl mx-auto p-5 md:p-12">
         <header class="mb-12">
             <p class="text-xs font-black text-brand uppercase tracking-widest mb-2 flex items-center gap-2">
-                <span class="w-4 h-[2px] bg-brand"></span> Identidade & Regras
+                <span class="w-4 h-[2px] bg-brand"></span> Identidade Visual
             </p>
             <h1 class="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tighter">Personalize sua Loja</h1>
         </header>
@@ -165,7 +165,7 @@
                     <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
                         <div class="flex items-center gap-4 mb-8">
                             <div class="w-12 h-12 bg-blue-50 text-brand rounded-2xl flex items-center justify-center">
-                                <i data-lucide="navigation" class="w-6 h-6"></i>
+                                <i data-lucide="truck" class="w-6 h-6"></i>
                             </div>
                             <h3 class="text-xl font-black text-slate-800 tracking-tighter uppercase italic">Regras de Entrega</h3>
                         </div>
@@ -173,7 +173,7 @@
                         <div class="space-y-6">
                             <div class="flex p-2 bg-slate-100 rounded-[1.8rem] gap-2">
                                 <button type="button" id="btnModoFixo" class="flex-1 py-4 rounded-2xl font-black text-[10px] uppercase transition-all btn-toggle-active">Valor Fixo</button>
-                                <button type="button" id="btnModoRaio" class="flex-1 py-4 rounded-2xl font-black text-[10px] uppercase transition-all text-slate-400">Por KM (Raio)</button>
+                                <button type="button" id="btnModoRaio" class="flex-1 py-4 rounded-2xl font-black text-[10px] uppercase transition-all text-slate-400">Por KM</button>
                                 <input type="hidden" id="tipoEntrega" value="fixo">
                             </div>
 
@@ -189,8 +189,8 @@
                                 </div>
                                 <button type="button" id="btnCapturarGps" class="w-full p-6 bg-slate-900 text-white rounded-[1.8rem] flex items-center justify-between group active:scale-[0.98] transition-all">
                                     <div class="text-left">
-                                        <p class="text-[10px] font-black uppercase opacity-60">Ponto de Referência (GPS)</p>
-                                        <p id="statusGPS" class="text-xs font-bold mt-1">Clique para marcar localização atual</p>
+                                        <p class="text-[10px] font-black uppercase opacity-60">Sede do Negócio (GPS)</p>
+                                        <p id="statusGPS" class="text-xs font-bold mt-1">Marcar localização atual 📍</p>
                                     </div>
                                     <i data-lucide="map-pin" class="w-6 h-6 group-hover:text-brand transition-colors"></i>
                                     <input type="hidden" id="lojaLat"><input type="hidden" id="lojaLog">
@@ -203,11 +203,11 @@
                         <button type="button" onclick="toggleHorarios()" class="w-full flex items-center justify-between group">
                             <div class="flex items-center gap-4">
                                 <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center">
-                                    <i data-lucide="clock-4" class="w-6 h-6"></i>
+                                    <i data-lucide="clock" class="w-6 h-6"></i>
                                 </div>
                                 <div class="text-left">
                                     <h3 class="text-xl font-black text-slate-800 tracking-tighter uppercase italic">Funcionamento</h3>
-                                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Gestão de horários semanais</p>
+                                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Defina seus horários semanais</p>
                                 </div>
                             </div>
                             <div class="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center">
@@ -227,7 +227,7 @@
                                             </div>
                                             <div class="flex items-center gap-2">
                                                 <input type="time" name="abre_${dia.toLowerCase()}" class="bg-white border border-slate-200 rounded-xl p-2.5 text-xs font-bold outline-none focus:border-brand">
-                                                <i data-lucide="arrow-right" class="w-3 h-3 text-slate-300"></i>
+                                                <span class="text-[9px] font-black text-slate-300 uppercase">até</span>
                                                 <input type="time" name="fecha_${dia.toLowerCase()}" class="bg-white border border-slate-200 rounded-xl p-2.5 text-xs font-bold outline-none focus:border-brand">
                                             </div>
                                             <label class="relative inline-flex items-center cursor-pointer">
@@ -242,27 +242,46 @@
                         </div>
                     </div>
 
+                    <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+                        <div class="flex items-center gap-4 mb-8">
+                            <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center">
+                                <i data-lucide="shield-check" class="w-6 h-6"></i>
+                            </div>
+                            <h3 class="text-xl font-black text-slate-800 tracking-tighter uppercase italic">Acesso Direto</h3>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div>
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nova Senha de Painel</label>
+                                <input type="password" id="novaSenhaAcesso" class="input-padrao" placeholder="Alterar senha de acesso">
+                            </div>
+                            <button type="button" id="btnVincularSenha" class="w-full py-4 bg-amber-500 text-white rounded-[1.5rem] font-black text-xs uppercase tracking-widest shadow-lg shadow-amber-200 hover:brightness-110 active:scale-95 transition-all">
+                                Atualizar Credenciais de Login
+                            </button>
+                        </div>
+                    </div>
+
                     <button type="submit" id="btnSalvarPerfil" class="w-full bg-brand text-white py-6 rounded-[2.2rem] font-black uppercase tracking-[0.2em] text-sm shadow-2xl shadow-blue-500/20 active:scale-95 hover:brightness-110 transition-all flex items-center justify-center gap-3">
-                        <i data-lucide="check-circle" class="w-5 h-5"></i> Confirmar Alterações
+                        <i data-lucide="save" class="w-5 h-5"></i> Salvar Alterações
                     </button>
                 </form>
             </div>
 
             <div class="space-y-8">
                 <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 text-center sticky top-8">
-                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Acesso ao Cardápio</p>
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Ponto de Venda Digital</p>
                     <div id="qrcodePrint" class="flex justify-center mb-8 bg-white p-6 rounded-[2rem] border-2 border-slate-50 shadow-inner">
                         </div>
                     <div class="space-y-4">
                         <div class="p-4 bg-slate-50 rounded-2xl">
-                            <label class="text-[9px] font-black text-slate-400 uppercase block mb-1">Link Direto</label>
+                            <label class="text-[9px] font-black text-slate-400 uppercase block mb-1">Seu Link</label>
                             <input type="text" id="linkCardapio" readonly class="w-full bg-transparent border-none text-[10px] font-extrabold text-center text-slate-600 outline-none">
                         </div>
                         <button id="btnCopiarLink" class="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-brand hover:text-white transition-all flex items-center justify-center gap-2">
-                            <i data-lucide="link" class="w-4 h-4"></i> Copiar Link
+                            <i data-lucide="copy" class="w-4 h-4"></i> Copiar Link
                         </button>
-                        <button onclick="window.print()" class="w-full py-4 border-2 border-slate-100 text-slate-400 rounded-2xl font-black text-xs uppercase tracking-widest hover:border-slate-200 transition-all flex items-center justify-center gap-2">
-                            <i data-lucide="printer" class="w-4 h-4"></i> Imprimir QR Code
+                        <button onclick="window.print()" class="w-full py-4 border-2 border-slate-100 text-slate-400 rounded-2xl font-black text-xs uppercase tracking-widest hover:border-slate-200 transition-all">
+                             Imprimir QR Code
                         </button>
                     </div>
                 </div>
@@ -272,9 +291,9 @@
 
     <div class="md:hidden fixed bottom-6 left-6 right-6 bg-slate-900/95 backdrop-blur-xl rounded-[2.5rem] p-4 flex justify-around items-center z-50 shadow-2xl border border-white/10">
         <a href="dashboard.html" class="p-3 text-slate-400"><i data-lucide="home" class="w-6 h-6"></i></a>
-        <a href="estoque.html" class="p-3 text-slate-400"><i data-lucide="package" class="w-6 h-6"></i></a>
-        <a href="produtos.html" class="p-3 text-slate-400"><i data-lucide="shopping-cart" class="w-6 h-6"></i></a>
-        <a href="pedidos.html" class="p-3 text-slate-400"><i data-lucide="clipboard-list" class="w-6 h-6"></i></a>
+        <a href="estoque.html" class="p-3 text-slate-400"><i data-lucide="boxes" class="w-6 h-6"></i></a>
+        <a href="produtos.html" class="p-3 text-slate-400"><i data-lucide="shopping-bag" class="w-6 h-6"></i></a>
+        <a href="pedidos.html" class="p-3 text-slate-400"><i data-lucide="receipt" class="w-6 h-6"></i></a>
         <a href="perfil.html" class="p-4 bg-brand rounded-2xl text-white shadow-lg shadow-blue-500/40"><i data-lucide="user-cog" class="w-6 h-6"></i></a>
     </div>
 
@@ -313,15 +332,15 @@
             seta.classList.toggle('rotate');
         };
 
-        // Upload Handlers
+        // Triggers de Upload
         document.getElementById('wrapperCapa').onclick = () => document.getElementById('fileCapa').click();
         document.getElementById('wrapperFoto').onclick = () => document.getElementById('fileInput').click();
 
-        // Previews
+        // Preview de Imagem Capa
         document.getElementById('fileCapa').onchange = function() {
             if (this.files && this.files[0]) {
                 const reader = new FileReader();
-                reader.onload = (e) => {
+                reader.onload = function(e) {
                     document.getElementById('imgCapa').src = e.target.result;
                     document.getElementById('imgCapa').classList.remove('hidden');
                     document.getElementById('placeholderCapa').classList.add('opacity-0');
@@ -330,10 +349,11 @@
             }
         };
 
+        // Preview de Imagem Logo
         document.getElementById('fileInput').onchange = function() {
             if (this.files && this.files[0]) {
                 const reader = new FileReader();
-                reader.onload = (e) => {
+                reader.onload = function(e) {
                     document.getElementById('imgLogo').src = e.target.result;
                     document.getElementById('imgLogo').classList.remove('hidden');
                     document.getElementById('placeholderEmoji').classList.add('hidden');
@@ -346,3 +366,24 @@
     <script type="module">
         import { auth } from './src/firebase-config.js';
         import { signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        const logoutFunc = async () => {
+            const res = await Swal.fire({
+                title: 'Sair do Painel?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sair',
+                confirmButtonColor: '#ef4444'
+            });
+            if(res.isConfirmed) {
+                signOut(auth).then(() => window.location.href="index.html");
+            }
+        };
+
+        document.getElementById('btnSairDesktop')?.addEventListener('click', logoutFunc);
+        document.getElementById('btnSairMobile')?.addEventListener('click', logoutFunc);
+    </script>
+
+    <script type="module" src="./src/perfil.js"></script>
+</body>
+</html>
