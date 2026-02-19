@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vendas | Gestão Profissional</title>
+    <title>Vendas | Digitaliza Menu</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -12,32 +12,65 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <style>
-        :root { --cor-primaria: #2563eb; }
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; padding-bottom: 90px; }
-        
+        :root {
+            --cor-primaria: #2563eb;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        .bg-brand {
+            background-color: var(--cor-primaria) !important;
+        }
+
+        .text-brand {
+            color: var(--cor-primaria) !important;
+        }
+
+        .border-brand {
+            border-color: var(--cor-primaria) !important;
+        }
+
+        /* Layout Base unificado */
+        body {
+            padding-bottom: 90px;
+        }
+
         @media (min-width: 768px) {
-            body { padding-bottom: 0; padding-left: 280px; }
+            body {
+                padding-bottom: 0;
+                padding-left: 280px;
+            }
         }
 
-        .bg-brand { background-color: var(--cor-primaria) !important; }
-        .text-brand { color: var(--cor-primaria) !important; }
-        .nav-item-active { 
-            background-color: var(--cor-primaria) !important; 
-            color: white !important; 
-            box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.2); 
+        /* Destaque do item ativo no menu */
+        .nav-item-active {
+            background-color: var(--cor-primaria) !important;
+            color: white !important;
+            box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.2);
         }
 
-        /* Estilização de Status dos Cards */
-        .status-badge-pendente { background: #fef3c7; color: #92400e; }
-        .status-badge-preparo { background: #dbeafe; color: #1e40af; }
-        .status-badge-entrega { background: #f3e8ff; color: #6b21a8; }
-        .status-badge-concluido { background: #dcfce7; color: #166534; }
+        i[data-lucide] {
+            stroke-width: 2.5px;
+        }
 
-        .hide-scroll::-webkit-scrollbar { display: none; }
-        .custom-scroll::-webkit-scrollbar { width: 4px; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        
-        i[data-lucide] { stroke-width: 2.5px; }
+        .hide-scroll::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* Scroll customizado para itens selecionados */
+        .custom-scroll::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
     </style>
 </head>
 
@@ -46,143 +79,136 @@
     <aside class="hidden md:flex fixed left-0 top-0 h-full w-72 bg-white border-r border-slate-200 flex-col p-8 z-50">
         <div class="flex items-center gap-3 mb-12">
             <div class="w-10 h-10 bg-brand rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-200">
-                <i data-lucide="layout-dashboard" class="w-6 h-6"></i>
+                <i data-lucide="receipt" class="w-6 h-6"></i>
             </div>
             <div class="flex flex-col">
-                <h2 id="sideNomeNegocio" class="text-lg font-extrabold tracking-tight text-slate-800 uppercase italic leading-tight">Painel</h2>
-                <span class="text-[10px] font-bold text-slate-400 tracking-widest uppercase">Sistema de Vendas</span>
+                <h2 id="sideNomeNegocio" class="text-lg font-extrabold tracking-tight text-slate-800 uppercase italic leading-tight">
+                    Carregando...
+                </h2>
+                <span class="text-[10px] font-bold text-slate-400 tracking-widest uppercase">Painel Gestão</span>
             </div>
         </div>
 
         <nav class="flex-1 space-y-2">
             <a href="dashboard.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:text-brand hover:bg-blue-50 transition-all font-semibold group">
-                <i data-lucide="bar-chart-3" class="w-5 h-5"></i> Início
+                <i data-lucide="home" class="w-5 h-5 group-hover:scale-110 transition-transform"></i> Início
             </a>
             <a href="estoque.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:text-brand hover:bg-blue-50 transition-all font-semibold group">
-                <i data-lucide="package" class="w-5 h-5"></i> Estoque
+                <i data-lucide="boxes" class="w-5 h-5 group-hover:scale-110 transition-transform"></i> Estoque
             </a>
             <a href="produtos.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:text-brand hover:bg-blue-50 transition-all font-semibold group">
-                <i data-lucide="tags" class="w-5 h-5"></i> Produtos
+                <i data-lucide="shopping-bag" class="w-5 h-5 group-hover:scale-110 transition-transform"></i> Produtos
             </a>
             <a href="pedidos.html" class="flex items-center gap-3 p-4 rounded-2xl nav-item-active font-bold transition-all">
-                <i data-lucide="clipboard-list" class="w-5 h-5"></i> Vendas
+                <i data-lucide="receipt" class="w-5 h-5"></i> Vendas
             </a>
             <a href="perfil.html" class="flex items-center gap-3 p-4 rounded-2xl text-slate-400 hover:text-brand hover:bg-blue-50 transition-all font-semibold group">
-                <i data-lucide="user-cog" class="w-5 h-5"></i> Perfil
+                <i data-lucide="settings" class="w-5 h-5 group-hover:scale-110 transition-transform"></i> Perfil
             </a>
         </nav>
 
-        <button id="btnSairDesktop" class="flex items-center gap-3 p-4 rounded-2xl text-red-500 hover:bg-red-50 font-bold transition-all mt-auto uppercase text-[10px] tracking-widest">
-            <i data-lucide="log-out" class="w-4 h-4"></i> Encerrar Sessão
+        <button id="btnSairDesktop" class="flex items-center gap-3 p-4 rounded-2xl text-red-400 hover:bg-red-50 font-bold transition-all mt-auto uppercase text-xs tracking-widest">
+            <i data-lucide="log-out" class="w-4 h-4"></i> Sair
         </button>
     </aside>
 
-    <nav class="md:hidden bg-white/90 backdrop-blur-md sticky top-0 z-40 p-5 flex justify-between items-center border-b border-slate-100">
+    <nav class="md:hidden bg-white/80 backdrop-blur-md sticky top-0 z-40 p-5 flex justify-between items-center border-b border-slate-100">
         <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-blue-50 text-brand rounded-xl flex items-center justify-center">
-                <i data-lucide="clipboard-list" class="w-5 h-5"></i>
+            <div class="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500">
+                <i data-lucide="receipt" class="w-5 h-5"></i>
             </div>
-            <h2 class="text-lg font-black text-slate-800 uppercase italic tracking-tighter">Vendas</h2>
+            <h2 id="navNomeNegocio" class="text-lg font-black text-slate-800 uppercase italic">Vendas</h2>
         </div>
     </nav>
 
-    <main class="max-w-6xl mx-auto p-5 md:p-12">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
+    <main class="max-w-5xl mx-auto p-5 md:p-12">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6">
             <div>
-                <div class="flex items-center gap-2 mb-1">
-                    <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Monitor de Pedidos em Tempo Real</p>
-                </div>
-                <h1 class="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tighter">Gerenciamento</h1>
+                <p class="text-xs font-black text-brand uppercase tracking-widest mb-2">Central de Operações</p>
+                <h1 class="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tighter">Vendas & Pedidos</h1>
             </div>
-            <button id="abrirModalPedido" class="w-full md:w-auto bg-slate-900 text-white px-8 py-5 rounded-2xl font-black shadow-2xl hover:bg-brand transition-all flex justify-center items-center gap-3 group">
-                <i data-lucide="plus-circle" class="w-5 h-5 group-hover:rotate-90 transition-transform"></i>
-                <span class="text-xs uppercase tracking-widest">Nova Venda Balcão</span>
+            <button id="abrirModalPedido" class="w-full md:w-auto bg-brand text-white p-5 md:px-8 md:py-5 rounded-[2rem] font-black shadow-2xl shadow-blue-500/20 hover:scale-[1.02] active:scale-95 transition-all flex justify-center items-center gap-3">
+                <i data-lucide="plus" class="w-6 h-6"></i>
+                <span class="text-sm uppercase tracking-widest">Nova Venda Balcão</span>
             </button>
         </div>
 
-        <div id="containerFiltros" class="flex gap-3 overflow-x-auto pb-6 hide-scroll mb-6">
-            <button data-filter="todos" class="px-6 py-3 bg-brand text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-500/20 whitespace-nowrap">Todos</button>
-            <button data-filter="novo" class="px-6 py-3 bg-white text-slate-500 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-200 hover:border-brand transition-all whitespace-nowrap flex items-center gap-2">
-                <i data-lucide="clock" class="w-3 h-3 text-amber-500"></i> Pendentes
-            </button>
-            <button data-filter="preparo" class="px-6 py-3 bg-white text-slate-500 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-200 hover:border-brand transition-all whitespace-nowrap flex items-center gap-2">
-                <i data-lucide="flame" class="w-3 h-3 text-blue-500"></i> Em Preparo
-            </button>
-            <button data-filter="concluido" class="px-6 py-3 bg-white text-slate-500 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-200 hover:border-brand transition-all whitespace-nowrap flex items-center gap-2">
-                <i data-lucide="check-circle" class="w-3 h-3 text-green-500"></i> Concluídos
-            </button>
+        <div id="containerFiltros" class="flex gap-3 overflow-x-auto pb-6 hide-scroll mb-4">
+            <button data-filter="status" class="px-8 py-3 bg-brand text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-blue-500/20 whitespace-nowrap">Todos</button>
+            <button data-filter="status" class="px-8 py-3 bg-white text-slate-400 rounded-2xl text-xs font-black uppercase tracking-widest border border-slate-200 hover:bg-slate-50 transition-all whitespace-nowrap">Pendentes</button>
+            <button data-filter="status" class="px-8 py-3 bg-white text-slate-400 rounded-2xl text-xs font-black uppercase tracking-widest border border-slate-200 hover:bg-slate-50 transition-all whitespace-nowrap">Concluídos</button>
         </div>
 
         <div id="listaPedidos" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div class="col-span-full py-32 text-center">
-                <div class="w-12 h-12 border-4 border-slate-200 border-t-brand rounded-full animate-spin mx-auto mb-4"></div>
-                <p class="text-xs text-slate-400 font-black uppercase tracking-widest">Sincronizando Dados</p>
+                <div class="w-16 h-16 border-4 border-slate-100 border-t-brand rounded-full animate-spin mx-auto mb-6"></div>
+                <p class="text-slate-400 font-bold italic">Sincronizando banco de dados...</p>
             </div>
         </div>
     </main>
 
-    <div class="md:hidden fixed bottom-6 left-6 right-6 bg-slate-900/95 backdrop-blur-xl rounded-3xl p-4 flex justify-around items-center z-50 shadow-2xl border border-white/10">
-        <a href="dashboard.html" class="p-3 text-slate-500"><i data-lucide="bar-chart-3"></i></a>
-        <a href="estoque.html" class="p-3 text-slate-500"><i data-lucide="package"></i></a>
-        <a href="pedidos.html" class="p-4 bg-brand rounded-2xl text-white shadow-lg shadow-blue-500/40"><i data-lucide="clipboard-list"></i></a>
-        <a href="produtos.html" class="p-3 text-slate-500"><i data-lucide="tags"></i></a>
-        <a href="perfil.html" class="p-3 text-slate-500"><i data-lucide="user-cog"></i></a>
+    <div class="md:hidden fixed bottom-6 left-6 right-6 bg-slate-900/95 backdrop-blur-xl rounded-[2.5rem] p-4 flex justify-around items-center z-50 shadow-2xl border border-white/10">
+        <a href="dashboard.html" class="p-3 text-slate-400">
+            <i data-lucide="home" class="w-6 h-6"></i>
+        </a>
+        <a href="estoque.html" class="p-3 text-slate-400">
+            <i data-lucide="boxes" class="w-6 h-6"></i>
+        </a>
+        <a href="produtos.html" class="p-3 text-slate-400">
+            <i data-lucide="shopping-bag" class="w-6 h-6"></i>
+        </a>
+        <a href="pedidos.html" class="p-4 bg-brand rounded-2xl text-white shadow-lg shadow-blue-500/40">
+            <i data-lucide="receipt" class="w-6 h-6"></i>
+        </a>
+        <a href="perfil.html" class="p-3 text-slate-400">
+            <i data-lucide="settings" class="w-6 h-6"></i>
+        </a>
     </div>
 
-    <div id="modalPedido" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4 z-[100]">
-        <div class="bg-white p-8 md:p-10 rounded-t-[3rem] md:rounded-[2.5rem] w-full max-w-lg shadow-2xl border border-white/10 max-h-[90vh] overflow-y-auto custom-scroll">
-            <div class="flex items-center justify-between mb-8">
-                <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 bg-blue-50 text-brand rounded-2xl flex items-center justify-center">
-                        <i data-lucide="shopping-cart"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-2xl font-black text-slate-800 tracking-tighter leading-none">Venda Rápida</h3>
-                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">PDV Balcão</p>
-                    </div>
+    <div id="modalPedido" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4 z-[100]">
+        <div class="bg-white p-8 md:p-10 rounded-t-[3rem] md:rounded-[3rem] w-full max-w-lg shadow-2xl border border-white/10 max-h-[92vh] overflow-y-auto">
+            <div class="w-12 h-1.5 bg-slate-100 rounded-full mx-auto mb-8 md:hidden"></div>
+
+            <div class="flex items-center gap-4 mb-2">
+                <div class="w-12 h-12 bg-blue-50 text-brand rounded-2xl flex items-center justify-center">
+                    <i data-lucide="shopping-cart" class="w-6 h-6"></i>
                 </div>
-                <button id="fecharModalX" class="text-slate-300 hover:text-slate-600 transition-colors"><i data-lucide="x"></i></button>
+                <div>
+                    <h3 class="text-2xl font-black text-slate-800 tracking-tighter leading-none">Venda Rápida</h3>
+                    <p class="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Baixa automática de estoque</p>
+                </div>
             </div>
 
-            <form id="formPedido" class="space-y-6">
-                <div class="space-y-4">
-                    <div class="relative group">
-                        <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Cliente</label>
-                        <div class="flex items-center bg-slate-50 rounded-2xl mt-1 border-2 border-transparent focus-within:border-brand/20 transition-all">
-                            <i data-lucide="user" class="w-4 h-4 ml-4 text-slate-400"></i>
-                            <input type="text" id="cliente" placeholder="Nome para identificação" class="w-full p-4 bg-transparent outline-none font-bold text-sm">
-                        </div>
-                    </div>
+            <form id="formPedido" class="space-y-6 mt-8">
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nome do Cliente</label>
+                    <input type="text" id="cliente" placeholder="Opcional..." class="w-full mt-2 p-5 bg-slate-50 border-2 border-transparent rounded-[1.5rem] outline-none focus:border-brand/20 focus:bg-white transition-all font-bold">
+                </div>
 
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Escolher Produto</label>
                     <div class="relative">
-                        <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Produto</label>
-                        <div class="flex items-center bg-slate-50 rounded-2xl mt-1 border-2 border-transparent focus-within:border-brand/20 transition-all">
-                            <i data-lucide="search" class="w-4 h-4 ml-4 text-slate-400"></i>
-                            <select id="selectProduto" class="w-full p-4 bg-transparent outline-none font-bold text-sm appearance-none">
-                                <option value="">Pesquisar no catálogo...</option>
-                            </select>
-                        </div>
+                        <select id="selectProduto" class="w-full mt-2 p-5 bg-slate-50 border-2 border-transparent rounded-[1.5rem] outline-none focus:border-brand/20 focus:bg-white transition-all font-bold text-sm appearance-none">
+                            <option value="">Selecione um item...</option>
+                        </select>
+                        <i data-lucide="chevron-down" class="absolute right-5 top-7 text-slate-400 w-5 h-5 pointer-events-none"></i>
                     </div>
                 </div>
 
-                <div id="itensSelecionados" class="space-y-3 min-h-[50px] max-h-48 overflow-y-auto pr-2 custom-scroll">
+                <div id="itensSelecionados" class="space-y-3 max-h-48 overflow-y-auto pr-2 custom-scroll">
                     </div>
 
-                <div class="bg-slate-900 p-6 rounded-[2rem] flex justify-between items-center shadow-xl">
-                    <div class="flex flex-col">
-                        <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Subtotal</span>
-                        <span id="valorTotalPedido" class="text-2xl font-black text-white tracking-tighter">R$ 0,00</span>
-                    </div>
-                    <i data-lucide="credit-card" class="text-white/20 w-8 h-8"></i>
+                <div class="bg-slate-900 p-6 rounded-[2rem] flex justify-between items-center shadow-xl shadow-slate-200">
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Total a Pagar</span>
+                    <span id="valorTotalPedido" class="text-2xl font-black text-white tracking-tighter">R$ 0,00</span>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3 pt-2">
-                    <button type="button" id="fecharModalPedido" class="bg-slate-100 text-slate-400 py-5 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-red-50 hover:text-red-400 transition-all">
-                        Descartar
+                <div class="flex flex-col gap-3 pt-2">
+                    <button type="submit" class="w-full bg-brand text-white py-5 rounded-[1.5rem] font-black uppercase tracking-widest text-xs shadow-xl shadow-blue-500/20 active:scale-95 transition-all">
+                        Confirmar Venda
                     </button>
-                    <button type="submit" class="bg-brand text-white py-5 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-blue-500/20 active:scale-95 transition-all">
-                        Finalizar
+                    <button type="button" id="fecharModalPedido" class="w-full bg-slate-100 text-slate-400 py-5 rounded-[1.5rem] font-black uppercase tracking-widest text-xs hover:bg-red-50 hover:text-red-400 transition-all">
+                        Descartar
                     </button>
                 </div>
             </form>
@@ -190,15 +216,11 @@
     </div>
 
     <script>
-        // Inicializa ícones
+        // Inicializa ícones Lucide no HTML base
         lucide.createIcons();
-
-        // Lógica simples de fechar modal para garantir funcionamento imediato
-        const modal = document.getElementById('modalPedido');
-        document.getElementById('fecharModalPedido').onclick = () => modal.classList.add('hidden');
-        document.getElementById('fecharModalX').onclick = () => modal.classList.add('hidden');
-        document.getElementById('abrirModalPedido').onclick = () => modal.classList.remove('hidden');
     </script>
     <script type="module" src="./src/pedidos.js"></script>
 </body>
+
 </html>
+
