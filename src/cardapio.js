@@ -262,6 +262,10 @@ window.enviarWhatsApp = async () => {
         numDestino = '55' + numDestino;
     }
 
+    const enderecoFormatado = modoPedido === 'entrega' 
+        ? `${enderecoCompleto.rua}, ${numeroEnd} - ${enderecoCompleto.bairro}, ${enderecoCompleto.cidade}` 
+        : 'Retirada na Loja';
+
     const dadosPedido = {
         userId: userId,
         cliente: nomeCliente,
@@ -272,7 +276,7 @@ window.enviarWhatsApp = async () => {
         origem: "Online",
         pagamento: formaPagamento,
         tipo: modoPedido,
-        endereco: modoPedido === 'entrega' ? `${enderecoCompleto.rua}, ${numeroEnd} - ${enderecoCompleto.bairro}` : 'Retirada na Loja',
+        endereco: enderecoFormatado,
         createdAt: serverTimestamp(),
         horaEntrega: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
     };
@@ -296,7 +300,7 @@ window.enviarWhatsApp = async () => {
         carrinho.forEach(i => msg += `• ${i.nome} - R$ ${i.preco.toFixed(2)}\n`);
         msg += `------------------------------\n`;
         msg += `*Modo:* ${modoPedido === 'entrega' ? '🛵 Entrega' : '🛍️ Retirada'}\n`;
-        if (modoPedido === 'entrega') msg += `*Endereço:* ${dadosPedido.endereco}\n`;
+        if (modoPedido === 'entrega') msg += `*Endereço:* ${enderecoFormatado}\n`;
         msg += `*Pagamento:* ${formaPagamento}\n`;
         msg += `*TOTAL: R$ ${totalFinal.toFixed(2)}*\n\n`;
         msg += `_Pedido registrado no sistema._`;
@@ -356,21 +360,16 @@ async function inicializar() {
             const banner = document.getElementById('bannerLoja');
             if (banner && d.fotoCapa) banner.style.backgroundImage = `url('${d.fotoCapa}')`;
 
-            // --- LÓGICA DE STATUS COM HORÁRIO DINÂMICO ---
             lojaAberta = verificarSeEstaAberto(d.horarioAbertura, d.horarioFechamento);
             const labelStatus = document.getElementById('labelStatus');
             const dotStatus = document.getElementById('dotStatus');
 
             if (lojaAberta) {
                 if (dotStatus) dotStatus.className = "w-2 h-2 rounded-full bg-green-500 ping-aberto";
-                if (labelStatus) {
-                    labelStatus.innerHTML = `<span class="text-green-600 font-bold">Aberto</span> até ${d.horarioFechamento || '--:--'}`;
-                }
+                if (labelStatus) labelStatus.innerHTML = `<span class="text-green-600 font-bold">Aberto</span> até ${d.horarioFechamento || '--:--'}`;
             } else {
                 if (dotStatus) dotStatus.className = "w-2 h-2 rounded-full bg-red-500";
-                if (labelStatus) {
-                    labelStatus.innerHTML = `<span class="text-red-600 font-bold">Fechado</span> • Abre às ${d.horarioAbertura || '--:--'}`;
-                }
+                if (labelStatus) labelStatus.innerHTML = `<span class="text-red-600 font-bold">Fechado</span> • Abre às ${d.horarioAbertura || '--:--'}`;
             }
         }
 
