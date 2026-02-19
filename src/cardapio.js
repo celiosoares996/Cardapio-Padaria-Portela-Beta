@@ -52,7 +52,10 @@ window.verificarCliente = async (valor) => {
             const d = docSnap.data();
             clienteLogado = { ...d, whatsapp: whatsapp };
             if (document.getElementById('inputNome')) document.getElementById('inputNome').value = d.nome || "";
-            if (document.getElementById('inputCEP')) document.getElementById('inputCEP').value = d.cep || "";
+            if (document.getElementById('inputCEP')) {
+                document.getElementById('inputCEP').value = d.cep || "";
+                window.buscarCEP(); // Dispara busca automática se já tiver CEP salvo
+            }
             if (document.getElementById('inputNumero')) document.getElementById('inputNumero').value = d.numero || "";
 
             if (d.cep && d.distanciaSalva) {
@@ -86,6 +89,13 @@ window.buscarCEP = async () => {
     if (!cepInput) return;
     const cep = cepInput.value.replace(/\D/g, '');
     if (cep.length !== 8) return;
+
+    if (clienteLogado && clienteLogado.cep === cep && clienteLogado.distanciaSalva) {
+        distanciaCliente = clienteLogado.distanciaSalva;
+        recalcularTaxaEntrega();
+        if (camposEndereco) camposEndereco.classList.remove('hidden');
+        return;
+    }
 
     cepInput.classList.add('animate-pulse');
 
@@ -135,7 +145,7 @@ window.buscarCEP = async () => {
             }
         }
     } catch (error) {
-        console.error("Frete erro:", error);
+        console.error("Erro no cálculo de frete:", error);
     } finally {
         cepInput.classList.remove('animate-pulse');
         renderizarCarrinho();
@@ -155,122 +165,142 @@ function recalcularTaxaEntrega() {
 
 window.atualizarModoPedidoJS = (modo) => {
     modoPedido = modo;
+    const btnProx1 = document.getElementById('btnProximo1');
     recalcularTaxaEntrega();
+    if (btnProx1) {
+        btnProx1.disabled = false;
+        btnProx1.classList.replace('bg-slate-200', 'bg-brand');
+    }
 };
 
-// --- LOGICA DO CARRINHO ---
+// --- RENDERIZAÇÃO ---
 window.adicionarAoCarrinho = (nome, preco) => {
     if (!lojaAberta) {
         alert("Loja Fechada no momento!");
         return;
     }
     carrinho.push({ nome, preco: Number(preco) });
-    renderizarCarrinho();
-    
-    // Pequeno feedback visual no botão de sacola
-    const btn = document.getElementById('btnCarrinho');
-    btn.classList.add('scale-105');
-    setTimeout(() => btn.classList.remove('scale-105'), 200);
+    atualizarBadgeCarrinho();
 };
+
+function atualizarBadgeCarrinho() {
+    const btn = document.getElementById('btnCarrinho');
+    const badge = document.getElementById('qtdItensCarrinho');
+    const valorResumo = document.getElementById('valorTotalCarrinho');
+    
+    if (carrinho.length > 0) {
+        btn?.classList.remove('hidden');
+        if (badge) badge.innerText = parseInt(carrinho.length);
+        
+        // Atualiza o valor pequeno no botão flutuante se houver
+        const subtotal = carrinho.reduce((a, b) => a + b.preco, 0);
+        if (valorResumo) valorResumo.innerText = `R$ ${(subtotal + taxaEntregaAtual).toFixed(2)}`;
+    } else {
+        btn?.classList.add('hidden');
+    }
+}
 
 function renderizarCarrinho() {
     const container = document.getElementById('listaItensCarrinho');
     const totalP1 = document.getElementById('totalPasso1');
     const resumoF = document.getElementById('resumoFinal');
-    const badgeQtd = document.getElementById('qtdItensCarrinho');
-    const badgeTotal = document.getElementById('valorTotalCarrinho');
-    const btnSacola = document.getElementById('btnCarrinho');
 
-    if (carrinho.length > 0) {
-        btnSacola.classList.remove('hidden');
-        if (badgeQtd) badgeQtd.innerText = `${carrinho.length} ${carrinho.length === 1 ? 'Item' : 'Itens'}`;
-    } else {
-        btnSacola.classList.add('hidden');
-    }
+    if (!container) return;
+    container.innerHTML = "";
+    let subtotal = 0;
 
-    let subtotal = carrinho.reduce((acc, item) => acc + item.preco, 0);
+    carrinho.forEach((item, index) => {
+        subtotal += item.preco;
+        container.innerHTML += `
+            <div class="flex justify-between items-center p-3 bg-slate-50 rounded-2xl mb-2 border border-slate-100">
+                <div>
+                    <p class="text-[11px] font-bold text-slate-700">${item.nome}</p>
+                    <p class="text-[10px] font-black text-brand">R$ ${item.preco.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                </div>
+                <button onclick="removerItemCarrinho(${index})" class="text-red-500 font-bold text-[10px]">REMOVER</button>
+            </div>`;
+    });
+
     const totalGeral = subtotal + taxaEntregaAtual;
 
-    if (badgeTotal) badgeTotal.innerText = `R$ ${totalGeral.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
-
-    if (container) {
-        container.innerHTML = "";
-        carrinho.forEach((item, index) => {
-            container.innerHTML += `
-                <div class="flex justify-between items-center p-4 bg-slate-50 rounded-2xl">
-                    <div class="flex flex-col">
-                        <span class="text-xs font-bold text-slate-700 uppercase italic">${item.nome}</span>
-                        <span class="text-[10px] font-black text-brand mt-0.5">R$ ${item.preco.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                    </div>
-                    <button onclick="window.removerDoCarrinho(${index})" class="text-slate-300 hover:text-red-500 transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                    </button>
-                </div>`;
-        });
+    if (totalP1) {
+        totalP1.innerHTML = `
+            <div class="flex justify-between items-center p-4 bg-slate-900 rounded-2xl text-white">
+                <span class="text-[9px] font-bold uppercase opacity-60 italic">Total</span>
+                <span class="font-black text-lg">R$ ${totalGeral.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+            </div>`;
     }
 
     if (resumoF) {
         resumoF.innerHTML = `
-            <div class="space-y-3">
-                <div class="flex justify-between text-[10px] font-bold uppercase opacity-60">
-                    <span>Subtotal</span>
-                    <span>R$ ${subtotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                </div>
-                <div class="flex justify-between text-[10px] font-bold uppercase opacity-60">
-                    <span>Taxa de Entrega</span>
+            <div class="space-y-2 text-[11px]">
+                <div class="flex justify-between opacity-70 text-slate-600"><span>Subtotal:</span><span>R$ ${subtotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
+                <div class="flex justify-between opacity-70 text-slate-600">
+                    <span>Frete:</span>
                     <span>${taxaEntregaAtual > 0 ? 'R$ ' + taxaEntregaAtual.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : 'Grátis'}</span>
                 </div>
-                <div class="flex justify-between items-end border-t border-white/10 pt-4 mt-2">
-                    <span class="text-[10px] font-black uppercase italic">Total do Pedido</span>
-                    <span class="text-2xl font-black">R$ ${totalGeral.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                <div class="flex justify-between text-base font-black border-t border-slate-200 pt-2 mt-2 text-slate-800">
+                    <span>TOTAL:</span><span>R$ ${totalGeral.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                 </div>
             </div>`;
     }
+    atualizarBadgeCarrinho();
 }
 
-window.removerDoCarrinho = (index) => {
+window.removerItemCarrinho = (index) => {
     carrinho.splice(index, 1);
     renderizarCarrinho();
 };
 
-// --- FINALIZAÇÃO E WHATSAPP ---
+window.abrirCarrinho = () => {
+    document.getElementById('modalCarrinho')?.classList.remove('hidden');
+    if (window.irParaPasso) window.irParaPasso(1);
+    renderizarCarrinho();
+};
+
+window.fecharCarrinho = () => {
+    document.getElementById('modalCarrinho')?.classList.add('hidden');
+};
+
+// --- FINALIZAÇÃO, FIREBASE E WHATSAPP ---
 window.enviarWhatsApp = async () => {
     const radios = document.getElementsByName('pagamento');
     radios.forEach(r => { if (r.checked) formaPagamento = r.value; });
 
-    if (!formaPagamento) { alert("Escolha como quer pagar!"); return; }
+    if (!formaPagamento) { alert("Selecione a forma de pagamento!"); return; }
 
-    const nomeCliente = document.getElementById('inputNome')?.value;
-    const numeroEnd = document.getElementById('inputNumero')?.value;
-    const whatsCliente = document.getElementById('inputWhatsApp')?.value.replace(/\D/g, '');
+    const nomeCliente = document.getElementById('inputNome')?.value || "Cliente Online";
+    const numeroEnd = document.getElementById('inputNumero')?.value || "";
 
-    if (!nomeCliente) { alert("Diga-nos seu nome!"); return; }
-    if (modoPedido === 'entrega' && !numeroEnd) { alert("Falta o número/complemento!"); return; }
+    if (modoPedido === 'entrega' && !numeroEnd) { alert("Informe o número do endereço."); return; }
 
     const subtotal = carrinho.reduce((a, b) => a + b.preco, 0);
     const totalFinal = subtotal + taxaEntregaAtual;
 
     let numDestino = whatsappLoja.replace(/\D/g, '');
-    if (numDestino.length <= 11) numDestino = '55' + numDestino;
+    if (numDestino.length >= 10 && numDestino.length <= 11) {
+        numDestino = '55' + numDestino;
+    }
 
     const dadosPedido = {
-        userId,
+        userId: userId,
         cliente: nomeCliente,
         itens: carrinho,
         total: totalFinal,
         taxaEntrega: taxaEntregaAtual,
         status: "Pendente",
+        origem: "Online",
         pagamento: formaPagamento,
         tipo: modoPedido,
         endereco: modoPedido === 'entrega' ? `${enderecoCompleto.rua}, ${numeroEnd} - ${enderecoCompleto.bairro}` : 'Retirada na Loja',
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
+        horaEntrega: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
     };
 
     try {
         await addDoc(collection(db, "pedidos"), dadosPedido);
-        
+
+        const whatsCliente = document.getElementById('inputWhatsApp')?.value.replace(/\D/g, '');
         if (whatsCliente) {
             await setDoc(doc(db, "clientes", whatsCliente), {
                 nome: nomeCliente,
@@ -288,18 +318,24 @@ window.enviarWhatsApp = async () => {
         msg += `*Modo:* ${modoPedido === 'entrega' ? '🛵 Entrega' : '🛍️ Retirada'}\n`;
         if (modoPedido === 'entrega') msg += `*Endereço:* ${dadosPedido.endereco}\n`;
         msg += `*Pagamento:* ${formaPagamento}\n`;
-        msg += `*TOTAL: R$ ${totalFinal.toFixed(2)}*\n`;
+        msg += `*TOTAL: R$ ${totalFinal.toFixed(2)}*\n\n`;
+        msg += `_Pedido registrado no sistema._`;
 
-        window.location.assign(`https://wa.me/${numDestino}?text=${encodeURIComponent(msg)}`);
+        const linkWhats = `https://wa.me/${numDestino}?text=${encodeURIComponent(msg)}`;
+
+        window.location.assign(linkWhats);
+
         carrinho = [];
-        window.fecharCarrinho();
+        fecharCarrinho();
+        atualizarBadgeCarrinho();
+
     } catch (e) {
-        console.error(e);
-        alert("Erro ao salvar pedido.");
+        console.error("Erro ao processar pedido:", e);
+        alert("Houve um erro ao salvar seu pedido.");
     }
 };
 
-// --- INICIALIZAÇÃO ---
+// --- FIREBASE E INICIALIZAÇÃO ---
 function verificarSeEstaAberto(abertura, fechamento) {
     if (!abertura || !fechamento) return true;
     const agora = new Date();
@@ -308,6 +344,7 @@ function verificarSeEstaAberto(abertura, fechamento) {
     const [hFecha, mFecha] = fechamento.split(':').map(Number);
     const minAbre = hAbre * 60 + mAbre;
     const minFecha = hFecha * 60 + mFecha;
+    
     if (minFecha < minAbre) return horaAtual >= minAbre || horaAtual <= minFecha;
     return horaAtual >= minAbre && horaAtual <= minFecha;
 }
@@ -319,29 +356,37 @@ async function inicializar() {
         if (userSnap.exists()) {
             const d = userSnap.data();
             whatsappLoja = d.whatsapp || "";
+            configHorario = { abertura: d.horarioAbertura || "", fechamento: d.horarioFechamento || "" };
             configEntrega = d.configEntrega || { coords: { lat: 0, log: 0 }, raioMaximo: 0, valorKm: 0, tipo: 'fixo' };
 
-            document.getElementById('nomeLoja').innerText = d.nomeNegocio || "Cardápio";
+            document.getElementById('nomeLoja').innerText = d.nomeNegocio || "Loja";
             document.getElementById('nomeLojaRodape').innerText = d.nomeNegocio || "";
-            
-            if (d.corTema) document.documentElement.style.setProperty('--cor-primaria', d.corTema);
-            if (d.fotoCapa) document.getElementById('bannerLoja').style.backgroundImage = `url('${d.fotoCapa}')`;
-            
-            const imgP = document.getElementById('logoLoja');
-            if (d.fotoPerfil || d.fotoLogo) {
-                imgP.src = d.fotoPerfil || d.fotoLogo;
-                imgP.classList.remove('hidden');
+
+            const imgPerfil = document.getElementById('logoLoja');
+            const emojiPerfil = document.getElementById('emojiLoja');
+            const urlFoto = d.fotoPerfil || d.fotoLogo;
+
+            if (urlFoto && imgPerfil) {
+                imgPerfil.src = urlFoto;
+                imgPerfil.classList.remove('hidden');
+                if (emojiPerfil) emojiPerfil.classList.add('hidden');
             }
 
+            if (d.corTema) document.documentElement.style.setProperty('--cor-primaria', d.corTema);
+
+            const banner = document.getElementById('bannerLoja');
+            if (banner && d.fotoCapa) banner.style.backgroundImage = `url('${d.fotoCapa}')`;
+
             lojaAberta = verificarSeEstaAberto(d.horarioAbertura, d.horarioFechamento);
-            const labelS = document.getElementById('labelStatus');
-            const dotS = document.getElementById('dotStatus');
+            const labelStatus = document.getElementById('labelStatus');
+            const dotStatus = document.getElementById('dotStatus');
+
             if (lojaAberta) {
-                dotS.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]";
-                labelS.innerHTML = `<span class="text-emerald-600">Aberto</span> • Fecha às ${d.horarioFechamento}`;
+                if (dotStatus) dotStatus.className = "w-2 h-2 rounded-full bg-green-500 ping-aberto";
+                if (labelStatus) labelStatus.innerHTML = `<span class="text-green-600 font-bold">Aberto</span> até ${d.horarioFechamento}`;
             } else {
-                dotS.className = "w-2.5 h-2.5 rounded-full bg-red-500";
-                labelS.innerHTML = `<span class="text-red-500">Loja Fechada</span>`;
+                if (dotStatus) dotStatus.className = "w-2 h-2 rounded-full bg-red-500";
+                if (labelStatus) labelStatus.innerHTML = `<span class="text-red-600 font-bold">Fechado</span>`;
             }
         }
 
@@ -360,42 +405,33 @@ async function inicializar() {
         if (main && nav) {
             main.innerHTML = "";
             nav.innerHTML = "";
-            Object.keys(prods).forEach(cat => {
-                // Nav Pills
-                const tab = document.createElement('button');
-                tab.className = "category-tab";
-                tab.innerText = cat;
-                tab.onclick = () => {
-                    document.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
-                    tab.classList.add('active');
-                    document.getElementById(cat).scrollIntoView({ behavior: 'smooth', block: 'start' });
-                };
-                nav.appendChild(tab);
-
-                // Section
-                let section = `<section id="${cat}" class="mt-8">
-                    <h2 class="px-4 text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-4 italic">${cat}</h2>
-                    <div class="grid grid-cols-1">`;
+            Object.keys(prods).forEach((cat) => {
+                nav.innerHTML += `<a href="#${cat.replace(/\s/g, '')}" class="category-tab pb-2 whitespace-nowrap font-bold text-xs uppercase">${cat}</a>`;
+                
+                let section = `<section id="${cat.replace(/\s/g, '')}" class="pt-4">
+                                <h2 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 ml-2">${cat}</h2>
+                                <div class="space-y-3">`;
                 
                 prods[cat].forEach(p => {
                     section += `
-                        <div class="product-card" onclick="window.adicionarAoCarrinho('${p.nome}', ${p.preco})">
-                            <div class="product-info">
-                                <h3 class="font-bold text-slate-800 text-sm italic uppercase leading-tight">${p.nome}</h3>
-                                <p class="text-slate-400 text-[10px] mt-1 line-clamp-2 leading-relaxed font-medium">${p.descricao || 'Sem descrição.'}</p>
-                                <p class="text-emerald-600 font-black text-sm mt-3">R$ ${Number(p.preco).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                        <div class="bg-white p-3 rounded-3xl flex items-center justify-between shadow-sm border border-slate-50 transition-transform active:scale-[0.98]">
+                            <div class="flex-1 pr-4">
+                                <h3 class="text-sm font-bold text-slate-800">${p.nome}</h3>
+                                <p class="text-[10px] text-slate-400 mt-0.5 line-clamp-2">${p.descricao || ''}</p>
+                                <p class="text-brand font-black mt-2">R$ ${Number(p.preco).toFixed(2)}</p>
                             </div>
-                            <img src="${p.foto}" class="product-img" loading="lazy">
+                            <div class="relative w-20 h-20 flex-shrink-0">
+                                <img src="${p.foto}" class="w-full h-full object-cover rounded-2xl bg-slate-100" onerror="this.src='https://placehold.co/100x100?text=Sem+Foto'">
+                                <button onclick="adicionarAoCarrinho('${p.nome}', ${p.preco})" class="absolute -bottom-1 -right-1 w-8 h-8 bg-brand text-white rounded-xl shadow-lg font-bold flex items-center justify-center">+</button>
+                            </div>
                         </div>`;
                 });
                 main.innerHTML += section + `</div></section>`;
             });
-            // Ativa a primeira categoria
-            if(nav.firstChild) nav.firstChild.classList.add('active');
         }
-        document.getElementById('loading-overlay').classList.add('loader-hidden');
+        document.getElementById('loading-overlay')?.classList.add('loader-hidden');
     } catch (e) {
-        console.error(e);
+        console.error("Erro na inicialização:", e);
     }
 }
 
