@@ -37,6 +37,12 @@
         .btn-toggle-active { background-color: white !important; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); color: var(--cor-primaria) !important; }
 
         i[data-lucide] { stroke-width: 2.5px; }
+
+        /* Estilo para os inputs de hora ficarem mais discretos */
+        input[type="time"] {
+            font-family: inherit;
+            color: #334155;
+        }
     </style>
 </head>
 <body class="text-slate-900">
@@ -173,6 +179,44 @@
                                     <i data-lucide="map-pin" class="w-6 h-6 group-hover:scale-125 transition-transform"></i>
                                     <input type="hidden" id="lojaLat"><input type="hidden" id="lojaLog">
                                 </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+                        <div class="flex items-center gap-4 mb-8">
+                            <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center">
+                                <i data-lucide="clock" class="w-6 h-6"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-black text-slate-800 tracking-tighter">Horário de Funcionamento</h3>
+                                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Defina quando sua loja está aberta</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4" id="containerHorarios">
+                            <div class="grid grid-cols-1 gap-4">
+                                <script>
+                                    const dias = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
+                                    document.write(dias.map(dia => `
+                                        <div class="flex flex-wrap items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 gap-4">
+                                            <div class="flex items-center gap-3 min-w-[120px]">
+                                                <i data-lucide="calendar" class="w-4 h-4 text-slate-400"></i>
+                                                <span class="text-xs font-black uppercase text-slate-600">${dia}</span>
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                <input type="time" name="abre_${dia.toLowerCase()}" class="bg-white border border-slate-200 rounded-lg p-2 text-xs font-bold outline-none focus:border-brand">
+                                                <span class="text-[10px] font-black text-slate-300 uppercase">até</span>
+                                                <input type="time" name="fecha_${dia.toLowerCase()}" class="bg-white border border-slate-200 rounded-lg p-2 text-xs font-bold outline-none focus:border-brand">
+                                            </div>
+                                            <label class="relative inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" name="status_${dia.toLowerCase()}" class="sr-only peer" checked>
+                                                <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand"></div>
+                                                <span class="ml-3 text-[10px] font-black uppercase text-slate-400 peer-checked:text-brand">Aberto</span>
+                                            </label>
+                                        </div>
+                                    `).join(''));
+                                </script>
                             </div>
                         </div>
                     </div>
