@@ -75,10 +75,16 @@ window.mascaraCEP = (input) => {
 
 async function buscarCEP(cep) {
     const statusCEP = document.getElementById('statusCEP');
+    const btnPgto = document.getElementById('btnProximo2');
+
     try {
         const resp = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
         const data = await resp.json();
-        if (data.erro) { statusCEP.innerText = "CEP não encontrado"; return; }
+        if (data.erro) { 
+            statusCEP.innerText = "CEP não encontrado"; 
+            if(btnPgto) btnPgto.disabled = true;
+            return; 
+        }
 
         statusCEP.innerText = "";
         document.getElementById('camposEndereco').classList.remove('hidden');
@@ -88,16 +94,30 @@ async function buscarCEP(cep) {
         // Cálculo de distância (OpenStreetMap)
         const geo = await fetch(`https://nominatim.openstreetmap.org/search?format=json&postalcode=${cep}&country=Brazil`);
         const geoData = await geo.json();
+        
         if (geoData.length > 0 && configEntrega?.coords) {
             distanciaCliente = calcularDistancia(
                 configEntrega.coords.lat, configEntrega.coords.lng || configEntrega.coords.log,
                 geoData[0].lat, geoData[0].lon
             );
-            recalcularTaxa();
-            document.getElementById('btnProximo2').disabled = false;
-            document.getElementById('btnProximo2').classList.replace('bg-slate-200', 'bg-brand');
         }
-    } catch (e) { console.error(e); }
+
+        // DESTRAVA O BOTÃO: Mesmo que a distância falhe, liberamos para o cliente seguir com taxa fixa/padrão
+        if(btnPgto) {
+            btnPgto.disabled = false;
+            btnPgto.classList.replace('bg-slate-200', 'bg-brand');
+        }
+        
+        recalcularTaxa();
+
+    } catch (e) { 
+        console.error("Erro na busca de CEP:", e);
+        // Se der erro na API, liberamos o botão assim mesmo para não travar a venda
+        if(btnPgto) {
+            btnPgto.disabled = false;
+            btnPgto.classList.replace('bg-slate-200', 'bg-brand');
+        }
+    }
 }
 
 function calcularDistancia(lat1, lon1, lat2, lon2) {
@@ -109,15 +129,28 @@ function calcularDistancia(lat1, lon1, lat2, lon2) {
 }
 
 function recalcularTaxa() {
-    if (modoPedido === 'retirada') taxaEntregaAtual = 0;
-    else if (configEntrega?.tipo === 'km') taxaEntregaAtual = distanciaCliente * (configEntrega.valorKm || 0);
-    else taxaEntregaAtual = Number(configEntrega?.taxaFixa || 0);
+    if (modoPedido === 'retirada') {
+        taxaEntregaAtual = 0;
+    } else if (configEntrega?.tipo === 'km') {
+        taxaEntregaAtual = distanciaCliente * (configEntrega.valorKm || 0);
+    } else {
+        taxaEntregaAtual = Number(configEntrega?.taxaFixa || 0);
+    }
     renderizarCarrinho();
 }
 
 window.atualizarModoPedidoJS = (modo) => { 
     modoPedido = modo; 
     recalcularTaxa(); 
+    
+    // Se mudar para retirada, libera o botão imediatamente
+    if (modo === 'retirada') {
+        const btnPgto = document.getElementById('btnProximo2');
+        if (btnPgto) {
+            btnPgto.disabled = false;
+            btnPgto.classList.replace('bg-slate-200', 'bg-brand');
+        }
+    }
 };
 
 // --- 🛒 CARRINHO ---
