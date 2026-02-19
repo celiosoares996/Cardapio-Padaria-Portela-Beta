@@ -9,249 +9,247 @@
     <style>
         :root { --cor-primaria: #f59e0b; }
         
-        /* Configuração para Desktop (App Shell) */
         body { 
             font-family: 'Plus Jakarta Sans', sans-serif; 
             -webkit-tap-highlight-color: transparent; 
-            background-color: #f1f5f9; /* Cor de fundo fora do celular no PC */
+            background-color: #0f172a;
+            min-height: 100vh;
             display: flex;
             justify-content: center;
+            overflow-x: hidden;
+        }
+
+        /* Efeito de Fundo Desfocado (Estilo Jão Burger) */
+        .bg-fixed-blur {
+            position: fixed;
+            inset: 0;
+            background-image: url('https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=1965&auto=format&fit=crop'); /* Imagem padrão caso não carregue a da loja */
+            background-size: cover;
+            background-position: center;
+            filter: blur(20px) brightness(0.3);
+            transform: scale(1.1);
+            z-index: -1;
         }
 
         .app-shell {
             width: 100%;
-            max-width: 500px; /* Largura máxima estilo smartphone */
-            background-color: #f8fafc;
+            max-width: 480px;
+            background-color: #ffffff;
             min-height: 100vh;
             position: relative;
-            box-shadow: 0 0 50px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Ajustes Mobile-First */
+        @media (min-width: 1024px) {
+            .app-shell {
+                margin: 20px 0;
+                border-radius: 24px;
+                min-height: calc(100vh - 40px);
+                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+                overflow: hidden;
+            }
         }
 
         .bg-brand { background-color: var(--cor-primaria) !important; }
         .text-brand { color: var(--cor-primaria) !important; }
         .border-brand { border-color: var(--cor-primaria) !important; }
+        
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .category-tab.active { color: var(--cor-primaria); border-bottom: 3px solid var(--cor-primaria); }
-        .product-card:active { transform: scale(0.97); }
         
-        /* Ajuste de botões fixos para respeitarem o limite do App Shell */
+        .category-tab.active { 
+            color: var(--cor-primaria); 
+            border-bottom: 3px solid var(--cor-primaria); 
+        }
+
+        /* Fixed elements context */
         .fixed-container {
             position: fixed;
             left: 50%;
             transform: translateX(-50%);
             width: 100%;
-            max-width: 500px;
+            max-width: 480px;
             z-index: 50;
         }
 
-        .ping-aberto { animation: pulse-green 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-        @keyframes pulse-green { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
-        
         #loading-overlay { 
-            transition: opacity 0.5s ease, visibility 0.5s;
-            max-width: 500px;
+            max-width: 480px;
             left: 50%;
             transform: translateX(-50%);
         }
-        
-        .loader-hidden { opacity: 0; visibility: hidden; }
-        html { scroll-behavior: smooth; }
-        .banner-overlay { background: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.4) 100%); }
-        .content-wrapper { padding-bottom: 140px; }
+
+        .banner-overlay { 
+            background: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.6) 100%); 
+        }
+
+        .content-wrapper { padding-bottom: 140px; flex: 1; }
+
         .step-content { display: none; animation: fadeIn 0.3s ease; }
         .step-content.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        #logoLoja:not(.hidden) + #emojiLoja { display: none; }
 
-        /* Melhoria visual para Hover no PC */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Estilo dos Cards de Produto */
+        .product-card {
+            background: white;
+            transition: all 0.2s;
+        }
+
         @media (min-width: 1024px) {
-            .product-card:hover { background-color: #fffbeb; cursor: pointer; }
+            .product-card:hover {
+                background-color: #fffbeb;
+                transform: translateY(-2px);
+            }
         }
     </style>
 </head>
-<body class="min-h-screen">
+<body>
+
+    <div id="bgBlur" class="bg-fixed-blur"></div>
 
     <div class="app-shell">
         
-        <div id="loading-overlay" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white/90 backdrop-blur-md">
+        <div id="loading-overlay" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white">
             <div class="relative">
-                <div class="w-16 h-16 border-4 border-slate-100 border-t-brand rounded-full animate-spin"></div>
-                <div class="absolute inset-0 flex items-center justify-center font-bold text-xl">🥐</div>
+                <div class="w-12 h-12 border-4 border-slate-100 border-t-brand rounded-full animate-spin"></div>
+                <div class="absolute inset-0 flex items-center justify-center text-lg">🥐</div>
             </div>
-            <p class="mt-4 text-slate-500 font-black uppercase tracking-[0.3em] text-[10px] animate-pulse">Preparando Cardápio</p>
+            <p class="mt-4 text-slate-400 font-bold uppercase tracking-[0.2em] text-[10px]">Carregando</p>
         </div>
 
         <div class="content-wrapper">
-            <div id="bannerLoja" class="relative h-48 bg-slate-200 w-full bg-center bg-cover transition-all duration-700">
+            <div id="bannerLoja" class="relative h-56 bg-slate-200 w-full bg-center bg-cover transition-all duration-700">
                 <div class="absolute inset-0 banner-overlay"></div>
-                <div class="absolute -bottom-10 left-1/2 -translate-x-1/2 z-10">
-                    <div class="w-24 h-24 bg-white rounded-3xl shadow-xl p-1.5 border border-slate-50">
-                        <div id="wrapperLogo" class="w-full h-full bg-slate-100 rounded-[1.4rem] flex items-center justify-center overflow-hidden relative">
-                            <img id="logoLoja" class="hidden w-full h-full object-cover z-20">
-                            <span id="emojiLoja" class="text-4xl z-10">🍞</span>
+                <div class="absolute -bottom-8 left-6 z-10 flex items-end gap-4">
+                    <div class="w-20 h-20 bg-white rounded-2xl shadow-2xl p-1">
+                        <div id="wrapperLogo" class="w-full h-full bg-slate-100 rounded-xl flex items-center justify-center overflow-hidden">
+                            <img id="logoLoja" class="hidden w-full h-full object-cover">
+                            <span id="emojiLoja" class="text-3xl">🍞</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <section class="mt-14 px-6 text-center">
-                <h1 id="nomeLoja" class="text-2xl font-extrabold text-slate-800 tracking-tight leading-tight uppercase italic text-brand">Carregando...</h1>
-                <div id="horarioLoja" class="flex items-center justify-center gap-2 mt-2">
+            <section class="mt-12 px-6">
+                <h1 id="nomeLoja" class="text-2xl font-extrabold text-slate-800 tracking-tight uppercase italic text-brand">Carregando...</h1>
+                <div id="horarioLoja" class="flex items-center gap-2 mt-1">
                     <span id="dotStatus" class="w-2 h-2 rounded-full bg-slate-300"></span>
-                    <p id="labelStatus" class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Verificando...</p>
+                    <p id="labelStatus" class="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Verificando...</p>
                 </div>
             </section>
 
-            <nav class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-100 mt-6 overflow-x-auto no-scrollbar flex items-center px-4 shadow-sm">
-                <div id="navCategorias" class="flex gap-8 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest"></div>
+            <nav class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-100 mt-6 overflow-x-auto no-scrollbar px-6 shadow-sm">
+                <div id="navCategorias" class="flex gap-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap"></div>
             </nav>
 
-            <main id="mainContainer" class="p-4 space-y-8"></main>
+            <main id="mainContainer" class="p-4 space-y-4"></main>
         </div>
 
-        <div id="btnCarrinho" class="fixed-container bottom-20 px-6 hidden">
-            <button onclick="abrirCarrinho()" class="w-full bg-brand text-white h-16 rounded-2xl shadow-2xl flex items-center justify-between px-6 active:scale-95 transition-all">
-                <div class="flex items-center gap-3">
-                    <span class="font-black uppercase tracking-widest text-[11px]">Revisar Pedido</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <span id="qtdItensCarrinho" class="bg-white text-brand font-black px-3 py-1 rounded-full text-[11px]">0</span>
-                </div>
+        <div id="btnCarrinho" class="fixed-container bottom-20 px-4 hidden">
+            <button onclick="abrirCarrinho()" class="w-full bg-brand text-white h-14 rounded-xl shadow-xl flex items-center justify-between px-6 active:scale-95 transition-all">
+                <span class="font-black uppercase tracking-widest text-[11px]">Ver Sacola</span>
+                <span id="qtdItensCarrinho" class="bg-white text-brand font-black px-3 py-1 rounded-lg text-[11px]">0</span>
             </button>
         </div>
 
-        <footer class="fixed-container bottom-0 bg-white/80 backdrop-blur-sm py-4 px-6 text-center border-t border-slate-100">
-            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Desenvolvido por <span class="text-brand">Vacy Sistemas</span></p>
-            <p class="text-[8px] font-bold text-slate-300 mt-0.5">© <span id="anoAtual"></span> <span id="nomeLojaRodape"></span></p>
+        <footer class="fixed-container bottom-0 bg-white border-t border-slate-50 py-4 px-6 text-center">
+            <p class="text-[9px] font-black text-slate-300 uppercase tracking-widest">Powered by <span class="text-slate-400">Vacy Sistemas</span></p>
         </footer>
 
-    </div> <div id="modalCarrinho" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] hidden flex items-end md:items-center justify-center">
-        <div class="bg-white w-full max-w-[500px] rounded-t-[2.5rem] md:rounded-[2.5rem] p-6 shadow-2xl max-h-[92vh] flex flex-col transition-all">
-            
+    </div>
+
+    <div id="modalCarrinho" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] hidden flex items-end md:items-center justify-center p-0 md:p-4">
+        <div class="bg-white w-full max-w-[480px] rounded-t-[2rem] md:rounded-[2rem] p-6 shadow-2xl max-h-[90vh] flex flex-col">
             <div class="flex justify-between items-center mb-6">
-                <div>
-                    <h2 class="text-lg font-black text-slate-800 uppercase italic leading-none">Minha Sacola</h2>
-                    <p id="subtituloModal" class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Passo 1 de 3</p>
-                </div>
-                <button onclick="fecharCarrinho()" class="bg-slate-100 text-slate-400 w-9 h-9 rounded-full flex items-center justify-center font-bold hover:bg-slate-200 transition-colors">✕</button>
+                <h2 class="text-lg font-black text-slate-800 uppercase italic">Minha Sacola</h2>
+                <button onclick="fecharCarrinho()" class="text-slate-300 hover:text-slate-600 font-bold text-xl">✕</button>
             </div>
 
             <div id="passo1" class="step-content active flex-1 overflow-y-auto no-scrollbar">
-                <div class="bg-slate-50 p-4 rounded-2xl mb-4 border border-slate-100 space-y-3">
-                    <input type="text" id="inputNome" placeholder="Seu Nome Completo" class="w-full p-4 rounded-xl border border-slate-200 text-sm font-bold outline-brand">
-                    <input type="tel" id="inputWhatsApp" onblur="window.verificarCliente(this.value)" placeholder="WhatsApp (DDD) 9 0000-0000" class="w-full p-4 rounded-xl border border-slate-200 text-sm font-bold outline-brand">
+                <div class="space-y-3 mb-6">
+                    <input type="text" id="inputNome" placeholder="Seu Nome" class="w-full p-4 rounded-xl bg-slate-50 border-none text-sm font-bold focus:ring-2 focus:ring-brand outline-none">
+                    <input type="tel" id="inputWhatsApp" placeholder="WhatsApp" class="w-full p-4 rounded-xl bg-slate-50 border-none text-sm font-bold focus:ring-2 focus:ring-brand outline-none">
                 </div>
-
                 <div id="listaItensCarrinho" class="space-y-3 mb-6"></div>
                 
-                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Como deseja receber?</p>
-                <div class="grid grid-cols-2 gap-3 mb-4">
-                    <button onclick="definirModo('entrega')" id="optEntrega" class="flex flex-col items-center justify-center p-5 rounded-2xl border-2 border-slate-100 bg-slate-50 gap-2 transition-all hover:bg-white">
-                        <span class="text-2xl">🛵</span>
-                        <span class="text-[10px] font-black uppercase">Entrega</span>
-                    </button>
-                    <button onclick="definirModo('retirada')" id="optRetirada" class="flex flex-col items-center justify-center p-5 rounded-2xl border-2 border-slate-100 bg-slate-50 gap-2 transition-all hover:bg-white">
-                        <span class="text-2xl">🛍️</span>
-                        <span class="text-[10px] font-black uppercase">Retirada</span>
-                    </button>
+                <div class="grid grid-cols-2 gap-3 mb-6">
+                    <button onclick="definirModo('entrega')" id="optEntrega" class="p-4 rounded-xl border-2 border-slate-100 text-[10px] font-black uppercase flex flex-col items-center gap-2">🛵 Entrega</button>
+                    <button onclick="definirModo('retirada')" id="optRetirada" class="p-4 rounded-xl border-2 border-slate-100 text-[10px] font-black uppercase flex flex-col items-center gap-2">🛍️ Retirada</button>
                 </div>
-                <div id="totalPasso1" class="mb-4"></div>
-                <button onclick="irParaPasso(2)" id="btnProximo1" disabled class="w-full bg-slate-200 text-white py-5 rounded-2xl font-black uppercase text-[12px] transition-all shadow-lg">Continuar</button>
+                <button onclick="irParaPasso(2)" id="btnProximo1" disabled class="w-full bg-slate-100 text-slate-400 py-4 rounded-xl font-black uppercase text-xs transition-all">Próximo Passo</button>
             </div>
 
             <div id="passo2" class="step-content flex-1 overflow-y-auto no-scrollbar">
                 <div id="blocoEntrega" class="space-y-4">
-                    <div class="bg-slate-50 p-6 rounded-3xl border border-slate-100">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2 px-1 text-center">Informe seu CEP para o frete</label>
-                        <input type="text" id="inputCEP" maxlength="9" oninput="window.mascaraCEP(this)" placeholder="00000-000" 
-                               class="w-full p-5 rounded-2xl bg-white text-lg border border-slate-200 outline-brand font-black text-center tracking-widest">
-                        <div id="statusCEP" class="mt-2 text-[10px] font-bold px-1 text-red-500 text-center uppercase"></div>
-                        
-                        <div id="camposEndereco" class="hidden space-y-3 mt-5">
-                            <div class="p-4 bg-white rounded-xl border border-slate-200">
-                                <p id="textoEnderecoAuto" class="text-xs font-bold text-slate-700"></p>
-                            </div>
-                            <input type="text" id="inputNumero" placeholder="Número / Apto / Bloco" 
-                                   class="w-full p-4 rounded-xl bg-white text-sm border border-slate-200 outline-brand font-bold">
-                        </div>
+                    <input type="text" id="inputCEP" oninput="window.mascaraCEP(this)" placeholder="CEP: 00000-000" class="w-full p-4 rounded-xl bg-slate-50 border-none text-center font-black">
+                    <div id="camposEndereco" class="hidden space-y-3">
+                        <div class="p-4 bg-slate-50 rounded-xl text-xs font-bold text-slate-600" id="textoEnderecoAuto"></div>
+                        <input type="text" id="inputNumero" placeholder="Nº / Complemento" class="w-full p-4 rounded-xl bg-slate-50 border-none text-sm font-bold">
                     </div>
                 </div>
-                <div id="blocoRetirada" class="hidden text-center py-10">
-                    <div class="text-5xl mb-4">🏠</div>
-                    <p class="font-black text-slate-800 uppercase text-sm italic">Retirada na Unidade</p>
-                    <p class="text-xs text-slate-400 mt-2">Seu pedido estará pronto em breve!</p>
+                <div id="blocoRetirada" class="hidden text-center py-8">
+                    <p class="font-bold text-slate-600">Retirada no Balcão</p>
                 </div>
-                <div class="flex gap-3 mt-8">
-                    <button onclick="irParaPasso(1)" class="w-1/3 bg-slate-100 text-slate-500 py-5 rounded-2xl font-black uppercase text-[10px] hover:bg-slate-200 transition-all">Voltar</button>
-                    <button onclick="irParaPasso(3)" id="btnProximo2" disabled class="w-2/3 bg-slate-200 text-white py-5 rounded-2xl font-black uppercase text-[12px] shadow-lg">Pagamento</button>
+                <div class="flex gap-2 mt-6">
+                    <button onclick="irParaPasso(1)" class="w-1/3 py-4 text-[10px] font-black uppercase text-slate-400">Voltar</button>
+                    <button onclick="irParaPasso(3)" id="btnProximo2" disabled class="w-2/3 bg-slate-100 text-slate-400 py-4 rounded-xl font-black uppercase text-xs">Pagamento</button>
                 </div>
             </div>
 
             <div id="passo3" class="step-content flex-1 overflow-y-auto no-scrollbar">
-                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 px-1">Forma de Pagamento</p>
-                <div class="space-y-3 mb-6">
-                    <label class="flex items-center gap-4 p-5 bg-slate-50 rounded-2xl border border-slate-100 cursor-pointer hover:bg-white transition-all">
-                        <input type="radio" name="pagamento" value="Pix" class="w-5 h-5 accent-brand">
-                        <span class="text-sm font-bold text-slate-800">PIX</span>
+                <div class="space-y-2 mb-6" id="opcoesPagamento">
+                    <label class="flex items-center gap-3 p-4 bg-slate-50 rounded-xl cursor-pointer">
+                        <input type="radio" name="pagamento" value="Pix" class="accent-brand">
+                        <span class="text-sm font-bold">Pix</span>
                     </label>
-                    <label class="flex items-center gap-4 p-5 bg-slate-50 rounded-2xl border border-slate-100 cursor-pointer hover:bg-white transition-all">
-                        <input type="radio" name="pagamento" value="Cartão" class="w-5 h-5 accent-brand">
-                        <span class="text-sm font-bold text-slate-800">Cartão na Entrega</span>
-                    </label>
-                    <label class="flex items-center gap-4 p-5 bg-slate-50 rounded-2xl border border-slate-100 cursor-pointer hover:bg-white transition-all">
-                        <input type="radio" name="pagamento" value="Dinheiro" class="w-5 h-5 accent-brand">
-                        <span class="text-sm font-bold text-slate-800">Dinheiro</span>
-                    </label>
-                </div>
-                <div id="resumoFinal" class="bg-slate-900 text-white p-6 rounded-[2rem] mb-6 shadow-2xl"></div>
-                <div class="flex gap-3">
-                    <button onclick="irParaPasso(2)" class="w-1/3 bg-slate-100 text-slate-500 py-5 rounded-2xl font-black uppercase text-[10px]">Voltar</button>
-                    <button onclick="window.enviarWhatsApp()" class="w-2/3 bg-brand text-white py-5 rounded-2xl font-black uppercase text-[12px] shadow-xl hover:brightness-110 transition-all">Finalizar no WhatsApp</button>
-                </div>
+                    </div>
+                <div id="resumoFinal" class="bg-slate-900 text-white p-6 rounded-2xl mb-6 text-sm"></div>
+                <button onclick="window.enviarWhatsApp()" class="w-full bg-brand text-white py-4 rounded-xl font-black uppercase text-xs shadow-lg">Finalizar Pedido</button>
             </div>
         </div>
     </div>
 
     <script>
-        let modoEscolhido = null;
+        // Sincroniza o fundo do desktop com a imagem que vier do seu cardapio.js
+        const observarBanner = new MutationObserver(() => {
+            const banner = document.getElementById('bannerLoja');
+            const bgBlur = document.getElementById('bgBlur');
+            if (banner.style.backgroundImage) {
+                bgBlur.style.backgroundImage = banner.style.backgroundImage;
+            }
+        });
+        observarBanner.observe(document.getElementById('bannerLoja'), { attributes: true });
 
+        let modoEscolhido = null;
         window.definirModo = (modo) => {
             modoEscolhido = modo;
             document.getElementById('optEntrega').classList.toggle('border-brand', modo === 'entrega');
             document.getElementById('optRetirada').classList.toggle('border-brand', modo === 'retirada');
-            const btnProx = document.getElementById('btnProximo1');
-            btnProx.disabled = false;
-            btnProx.classList.replace('bg-slate-200', 'bg-brand');
+            const btn = document.getElementById('btnProximo1');
+            btn.disabled = false;
+            btn.classList.replace('bg-slate-100', 'bg-brand');
+            btn.classList.replace('text-slate-400', 'text-white');
             if(window.atualizarModoPedidoJS) window.atualizarModoPedidoJS(modo);
         };
 
         window.irParaPasso = (n) => {
             document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
             document.getElementById(`passo${n}`).classList.add('active');
-            document.getElementById('subtituloModal').innerText = `Passo ${n} de 3`;
-            if(n === 2) {
-                const isRetirada = modoEscolhido === 'retirada';
-                document.getElementById('blocoRetirada').classList.toggle('hidden', !isRetirada);
-                document.getElementById('blocoEntrega').classList.toggle('hidden', isRetirada);
-                if(isRetirada) {
-                    const b = document.getElementById('btnProximo2');
-                    b.disabled = false; b.classList.replace('bg-slate-200', 'bg-brand');
-                }
+            if(n === 2 && modoEscolhido === 'retirada') {
+                document.getElementById('blocoRetirada').classList.remove('hidden');
+                document.getElementById('blocoEntrega').classList.add('hidden');
+                const btn = document.getElementById('btnProximo2');
+                btn.disabled = false;
+                btn.classList.replace('bg-slate-100', 'bg-brand');
+                btn.classList.replace('text-slate-400', 'text-white');
             }
         };
 
-        window.fecharCarrinho = () => { document.getElementById('modalCarrinho').classList.add('hidden'); };
-        document.getElementById('anoAtual').innerText = new Date().getFullYear();
-        
-        window.onclick = function(e) { 
-            if (e.target.id == 'modalCarrinho') fecharCarrinho(); 
-        }
-
-        window.abrirCarrinho = () => {
-            document.getElementById('modalCarrinho').classList.remove('hidden');
-        };
+        window.fecharCarrinho = () => document.getElementById('modalCarrinho').classList.add('hidden');
+        window.abrirCarrinho = () => document.getElementById('modalCarrinho').classList.remove('hidden');
+        document.getElementById('anoAtual') ? document.getElementById('anoAtual').innerText = new Date().getFullYear() : null;
     </script>
     <script type="module" src="src/cardapio.js"></script>
 </body>
