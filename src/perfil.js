@@ -1,216 +1,344 @@
-import { db } from './firebase-config.js';
-import {
-    collection,
-    query,
-    where,
-    getDocs,
-    doc,
-    getDoc,
-    serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { db, auth, storage } from './firebase-config.js';
+import { doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+import { signOut, onAuthStateChanged, EmailAuthProvider, linkWithCredential, GoogleAuthProvider, reauthenticateWithPopup } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-const params = new URLSearchParams(window.location.search);
-const userId = params.get('id');
+// --- REFERÊNCIAS DO DOM ---
+const inputLink = document.getElementById('linkCardapio');
+const qrcodePrintDiv = document.getElementById("qrcodePrint");
+const sideNome = document.getElementById('sideNomeNegocio');
+const mobileNome = document.getElementById('mobileNomeNegocio');
+const formPerfil = document.getElementById('formPerfil');
+const btnSalvarPerfil = document.getElementById('btnSalvarPerfil');
 
-// --- VARIÁVEIS DE ESTADO DA LOJA ---
-let whatsappLoja = "";
-let lojaAberta = false;
-let horariosSemana = null; // Inicializa como null para controle de carregamento
-let configEntrega = null;
+// Campos de entrega e logística
+const tipoEntrega = document.getElementById('tipoEntrega');
+const taxaFixa = document.getElementById('taxaFixa');
+const raioMaximo = document.getElementById('raioMaximo');
+const valorKm = document.getElementById('valorKm');
+const lojaLat = document.getElementById('lojaLat');
+const lojaLog = document.getElementById('lojaLog');
+const statusGPS = document.getElementById('statusGPS');
 
-// --- ESTADO DO PEDIDO ---
-let carrinho = [];
-let taxaEntregaAtual = 0;
-let modoPedido = 'entrega';
+// Referências para Segurança
+const btnVincularSenha = document.getElementById('btnVincularSenha');
+const novaSenhaAcesso = document.getElementById('novaSenhaAcesso');
 
-// --- 🕒 LÓGICA DE HORÁRIOS EM TEMPO REAL ---
-function atualizarStatusLoja() {
-    // Se ainda não carregou os horários do banco, não faz nada
-    if (!horariosSemana || Object.keys(horariosSemana).length === 0) return;
+let urlFotoFinal = "";
+let urlCapaFinal = ""; 
+let emailUsuarioLogado = ""; 
 
-    const agora = new Date();
-    const numeroDia = agora.getDay(); // 0 (Dom) a 6 (Sab)
-    const horaAtualMinutos = (agora.getHours() * 60) + agora.getMinutes();
+// --- FUNÇÃO: APLICAR TEMA DINÂMICO ---
+function aplicarCor(cor) {
+    if (!cor) return;
+    document.documentElement.style.setProperty('--cor-primaria', cor);
+}
 
-    // Mapeamento exato para as chaves do seu banco (letras minúsculas e acentos)
-    const diasTraducao = [
-        "domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"
-    ];
-    const nomeDiaHoje = diasTraducao[numeroDia];
-    const configHoje = horariosSemana[nomeDiaHoje];
-
-    const labelStatus = document.getElementById('labelStatus');
-    const dotStatus = document.getElementById('dotStatus');
-
-    // 1. Verifica se o dia existe e está marcado como aberto
-    if (!configHoje || configHoje.aberto === false || !configHoje.abre || !configHoje.fecha) {
-        lojaAberta = false;
-        renderizarUIStatus(false, "Fechado hoje", null);
-        return;
-    }
-
-    // 2. Converte horários de string para minutos
-    const [hAbre, mAbre] = configHoje.abre.split(':').map(Number);
-    const [hFecha, mFecha] = configHoje.fecha.split(':').map(Number);
-    const minAbre = (hAbre * 60) + mAbre;
-    const minFecha = (hFecha * 60) + mFecha;
-
-    // 3. Lógica para horários (incluindo virada de dia/madrugada)
-    if (minFecha < minAbre) {
-        lojaAberta = (horaAtualMinutos >= minAbre || horaAtualMinutos <= minFecha);
-    } else {
-        lojaAberta = (horaAtualMinutos >= minAbre && horaAtualMinutos <= minFecha);
-    }
-
-    // 4. Atualiza a Interface Visual
-    if (lojaAberta) {
-        renderizarUIStatus(true, "Aberto", configHoje.fecha);
-    } else {
-        renderizarUIStatus(false, "Fechado", configHoje.abre);
+// --- FUNÇÃO: EXIBIR IMAGENS (PREVIEW) ---
+function atualizarPreviewImagem(tipo, url) {
+    if (tipo === 'perfil') {
+        const img = document.getElementById('imgLogo');
+        const placeholder = document.getElementById('placeholderEmoji');
+        if (img && url) {
+            img.src = url;
+            img.classList.remove('hidden');
+            if (placeholder) placeholder.classList.add('hidden');
+        }
+    } else if (tipo === 'capa') {
+        const imgCapa = document.getElementById('imgCapa');
+        const placeholderCapa = document.getElementById('placeholderCapa');
+        if (imgCapa && url) {
+            imgCapa.src = url;
+            imgCapa.classList.remove('hidden');
+            if (placeholderCapa) placeholderCapa.classList.add('hidden');
+        }
     }
 }
 
-function renderizarUIStatus(aberto, texto, horaExibicao) {
-    const labelStatus = document.getElementById('labelStatus');
-    const dotStatus = document.getElementById('dotStatus');
-    
-    if (!labelStatus || !dotStatus) return;
+// --- FUNÇÃO: GERAR LINK E QR CODE ---
+function processarLink(uid) {
+    try {
+        const link = `${window.location.origin}/cardapio.html?id=${uid}`;
+        if (inputLink) inputLink.value = link;
 
-    if (aberto) {
-        dotStatus.className = "w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)] animate-pulse";
-        labelStatus.innerHTML = `<span class="text-green-600 font-bold">Aberto</span> <span class="text-slate-400 text-[10px]">até ${horaExibicao}</span>`;
-    } else {
-        dotStatus.className = "w-2 h-2 rounded-full bg-red-500";
-        labelStatus.innerHTML = `<span class="text-red-600 font-bold">${texto}</span> ${horaExibicao ? '• Abre às ' + horaExibicao : ''}`;
-    }
+        setTimeout(() => {
+            if (typeof QRCode !== "undefined" && qrcodePrintDiv) {
+                qrcodePrintDiv.innerHTML = "";
+                new QRCode(qrcodePrintDiv, { 
+                    text: link, 
+                    width: 250, 
+                    height: 250,
+                    colorDark: "#000000",
+                    colorLight: "#ffffff"
+                });
+            }
+        }, 1000);
+    } catch (e) { console.error("Erro ao gerar QR Code:", e); }
 }
 
-// Verifica o horário a cada 30 segundos
-setInterval(atualizarStatusLoja, 30000);
-
-// --- 🛒 FUNÇÕES DO CARRINHO ---
-window.adicionarAoCarrinho = (nome, preco) => {
-    if (!lojaAberta) {
-        Swal.fire({ 
-            icon: 'error', 
-            title: 'Loja Fechada', 
-            text: 'Desculpe, não estamos aceitando pedidos no momento.',
-            confirmButtonColor: 'var(--cor-primaria, #ef4444)'
-        });
+// --- ESCUTAR ESTADO DO USUÁRIO ---
+onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+        window.location.href = "index.html";
         return;
     }
-    carrinho.push({ nome, preco: Number(preco) });
-    atualizarBadgeCarrinho();
+
+    emailUsuarioLogado = user.email || user.providerData?.[0]?.email || "";
+    processarLink(user.uid);
+
+    try {
+        const docRef = doc(db, "usuarios", user.uid);
+        const docSnap = await getDoc(docRef);
+        
+        if (docSnap.exists()) {
+            const d = docSnap.data();
+            
+            if (!emailUsuarioLogado && d.email) {
+                emailUsuarioLogado = d.email;
+            }
+
+            document.getElementById('nomeNegocio').value = d.nomeNegocio || "";
+            document.getElementById('whatsappNegocio').value = d.whatsapp || "";
+            
+            // Carregar Configurações de Entrega
+            if (d.configEntrega) {
+                tipoEntrega.value = d.configEntrega.tipo || 'fixo';
+                taxaFixa.value = d.configEntrega.taxaFixa || "";
+                raioMaximo.value = d.configEntrega.raioMaximo || "";
+                valorKm.value = d.configEntrega.valorKm || "";
+                lojaLat.value = d.configEntrega.coords?.lat || "";
+                lojaLog.value = d.configEntrega.coords?.log || "";
+                
+                if (d.configEntrega.tipo === 'raio') {
+                    document.getElementById('btnModoRaio')?.click();
+                } else {
+                    document.getElementById('btnModoFixo')?.click();
+                }
+
+                if (d.configEntrega.coords?.lat) {
+                    statusGPS.innerHTML = "✅ Localização Base Fixada";
+                }
+            }
+
+            // --- NOVO: Carregar Horários de Funcionamento ---
+            if (d.horarios) {
+                const dias = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domingo"];
+                dias.forEach(dia => {
+                    if (d.horarios[dia]) {
+                        const inputAbre = document.querySelector(`input[name="abre_${dia}"]`);
+                        const inputFecha = document.querySelector(`input[name="fecha_${dia}"]`);
+                        const checkStatus = document.querySelector(`input[name="status_${dia}"]`);
+
+                        if (inputAbre) inputAbre.value = d.horarios[dia].abre || "";
+                        if (inputFecha) inputFecha.value = d.horarios[dia].fecha || "";
+                        if (checkStatus) checkStatus.checked = d.horarios[dia].aberto;
+                    }
+                });
+            }
+
+            const titulo = d.nomeNegocio || "Minha Loja";
+            if(sideNome) sideNome.innerText = titulo;
+            if(mobileNome) mobileNome.innerText = titulo;
+            
+            if (d.fotoPerfil) {
+                urlFotoFinal = d.fotoPerfil;
+                atualizarPreviewImagem('perfil', d.fotoPerfil);
+            }
+            if (d.fotoCapa) {
+                urlCapaFinal = d.fotoCapa;
+                atualizarPreviewImagem('capa', d.fotoCapa);
+            }
+            aplicarCor(d.corTema);
+        }
+    } catch (err) { console.error("Erro ao carregar perfil:", err); }
+});
+
+// --- UPLOADS ---
+const realizarUpload = async (tipo, file) => {
+    const nomeArquivo = `${Date.now()}_${file.name}`;
+    const sRef = ref(storage, `${tipo}/${auth.currentUser.uid}/${nomeArquivo}`);
+    await uploadBytes(sRef, file);
+    return await getDownloadURL(sRef);
 };
 
-function atualizarBadgeCarrinho() {
-    const btn = document.getElementById('btnCarrinho');
-    const badge = document.getElementById('qtdItensCarrinho');
-    if (carrinho.length > 0) {
-        btn?.classList.remove('hidden');
-        if (badge) badge.innerText = carrinho.length;
+document.getElementById('fileInput')?.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file || !auth.currentUser) return;
+    try {
+        btnSalvarPerfil.disabled = true;
+        btnSalvarPerfil.innerText = "⏳ ENVIANDO LOGO...";
+        urlFotoFinal = await realizarUpload('logos', file);
+        atualizarPreviewImagem('perfil', urlFotoFinal);
+        btnSalvarPerfil.disabled = false;
+        btnSalvarPerfil.innerText = "Salvar Todas as Configurações";
+    } catch (err) { 
+        Swal.fire('Erro', 'Não foi possível subir a imagem.', 'error');
+        btnSalvarPerfil.disabled = false; 
     }
-}
+});
 
-// --- 🚀 INICIALIZAÇÃO DOS DADOS ---
-async function inicializarCardapio() {
-    if (!userId) {
-        console.error("ID do usuário não encontrado na URL.");
-        return;
+document.getElementById('fileCapa')?.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file || !auth.currentUser) return;
+    try {
+        btnSalvarPerfil.disabled = true;
+        btnSalvarPerfil.innerText = "⏳ ENVIANDO CAPA...";
+        urlCapaFinal = await realizarUpload('capas', file);
+        atualizarPreviewImagem('capa', urlCapaFinal);
+        btnSalvarPerfil.disabled = false;
+        btnSalvarPerfil.innerText = "Salvar Todas as Configurações";
+    } catch (err) { 
+        Swal.fire('Erro', 'Não foi possível subir a capa.', 'error');
+        btnSalvarPerfil.disabled = false; 
+    }
+});
+
+// --- SALVAR TUDO NO FIRESTORE ---
+formPerfil?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const user = auth.currentUser;
+    if(!user) return;
+
+    btnSalvarPerfil.innerText = "⏳ SALVANDO...";
+    btnSalvarPerfil.disabled = true;
+
+    try {
+        const corSelecionada = document.querySelector('input[name="temaCor"]:checked')?.value || "#2563eb";
+        
+        // --- NOVO: Capturar Horários ---
+        const horarios = {};
+        const diasSemana = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domingo"];
+        
+        diasSemana.forEach(dia => {
+            horarios[dia] = {
+                abre: document.querySelector(`input[name="abre_${dia}"]`).value,
+                fecha: document.querySelector(`input[name="fecha_${dia}"]`).value,
+                aberto: document.querySelector(`input[name="status_${dia}"]`).checked
+            };
+        });
+
+        const novosDados = {
+            nomeNegocio: document.getElementById('nomeNegocio').value.trim(),
+            whatsapp: document.getElementById('whatsappNegocio').value.trim(),
+            fotoPerfil: urlFotoFinal,
+            fotoCapa: urlCapaFinal,
+            corTema: corSelecionada,
+            horarios: horarios, // Salvando o objeto de horários
+            configEntrega: {
+                tipo: tipoEntrega.value,
+                taxaFixa: parseFloat(taxaFixa.value) || 0,
+                raioMaximo: parseFloat(raioMaximo.value) || 0,
+                valorKm: parseFloat(valorKm.value) || 0,
+                coords: { lat: lojaLat.value, log: lojaLog.value }
+            },
+            userId: user.uid,
+            email: user.email || emailUsuarioLogado || "", 
+            ultimaAtualizacao: new Date().toISOString()
+        };
+
+        await setDoc(doc(db, "usuarios", user.uid), novosDados, { merge: true });
+
+        Swal.fire({
+            icon: 'success',
+            title: 'Perfil Atualizado!',
+            text: 'Suas informações, incluindo horários, foram salvas.',
+            confirmButtonColor: corSelecionada
+        });
+        
+    } catch (err) {
+        console.error(err);
+        Swal.fire('Erro', 'Ocorreu um erro ao salvar os dados.', 'error');
+    } finally {
+        btnSalvarPerfil.innerText = "Salvar Todas as Configurações";
+        btnSalvarPerfil.disabled = false;
+    }
+});
+
+// --- VINCULAR E-MAIL E SENHA ---
+btnVincularSenha?.addEventListener('click', async () => {
+    const user = auth.currentUser;
+    const senha = novaSenhaAcesso.value;
+    
+    let emailFinal = user?.email || 
+                     user?.providerData?.find(p => p.email)?.email || 
+                     emailUsuarioLogado;
+
+    if (!emailFinal && user) {
+        try {
+            const snap = await getDoc(doc(db, "usuarios", user.uid));
+            if (snap.exists()) emailFinal = snap.data().email;
+        } catch (e) { console.error("Falha no resgate de e-mail:", e); }
+    }
+
+    if (!emailFinal) {
+        return Swal.fire({
+            icon: 'error',
+            title: 'Identificação Pendente',
+            text: 'Por favor, salve as configurações no fim da página primeiro.',
+        });
+    }
+
+    if (!senha || senha.length < 6) {
+        return Swal.fire('Atenção', 'A senha deve ter pelo menos 6 caracteres.', 'warning');
     }
 
     try {
-        // 1. Carregar Configurações da Loja
-        const userSnap = await getDoc(doc(db, "usuarios", userId));
+        Swal.fire({ title: 'Vinculando...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
+        const credential = EmailAuthProvider.credential(emailFinal, senha);
+        await linkWithCredential(user, credential);
         
-        if (userSnap.exists()) {
-            const d = userSnap.data();
-            whatsappLoja = d.whatsapp || "";
-            horariosSemana = d.horarios || {}; 
-            configEntrega = d.configEntrega || null;
-
-            // Elementos de Identidade
-            const nomeLojaEl = document.getElementById('nomeLoja');
-            if (nomeLojaEl) nomeLojaEl.innerText = d.nomeNegocio || "Loja";
-            
-            if (d.corTema) {
-                document.documentElement.style.setProperty('--cor-primaria', d.corTema);
-            }
-            
-            const imgLogo = document.getElementById('logoLoja');
-            if (d.fotoPerfil && imgLogo) imgLogo.src = d.fotoPerfil;
-            
-            const imgCapa = document.getElementById('capaLoja');
-            if (d.fotoCapa && imgCapa) imgCapa.style.backgroundImage = `url('${d.fotoCapa}')`;
-
-            // Executa a primeira verificação de horário após carregar os dados
-            atualizarStatusLoja();
-        }
-
-        // 2. Carregar Produtos
-        const q = query(collection(db, "produtos"), where("userId", "==", userId));
-        const snap = await getDocs(q);
-        renderizarProdutos(snap);
-
-    } catch (e) {
-        console.error("Erro ao carregar cardápio:", e);
-    } finally {
-        // Esconde o loader
-        const loader = document.getElementById('loading-overlay');
-        if (loader) loader.classList.add('hidden');
-    }
-}
-
-function renderizarProdutos(snap) {
-    const main = document.getElementById('mainContainer');
-    const nav = document.getElementById('navCategorias');
-    if (!main || !nav) return;
-
-    main.innerHTML = ""; 
-    nav.innerHTML = "";
-    const prodsPorCat = {};
-
-    snap.forEach(doc => {
-        const p = doc.data();
-        if (!prodsPorCat[p.categoria]) prodsPorCat[p.categoria] = [];
-        prodsPorCat[p.categoria].push(p);
-    });
-
-    Object.keys(prodsPorCat).forEach(cat => {
-        const catId = cat.replace(/\s/g, '');
-        
-        // Link da Navegação
-        nav.innerHTML += `
-            <a href="#${catId}" class="px-4 py-2 bg-white rounded-full shadow-sm text-[11px] font-bold whitespace-nowrap border border-slate-100 text-slate-600">
-                ${cat}
-            </a>`;
-        
-        // Seção de Produtos
-        let html = `
-            <section id="${catId}" class="pt-6">
-                <h2 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 px-2">${cat}</h2>
-                <div class="grid grid-cols-1 gap-3">`;
-
-        prodsPorCat[cat].forEach(p => {
-            html += `
-                <div class="bg-white p-3 rounded-3xl flex items-center justify-between shadow-sm border border-slate-50 transition-all active:scale-[0.98]">
-                    <div class="flex-1 pr-4">
-                        <h3 class="text-sm font-bold text-slate-800">${p.nome}</h3>
-                        <p class="text-[10px] text-slate-400 mt-1 line-clamp-2">${p.descricao || ''}</p>
-                        <p class="text-brand font-black mt-2 text-sm">R$ ${Number(p.preco).toFixed(2)}</p>
-                    </div>
-                    <div class="relative w-20 h-20 shrink-0">
-                        <img src="${p.foto}" class="w-full h-full object-cover rounded-2xl shadow-inner bg-slate-50" onerror="this.src='https://placehold.co/200x200?text=Sem+Foto'">
-                        <button onclick="adicionarAoCarrinho('${p.nome}', ${p.preco})" 
-                                class="absolute -bottom-1 -right-1 w-8 h-8 bg-brand text-white rounded-xl shadow-lg flex items-center justify-center font-bold hover:brightness-110 transition-all">
-                            +
-                        </button>
-                    </div>
-                </div>`;
+        Swal.fire({
+            icon: 'success',
+            title: 'Senha Definida!',
+            text: `Agora você pode logar com seu e-mail: ${emailFinal}`,
+            confirmButtonColor: '#2563eb'
         });
-        main.innerHTML += html + `</div></section>`;
-    });
-}
+        novaSenhaAcesso.value = "";
 
-// Iniciar Processo
-inicializarCardapio();
+    } catch (err) {
+        if (err.code === 'auth/requires-recent-login') {
+            const provider = new GoogleAuthProvider();
+            await reauthenticateWithPopup(user, provider);
+            const cred = EmailAuthProvider.credential(emailFinal, senha);
+            await linkWithCredential(user, cred);
+            Swal.fire('Sucesso!', 'Senha definida!', 'success');
+        } else {
+            Swal.fire('Erro', `Falha: ${err.code}`, 'error');
+        }
+    }
+});
+
+// --- AUXILIARES ---
+document.getElementById('btnCopiarLink')?.addEventListener('click', () => {
+    if(inputLink && inputLink.value) {
+        navigator.clipboard.writeText(inputLink.value);
+        Swal.fire({ icon: 'success', title: 'Copiado!', timer: 1500, showConfirmButton: false });
+    }
+});
+
+document.getElementById('btnCapturarGps')?.addEventListener('click', () => {
+    statusGPS.innerHTML = "⏳ Localizando...";
+    navigator.geolocation.getCurrentPosition((pos) => {
+        lojaLat.value = pos.coords.latitude;
+        lojaLog.value = pos.coords.longitude;
+        statusGPS.innerHTML = "✅ Localização Base Fixada";
+    }, (err) => {
+        statusGPS.innerHTML = "❌ Erro ao localizar";
+        Swal.fire('Erro', 'Ative o GPS do seu dispositivo.', 'error');
+    });
+});
+
+const sair = async () => {
+    const result = await Swal.fire({
+        title: 'Sair?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Sair'
+    });
+    if (result.isConfirmed) {
+        signOut(auth).then(() => window.location.href="index.html");
+    }
+};
+
+document.getElementById('btnSairDesktop')?.addEventListener('click', sair);
+
