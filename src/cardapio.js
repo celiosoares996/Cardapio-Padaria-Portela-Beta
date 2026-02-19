@@ -60,7 +60,7 @@ function renderizarUIStatus(aberto, texto, hora) {
         : `<span class="text-red-600 font-bold">${texto}</span> ${hora ? '• Abre às ' + hora : ''}`;
 }
 
-// --- 📍 LOCALIZAÇÃO E FRETE ---
+// --- 📍 LOCALIZAÇÃO E FRETE (SISTEMA KM ATIVADO) ---
 let timeoutCEP;
 window.mascaraCEP = (input) => {
     let v = input.value.replace(/\D/g, '');
@@ -78,13 +78,12 @@ async function buscarCEP(cep) {
     const statusCEP = document.getElementById('statusCEP');
     const btnPgto = document.getElementById('btnProximo2');
     
-    // 🔑 IMPORTANTE: Substitua pela sua chave do LocationIQ (https://locationiq.com/)
-    const API_KEY_LOCATIONIQ = "SUA_CHAVE_AQUI"; 
+    // 🔑 Sua chave do LocationIQ inserida com sucesso!
+    const API_KEY_LOCATIONIQ = "pk.e6ab2789e2668e794d7e2f02f4be127c"; 
 
     try {
         statusCEP.innerText = "⏳ Localizando endereço...";
         
-        // 1. Busca Endereço (ViaCEP - Sem bloqueio de CORS)
         const resp = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
         const data = await resp.json();
         
@@ -98,14 +97,12 @@ async function buscarCEP(cep) {
         document.getElementById('textoEnderecoAuto').innerText = `${data.logradouro}, ${data.bairro}`;
         enderecoCompleto = { rua: data.logradouro, bairro: data.bairro, cidade: data.localidade, cep: cep };
 
-        // 2. Cálculo de Geocodificação (LocationIQ)
-        statusCEP.innerText = "⏳ Calculando frete...";
+        statusCEP.innerText = "⏳ Calculando frete por KM...";
         try {
-            // Usamos LocationIQ que possui suporte nativo a CORS e alta disponibilidade
             const geoUrl = `https://us1.locationiq.com/v1/search?key=${API_KEY_LOCATIONIQ}&postalcode=${cep}&country=Brazil&format=json&limit=1`;
-            
             const geo = await fetch(geoUrl);
-            if (!geo.ok) throw new Error("Erro na API de Mapas");
+            
+            if (!geo.ok) throw new Error("Erro na API de Geocodificação");
 
             const geoData = await geo.json();
             
@@ -116,12 +113,12 @@ async function buscarCEP(cep) {
                 const lngCliente = parseFloat(geoData[0].lon);
 
                 distanciaCliente = calcularDistancia(latLoja, lngLoja, latCliente, lngCliente);
-                statusCEP.innerText = "✅ Frete calculado!";
+                statusCEP.innerText = `✅ Entrega a ${distanciaCliente.toFixed(1)}km`;
             } else {
-                throw new Error("Localização não mapeada");
+                throw new Error("Dados de localização incompletos");
             }
         } catch (mapError) {
-            console.warn("Aviso: Falha no mapa, usando frete padrão:", mapError);
+            console.warn("Usando taxa fixa (Mapa indisponível):", mapError);
             distanciaCliente = 0; 
             statusCEP.innerText = "✅ Frete padrão aplicado";
         }
@@ -135,7 +132,7 @@ async function buscarCEP(cep) {
 
     } catch (e) { 
         console.error("Erro crítico:", e);
-        statusCEP.innerText = "⚠️ CEP validado. Verifique o total abaixo.";
+        statusCEP.innerText = "⚠️ CEP OK. Verifique o frete abaixo.";
         recalcularTaxa();
         if(btnPgto) btnPgto.disabled = false;
     }
@@ -150,6 +147,8 @@ function calcularDistancia(lat1, lon1, lat2, lon2) {
 }
 
 function recalcularTaxa() {
+    const subtotal = carrinho.reduce((a, b) => a + b.preco, 0);
+    
     if (modoPedido === 'retirada') {
         taxaEntregaAtual = 0;
     } else if (configEntrega?.tipo === 'km' && distanciaCliente > 0) {
@@ -256,8 +255,6 @@ window.enviarWhatsApp = async () => {
         window.open(`https://wa.me/55${whatsappLoja.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`);
     } catch (e) { alert("Erro ao processar pedido."); }
 };
-
-window.verificarCliente = () => {};
 
 // --- 🚀 INICIALIZAÇÃO ---
 async function inicializar() {
