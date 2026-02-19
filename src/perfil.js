@@ -6,7 +6,6 @@ import {
     getDocs,
     doc,
     getDoc,
-    addDoc,
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
@@ -16,25 +15,24 @@ const userId = params.get('id');
 // --- VARIÁVEIS DE ESTADO DA LOJA ---
 let whatsappLoja = "";
 let lojaAberta = false;
-let horariosSemana = {}; 
+let horariosSemana = null; // Inicializa como null para controle de carregamento
 let configEntrega = null;
 
 // --- ESTADO DO PEDIDO ---
 let carrinho = [];
 let taxaEntregaAtual = 0;
-let distanciaCliente = 0;
 let modoPedido = 'entrega';
-let enderecoCompleto = { rua: "", bairro: "", cidade: "", cep: "" };
 
 // --- 🕒 LÓGICA DE HORÁRIOS EM TEMPO REAL ---
 function atualizarStatusLoja() {
-    if (!horariosSemana) return;
+    // Se ainda não carregou os horários do banco, não faz nada
+    if (!horariosSemana || Object.keys(horariosSemana).length === 0) return;
 
     const agora = new Date();
     const numeroDia = agora.getDay(); // 0 (Dom) a 6 (Sab)
     const horaAtualMinutos = (agora.getHours() * 60) + agora.getMinutes();
 
-    // Mapeamento para bater com as chaves que você salva no seu Painel ADM
+    // Mapeamento exato para as chaves do seu banco (letras minúsculas e acentos)
     const diasTraducao = [
         "domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"
     ];
@@ -44,27 +42,27 @@ function atualizarStatusLoja() {
     const labelStatus = document.getElementById('labelStatus');
     const dotStatus = document.getElementById('dotStatus');
 
-    // 1. Verifica se está marcado como fechado ou se não há horários
-    if (!configHoje || !configHoje.aberto || !configHoje.abre || !configHoje.fecha) {
+    // 1. Verifica se o dia existe e está marcado como aberto
+    if (!configHoje || configHoje.aberto === false || !configHoje.abre || !configHoje.fecha) {
         lojaAberta = false;
         renderizarUIStatus(false, "Fechado hoje", null);
         return;
     }
 
-    // 2. Converte "18:00" em minutos (18 * 60 = 1080)
+    // 2. Converte horários de string para minutos
     const [hAbre, mAbre] = configHoje.abre.split(':').map(Number);
     const [hFecha, mFecha] = configHoje.fecha.split(':').map(Number);
     const minAbre = (hAbre * 60) + mAbre;
     const minFecha = (hFecha * 60) + mFecha;
 
-    // 3. Lógica para horários que atravessam a meia-noite (ex: 18:00 às 02:00)
+    // 3. Lógica para horários (incluindo virada de dia/madrugada)
     if (minFecha < minAbre) {
         lojaAberta = (horaAtualMinutos >= minAbre || horaAtualMinutos <= minFecha);
     } else {
         lojaAberta = (horaAtualMinutos >= minAbre && horaAtualMinutos <= minFecha);
     }
 
-    // 4. Atualiza a Interface
+    // 4. Atualiza a Interface Visual
     if (lojaAberta) {
         renderizarUIStatus(true, "Aberto", configHoje.fecha);
     } else {
@@ -93,7 +91,12 @@ setInterval(atualizarStatusLoja, 30000);
 // --- 🛒 FUNÇÕES DO CARRINHO ---
 window.adicionarAoCarrinho = (nome, preco) => {
     if (!lojaAberta) {
-        Swal.fire({ icon: 'error', title: 'Loja Fechada', text: 'Desculpe, não estamos aceitando pedidos no momento.' });
+        Swal.fire({ 
+            icon: 'error', 
+            title: 'Loja Fechada', 
+            text: 'Desculpe, não estamos aceitando pedidos no momento.',
+            confirmButtonColor: 'var(--cor-primaria, #ef4444)'
+        });
         return;
     }
     carrinho.push({ nome, preco: Number(preco) });
@@ -111,30 +114,36 @@ function atualizarBadgeCarrinho() {
 
 // --- 🚀 INICIALIZAÇÃO DOS DADOS ---
 async function inicializarCardapio() {
-    if (!userId) return;
+    if (!userId) {
+        console.error("ID do usuário não encontrado na URL.");
+        return;
+    }
 
     try {
-        // 1. Carregar Dados do Usuário (Horários e Configurações)
+        // 1. Carregar Configurações da Loja
         const userSnap = await getDoc(doc(db, "usuarios", userId));
+        
         if (userSnap.exists()) {
             const d = userSnap.data();
             whatsappLoja = d.whatsapp || "";
-            horariosSemana = d.horarios || {}; // Pega o objeto que você salva no painel
-            configEntrega = d.configEntrega;
+            horariosSemana = d.horarios || {}; 
+            configEntrega = d.configEntrega || null;
 
-            document.getElementById('nomeLoja').innerText = d.nomeNegocio || "Loja";
+            // Elementos de Identidade
+            const nomeLojaEl = document.getElementById('nomeLoja');
+            if (nomeLojaEl) nomeLojaEl.innerText = d.nomeNegocio || "Loja";
             
-            // Aplicar cor do tema
-            if (d.corTema) document.documentElement.style.setProperty('--cor-primaria', d.corTema);
+            if (d.corTema) {
+                document.documentElement.style.setProperty('--cor-primaria', d.corTema);
+            }
             
-            // Logo e Capa
             const imgLogo = document.getElementById('logoLoja');
             if (d.fotoPerfil && imgLogo) imgLogo.src = d.fotoPerfil;
             
             const imgCapa = document.getElementById('capaLoja');
             if (d.fotoCapa && imgCapa) imgCapa.style.backgroundImage = `url('${d.fotoCapa}')`;
 
-            // Rodar verificação de horário inicial
+            // Executa a primeira verificação de horário após carregar os dados
             atualizarStatusLoja();
         }
 
@@ -146,7 +155,9 @@ async function inicializarCardapio() {
     } catch (e) {
         console.error("Erro ao carregar cardápio:", e);
     } finally {
-        document.getElementById('loading-overlay')?.classList.add('hidden');
+        // Esconde o loader
+        const loader = document.getElementById('loading-overlay');
+        if (loader) loader.classList.add('hidden');
     }
 }
 
@@ -155,7 +166,8 @@ function renderizarProdutos(snap) {
     const nav = document.getElementById('navCategorias');
     if (!main || !nav) return;
 
-    main.innerHTML = ""; nav.innerHTML = "";
+    main.innerHTML = ""; 
+    nav.innerHTML = "";
     const prodsPorCat = {};
 
     snap.forEach(doc => {
@@ -166,11 +178,18 @@ function renderizarProdutos(snap) {
 
     Object.keys(prodsPorCat).forEach(cat => {
         const catId = cat.replace(/\s/g, '');
-        nav.innerHTML += `<a href="#${catId}" class="px-4 py-2 bg-white rounded-full shadow-sm text-xs font-bold whitespace-nowrap border border-slate-100">${cat}</a>`;
         
-        let html = `<section id="${catId}" class="pt-6">
-            <h2 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 px-2">${cat}</h2>
-            <div class="grid grid-cols-1 gap-3">`;
+        // Link da Navegação
+        nav.innerHTML += `
+            <a href="#${catId}" class="px-4 py-2 bg-white rounded-full shadow-sm text-[11px] font-bold whitespace-nowrap border border-slate-100 text-slate-600">
+                ${cat}
+            </a>`;
+        
+        // Seção de Produtos
+        let html = `
+            <section id="${catId}" class="pt-6">
+                <h2 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 px-2">${cat}</h2>
+                <div class="grid grid-cols-1 gap-3">`;
 
         prodsPorCat[cat].forEach(p => {
             html += `
@@ -178,12 +197,14 @@ function renderizarProdutos(snap) {
                     <div class="flex-1 pr-4">
                         <h3 class="text-sm font-bold text-slate-800">${p.nome}</h3>
                         <p class="text-[10px] text-slate-400 mt-1 line-clamp-2">${p.descricao || ''}</p>
-                        <p class="text-brand font-black mt-2">R$ ${Number(p.preco).toFixed(2)}</p>
+                        <p class="text-brand font-black mt-2 text-sm">R$ ${Number(p.preco).toFixed(2)}</p>
                     </div>
                     <div class="relative w-20 h-20 shrink-0">
-                        <img src="${p.foto}" class="w-full h-full object-cover rounded-2xl shadow-inner bg-slate-100">
+                        <img src="${p.foto}" class="w-full h-full object-cover rounded-2xl shadow-inner bg-slate-50" onerror="this.src='https://placehold.co/200x200?text=Sem+Foto'">
                         <button onclick="adicionarAoCarrinho('${p.nome}', ${p.preco})" 
-                                class="absolute -bottom-1 -right-1 w-8 h-8 bg-brand text-white rounded-xl shadow-lg flex items-center justify-center font-bold hover:brightness-110 transition-all">+</button>
+                                class="absolute -bottom-1 -right-1 w-8 h-8 bg-brand text-white rounded-xl shadow-lg flex items-center justify-center font-bold hover:brightness-110 transition-all">
+                            +
+                        </button>
                     </div>
                 </div>`;
         });
@@ -191,5 +212,5 @@ function renderizarProdutos(snap) {
     });
 }
 
-// Iniciar
+// Iniciar Processo
 inicializarCardapio();
