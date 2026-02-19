@@ -302,11 +302,8 @@ window.enviarWhatsApp = async () => {
         msg += `_Pedido registrado no sistema._`;
 
         const linkWhats = `https://wa.me/${numDestino}?text=${encodeURIComponent(msg)}`;
-
-        // Redirecionamento compatível com mobile/Safari
         window.location.assign(linkWhats);
 
-        // Limpa o estado
         carrinho = [];
         fecharCarrinho();
         atualizarBadgeCarrinho();
@@ -359,16 +356,21 @@ async function inicializar() {
             const banner = document.getElementById('bannerLoja');
             if (banner && d.fotoCapa) banner.style.backgroundImage = `url('${d.fotoCapa}')`;
 
+            // --- LÓGICA DE STATUS COM HORÁRIO DINÂMICO ---
             lojaAberta = verificarSeEstaAberto(d.horarioAbertura, d.horarioFechamento);
             const labelStatus = document.getElementById('labelStatus');
             const dotStatus = document.getElementById('dotStatus');
 
             if (lojaAberta) {
                 if (dotStatus) dotStatus.className = "w-2 h-2 rounded-full bg-green-500 ping-aberto";
-                if (labelStatus) labelStatus.innerHTML = `<span class="text-green-600 font-bold">Aberto</span> até ${d.horarioFechamento}`;
+                if (labelStatus) {
+                    labelStatus.innerHTML = `<span class="text-green-600 font-bold">Aberto</span> até ${d.horarioFechamento || '--:--'}`;
+                }
             } else {
                 if (dotStatus) dotStatus.className = "w-2 h-2 rounded-full bg-red-500";
-                if (labelStatus) labelStatus.innerHTML = `<span class="text-red-600 font-bold">Fechado</span>`;
+                if (labelStatus) {
+                    labelStatus.innerHTML = `<span class="text-red-600 font-bold">Fechado</span> • Abre às ${d.horarioAbertura || '--:--'}`;
+                }
             }
         }
 
