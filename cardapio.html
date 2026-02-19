@@ -1,240 +1,202 @@
-import { db } from './firebase-config.js';
-import {
-    collection,
-    query,
-    where,
-    getDocs,
-    doc,
-    getDoc,
-    setDoc,
-    addDoc,
-    serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-const params = new URLSearchParams(window.location.search);
-const userId = params.get('id');
-let whatsappLoja = "";
-let lojaAberta = true;
-let configHorario = { abertura: "", fechamento: "" };
-let configEntrega = null;
-
-let carrinho = [];
-let taxaEntregaAtual = 0;
-let distanciaCliente = 0;
-let modoPedido = 'entrega';
-let formaPagamento = 'Dinheiro'; // Valor default
-let enderecoCompleto = { rua: "", bairro: "", cidade: "", cep: "" };
-let clienteLogado = null;
-
-// --- FUNÇÕES DE AUXÍLIO ---
-function calcularDistancia(lat1, lon1, lat2, lon2) {
-    const R = 6371;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-              Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-}
-
-window.definirModo = (modo) => {
-    modoPedido = modo;
-    document.getElementById('optEntrega').classList.toggle('border-brand', modo === 'entrega');
-    document.getElementById('optRetirada').classList.toggle('border-brand', modo === 'retirada');
-    recalcularTaxaEntrega();
-};
-
-function recalcularTaxaEntrega() {
-    if (modoPedido === 'retirada') {
-        taxaEntregaAtual = 0;
-    } else if (configEntrega && configEntrega.tipo === 'km') {
-        taxaEntregaAtual = parseFloat((distanciaCliente * configEntrega.valorKm).toFixed(2));
-    } else if (configEntrega) {
-        taxaEntregaAtual = Number(configEntrega.taxaFixa) || 0;
-    }
-    renderizarCarrinho();
-}
-
-// --- RENDERIZAÇÃO DO LAYOUT ---
-window.adicionarAoCarrinho = (nome, preco) => {
-    if (!lojaAberta) {
-        alert("Loja Fechada no momento!");
-        return;
-    }
-    carrinho.push({ nome, preco: Number(preco) });
-    atualizarBadgeCarrinho();
-    renderizarCarrinho();
-};
-
-function atualizarBadgeCarrinho() {
-    const btn = document.getElementById('btnCarrinho');
-    const badgeQtd = document.getElementById('qtdItensCarrinho');
-    if (carrinho.length > 0) {
-        btn.classList.remove('hidden');
-        if (badgeQtd) badgeQtd.innerText = carrinho.length;
-    } else {
-        btn.classList.add('hidden');
-    }
-}
-
-function renderizarCarrinho() {
-    const container = document.getElementById('listaItensCarrinho');
-    const totalP1 = document.getElementById('totalPasso1');
-    const badgeTotal = document.getElementById('valorTotalBadge');
-
-    if (!container) return;
-    container.innerHTML = "";
-    let subtotal = 0;
-
-    carrinho.forEach((item, index) => {
-        subtotal += item.preco;
-        container.innerHTML += `
-            <div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl mb-1">
-                <div class="flex flex-col">
-                    <span class="text-xs font-bold text-slate-700 uppercase">${item.nome}</span>
-                    <span class="text-xs text-brand font-black">R$ ${item.preco.toFixed(2)}</span>
-                </div>
-                <button onclick="window.removerDoCarrinho(${index})" class="text-[10px] font-black text-red-500 bg-red-50 px-3 py-1 rounded-lg uppercase">Remover</button>
-            </div>`;
-    });
-
-    const totalGeral = subtotal + taxaEntregaAtual;
-    if (badgeTotal) badgeTotal.innerText = `R$ ${totalGeral.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
-
-    if (totalP1) {
-        totalP1.innerHTML = `
-            <div class="flex justify-between items-center p-4 bg-slate-900 rounded-2xl text-white mt-4">
-                <span class="text-[10px] font-bold uppercase opacity-60 italic">Total Geral</span>
-                <span class="font-black text-lg">R$ ${totalGeral.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-            </div>`;
-    }
-}
-
-window.removerDoCarrinho = (index) => {
-    carrinho.splice(index, 1);
-    atualizarBadgeCarrinho();
-    renderizarCarrinho();
-};
-
-window.abrirCarrinho = () => {
-    document.getElementById('modalCarrinho').classList.remove('hidden');
-    renderizarCarrinho();
-};
-
-window.fecharCarrinho = () => {
-    document.getElementById('modalCarrinho').classList.add('hidden');
-};
-
-// --- LÓGICA WHATSAPP ---
-window.enviarWhatsApp = async () => {
-    const nomeCliente = document.getElementById('inputNome')?.value || "Cliente Online";
-    const subtotal = carrinho.reduce((a, b) => a + b.preco, 0);
-    const totalFinal = subtotal + taxaEntregaAtual;
-
-    let numDestino = whatsappLoja.replace(/\D/g, '');
-    if (numDestino.length >= 10 && numDestino.length <= 11) numDestino = '55' + numDestino;
-
-    let msg = `*NOVO PEDIDO* 🍔\n`;
-    msg += `*Cliente:* ${nomeCliente}\n`;
-    msg += `------------------------------\n`;
-    carrinho.forEach(i => msg += `• ${i.nome} - R$ ${i.preco.toFixed(2)}\n`);
-    msg += `------------------------------\n`;
-    msg += `*Modo:* ${modoPedido === 'entrega' ? '🛵 Entrega' : '🛍️ Retirada'}\n`;
-    msg += `*TOTAL: R$ ${totalFinal.toFixed(2)}*\n`;
-
-    const linkWhats = `https://wa.me/${numDestino}?text=${encodeURIComponent(msg)}`;
-    window.location.assign(linkWhats);
-};
-
-// --- INICIALIZAÇÃO ---
-function verificarSeEstaAberto(abertura, fechamento) {
-    if (!abertura || !fechamento) return true;
-    const agora = new Date();
-    const horaAtual = agora.getHours() * 60 + agora.getMinutes();
-    const [hAbre, mAbre] = abertura.split(':').map(Number);
-    const [hFecha, mFecha] = fechamento.split(':').map(Number);
-    const minAbre = hAbre * 60 + mAbre;
-    const minFecha = hFecha * 60 + mFecha;
-    if (minFecha < minAbre) return horaAtual >= minAbre || horaAtual <= minFecha;
-    return horaAtual >= minAbre && horaAtual <= minFecha;
-}
-
-async function inicializar() {
-    if (!userId) return;
-    try {
-        const userSnap = await getDoc(doc(db, "usuarios", userId));
-        if (userSnap.exists()) {
-            const d = userSnap.data();
-            whatsappLoja = d.whatsapp || "";
-            if (d.corTema) document.documentElement.style.setProperty('--cor-primaria', d.corTema);
-            
-            document.getElementById('nomeLoja').innerText = d.nomeNegocio || "Loja";
-            if (d.fotoCapa) document.getElementById('bannerLoja').style.backgroundImage = `url('${d.fotoCapa}')`;
-            
-            const imgPerfil = document.getElementById('logoLoja');
-            if ((d.fotoPerfil || d.fotoLogo) && imgPerfil) {
-                imgPerfil.src = d.fotoPerfil || d.fotoLogo;
-                imgPerfil.classList.remove('hidden');
-                document.getElementById('emojiLoja').classList.add('hidden');
-            }
-
-            lojaAberta = verificarSeEstaAberto(d.horarioAbertura, d.horarioFechamento);
-            const dot = document.getElementById('dotStatus');
-            const label = document.getElementById('labelStatus');
-            if (lojaAberta) {
-                dot.className = "w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]";
-                label.innerHTML = `<span class="text-green-600">Aberto</span> • Fecha às ${d.horarioFechamento}`;
-            } else {
-                dot.className = "w-2 h-2 rounded-full bg-red-500";
-                label.innerHTML = `<span class="text-red-600">Fechado no momento</span>`;
-            }
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cardápio Digital Dark</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root { --cor-primaria: #ffca28; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #0f1115; 
+            color: #ffffff;
+            -webkit-tap-highlight-color: transparent;
         }
+        .app-container {
+            max-width: 500px;
+            margin: 0 auto;
+            background-color: #16191e;
+            min-height: 100vh;
+            position: relative;
+        }
+        .category-tab {
+            white-space: nowrap;
+            padding: 10px 20px;
+            border-radius: 50px;
+            background: #23272f;
+            color: #94a3b8;
+            font-size: 13px;
+            font-weight: 700;
+            transition: all 0.3s;
+        }
+        .category-tab.active { background: var(--cor-primaria); color: #000; }
+        .product-card {
+            display: flex;
+            padding: 16px;
+            gap: 12px;
+            border-bottom: 1px solid #23272f;
+            cursor: pointer;
+            align-items: center;
+        }
+        .product-info { flex: 1; }
+        .product-img {
+            width: 100px;
+            height: 100px;
+            border-radius: 12px;
+            object-fit: cover;
+        }
+        #modalCarrinho .modal-content {
+            background-color: #1a1d24;
+            border-top: 2px solid var(--cor-primaria);
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        #loading-overlay { background: #0f1115; transition: opacity 0.5s; }
+        .loader-hidden { opacity: 0; pointer-events: none; }
+        .step-content { display: none; }
+        .step-content.active { display: block; animation: slideUp 0.3s ease; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .ping-aberto { animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite; }
+        @keyframes ping { 75%, 100% { transform: scale(2); opacity: 0; } }
+    </style>
+</head>
+<body>
 
-        const q = query(collection(db, "produtos"), where("userId", "==", userId));
-        const snap = await getDocs(q);
-        const prods = {};
-        snap.forEach(doc => {
-            const p = doc.data();
-            if (!prods[p.categoria]) prods[p.categoria] = [];
-            prods[p.categoria].push(p);
-        });
+    <div class="app-container">
+        <div id="loading-overlay" class="fixed inset-0 z-[100] flex flex-col items-center justify-center max-w-[500px] mx-auto">
+            <div class="w-12 h-12 border-4 border-white/10 border-t-[var(--cor-primaria)] rounded-full animate-spin"></div>
+        </div>
 
-        const nav = document.getElementById('navCategorias');
-        const main = document.getElementById('mainContainer');
+        <header class="relative">
+            <div id="bannerLoja" class="h-56 bg-cover bg-center relative">
+                <div class="absolute inset-0 bg-gradient-to-t from-[#16191e] to-transparent"></div>
+            </div>
+            <div class="px-6 -mt-16 relative z-10">
+                <div class="w-24 h-24 bg-[#1a1d24] rounded-2xl p-1 border border-white/10 shadow-2xl">
+                    <img id="logoLoja" class="w-full h-full object-cover rounded-xl hidden">
+                    <span id="emojiLoja" class="w-full h-full flex items-center justify-center text-4xl">🍔</span>
+                </div>
+                <h1 id="nomeLoja" class="mt-4 text-2xl font-black italic tracking-tighter uppercase">...</h1>
+                <div class="flex items-center gap-2 mt-1">
+                    <span id="dotStatus" class="w-2 h-2 rounded-full bg-slate-500"></span>
+                    <p id="labelStatus" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Carregando...</p>
+                </div>
+            </div>
+        </header>
 
-        Object.keys(prods).forEach(cat => {
-            // Nav Pills
-            const link = document.createElement('a');
-            link.href = `#${cat.replace(/\s/g, '')}`;
-            link.className = "category-pill";
-            link.innerText = cat;
-            nav.appendChild(link);
+        <nav class="sticky top-0 z-40 bg-[#16191e]/90 backdrop-blur-md mt-6 border-b border-white/5">
+            <div id="navCategorias" class="flex gap-2 p-4 overflow-x-auto no-scrollbar"></div>
+        </nav>
 
-            // Section
-            let section = `<section id="${cat.replace(/\s/g, '')}" class="mb-8">
-                <h2 class="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 ml-2">${cat}</h2>
-                <div class="grid grid-cols-1 gap-1">`;
+        <main id="mainContainer" class="pb-40 px-2"></main>
+
+        <div id="btnCarrinho" class="fixed bottom-6 left-1/2 -translate-x-1/2 w-full max-w-[460px] px-4 z-50 hidden">
+            <button onclick="abrirCarrinho()" class="w-full bg-[#ffca28] text-black h-16 rounded-2xl shadow-2xl flex items-center justify-between px-6 transition-transform active:scale-95">
+                <div class="flex items-center gap-3">
+                    <div class="bg-black/10 p-2 rounded-lg relative">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                        </svg>
+                        <span id="qtdItensCarrinho" class="absolute -top-1 -right-1 bg-black text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold">0</span>
+                    </div>
+                    <span class="font-black uppercase text-sm">Ver Sacola</span>
+                </div>
+                <span id="valorTotalCarrinho" class="font-black text-xl">R$ 0,00</span>
+            </button>
+        </div>
+    </div>
+
+    <div id="modalCarrinho" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] hidden flex items-end justify-center">
+        <div class="modal-content w-full max-w-[500px] rounded-t-[32px] p-6 max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-black uppercase italic">Meu Pedido</h2>
+                <button onclick="fecharCarrinho()" class="text-slate-500 font-bold">FECHAR</button>
+            </div>
+
+            <div id="passo1" class="step-content active overflow-y-auto no-scrollbar flex-1">
+                <div class="space-y-3 mb-6">
+                    <input type="text" id="inputNome" placeholder="Seu Nome" class="w-full p-4 rounded-xl bg-[#23272f] border-none text-white font-bold focus:ring-2 focus:ring-[#ffca28] outline-none">
+                    <input type="tel" id="inputWhatsApp" onblur="window.verificarCliente(this.value)" placeholder="WhatsApp (DDD + Número)" class="w-full p-4 rounded-xl bg-[#23272f] border-none text-white font-bold focus:ring-2 focus:ring-[#ffca28] outline-none">
+                </div>
+                <div id="listaItensCarrinho" class="space-y-4 mb-6 text-sm"></div>
+                <div id="totalPasso1"></div>
+                
+                <div class="grid grid-cols-2 gap-3 mt-6">
+                    <button onclick="definirModo('entrega')" id="optEntrega" class="p-4 rounded-2xl bg-[#23272f] border-2 border-transparent text-center font-bold">🛵 Entrega</button>
+                    <button onclick="definirModo('retirada')" id="optRetirada" class="p-4 rounded-2xl bg-[#23272f] border-2 border-transparent text-center font-bold">🛍️ Retirada</button>
+                </div>
+                <button onclick="irParaPasso(2)" id="btnProximo1" disabled class="w-full bg-slate-700 text-white py-5 rounded-2xl font-black mt-6 opacity-50">CONTINUAR</button>
+            </div>
+
+            <div id="passo2" class="step-content overflow-y-auto no-scrollbar flex-1">
+                <div id="blocoEntrega" class="space-y-4">
+                    <input type="text" id="inputCEP" maxlength="9" oninput="window.mascaraCEP(this)" placeholder="Seu CEP (00000-000)" class="w-full p-4 rounded-xl bg-[#23272f] border-none text-white text-center font-bold">
+                    <div id="statusCEP" class="text-center text-[10px] text-yellow-500 font-bold"></div>
+                    <div id="camposEndereco" class="hidden space-y-4">
+                        <div class="p-4 bg-[#23272f] rounded-xl text-xs text-slate-400" id="textoEnderecoAuto"></div>
+                        <input type="text" id="inputNumero" placeholder="Número/Apto/Bloco" class="w-full p-4 rounded-xl bg-[#23272f] border-none text-white font-bold">
+                    </div>
+                </div>
+                <div id="blocoRetirada" class="hidden text-center py-10 font-bold text-slate-400">
+                    Você escolheu retirar na loja.<br>Não haverá cobrança de frete.
+                </div>
+                <div class="flex gap-3 mt-8">
+                    <button onclick="irParaPasso(1)" class="w-1/3 bg-white/5 py-4 rounded-xl font-bold">Voltar</button>
+                    <button onclick="irParaPasso(3)" id="btnProximo2" class="w-2/3 bg-[#ffca28] text-black py-4 rounded-xl font-black">PAGAMENTO</button>
+                </div>
+            </div>
+
+            <div id="passo3" class="step-content overflow-y-auto no-scrollbar flex-1">
+                <h3 class="text-xs font-bold text-slate-500 uppercase mb-4">Escolha a forma de pagamento:</h3>
+                <div class="space-y-3" id="opcoesPagamento">
+                    <label class="flex items-center gap-3 p-4 bg-[#23272f] rounded-xl cursor-pointer">
+                        <input type="radio" name="pagamento" value="Pix" class="w-5 h-5 accent-[#ffca28]">
+                        <span class="font-bold">PIX</span>
+                    </label>
+                    <label class="flex items-center gap-3 p-4 bg-[#23272f] rounded-xl cursor-pointer">
+                        <input type="radio" name="pagamento" value="Cartão (Maquininha)" class="w-5 h-5 accent-[#ffca28]">
+                        <span class="font-bold">Cartão (Maquininha)</span>
+                    </label>
+                    <label class="flex items-center gap-3 p-4 bg-[#23272f] rounded-xl cursor-pointer">
+                        <input type="radio" name="pagamento" value="Dinheiro" class="w-5 h-5 accent-[#ffca28]">
+                        <span class="font-bold">Dinheiro</span>
+                    </label>
+                </div>
+                <div id="resumoFinal" class="mt-6 p-4 bg-black/40 rounded-xl"></div>
+                <button onclick="window.enviarWhatsApp()" class="w-full bg-[#ffca28] text-black py-5 rounded-2xl font-black mt-6 shadow-xl">FINALIZAR PEDIDO</button>
+                <button onclick="irParaPasso(2)" class="w-full text-slate-500 py-3 font-bold text-sm">Voltar ao endereço</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="src/cardapio.js"></script>
+    <script>
+        // Funções de controle de UI globais
+        window.fecharCarrinho = () => document.getElementById('modalCarrinho').classList.add('hidden');
+        window.abrirCarrinho = () => {
+            document.getElementById('modalCarrinho').classList.remove('hidden');
+            if(window.renderizarCarrinho) window.renderizarCarrinho();
+        };
+        window.irParaPasso = (n) => {
+            document.querySelectorAll('.step-content').forEach(s => s.classList.remove('active'));
+            document.getElementById('passo' + n).classList.add('active');
             
-            prods[cat].forEach(p => {
-                section += `
-                    <div class="product-card" onclick="window.adicionarAoCarrinho('${p.nome}', ${p.preco})">
-                        <div class="product-info">
-                            <h3 class="product-name">${p.nome}</h3>
-                            <p class="product-desc">${p.descricao || ''}</p>
-                            <p class="product-price text-brand">R$ ${Number(p.preco).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                        </div>
-                        <div class="product-img-container">
-                            <img src="${p.foto}" class="product-img">
-                            <div class="add-btn-small bg-brand">+</div>
-                        </div>
-                    </div>`;
-            });
-            main.innerHTML += section + `</div></section>`;
-        });
-
-        document.getElementById('loading-overlay').classList.add('loader-hidden');
-    } catch (e) { console.error(e); }
-}
-
-inicializar();
+            // Controle de visibilidade dos blocos de entrega/retirada no Passo 2
+            if(n === 2) {
+                const modo = window.getModoPedido ? window.getModoPedido() : 'entrega';
+                document.getElementById('blocoEntrega').classList.toggle('hidden', modo === 'retirada');
+                document.getElementById('blocoRetirada').classList.toggle('hidden', modo === 'entrega');
+            }
+        };
+        window.definirModo = (m) => {
+            document.getElementById('optEntrega').style.borderColor = m === 'entrega' ? '#ffca28' : 'transparent';
+            document.getElementById('optRetirada').style.borderColor = m === 'retirada' ? '#ffca28' : 'transparent';
+            document.getElementById('btnProximo1').disabled = false;
+            document.getElementById('btnProximo1').classList.remove('opacity-50', 'bg-slate-700');
+            document.getElementById('btnProximo1').classList.add('bg-[#ffca28]', 'text-black');
+            if(window.atualizarModoPedidoJS) window.atualizarModoPedidoJS(m);
+        };
+    </script>
+</body>
+</html>
