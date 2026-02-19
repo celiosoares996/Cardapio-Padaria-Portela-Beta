@@ -120,10 +120,10 @@ onAuthStateChanged(auth, async (user) => {
                 }
             }
 
-            // --- NOVO: Carregar Horários de Funcionamento ---
+            // --- CARREGAR HORÁRIOS (Compatível com Accordion) ---
             if (d.horarios) {
-                const dias = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domingo"];
-                dias.forEach(dia => {
+                const diasTratar = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domingo"];
+                diasTratar.forEach(dia => {
                     if (d.horarios[dia]) {
                         const inputAbre = document.querySelector(`input[name="abre_${dia}"]`);
                         const inputFecha = document.querySelector(`input[name="fecha_${dia}"]`);
@@ -203,17 +203,22 @@ formPerfil?.addEventListener('submit', async (e) => {
     btnSalvarPerfil.disabled = true;
 
     try {
-        const corSelecionada = document.querySelector('input[name="temaCor"]:checked')?.value || "#2563eb";
+        // Capturar cor (mesmo que não esteja explícita no HTML, mantemos a lógica ou pegamos do CSS)
+        const corSelecionada = getComputedStyle(document.documentElement).getPropertyValue('--cor-primaria').trim() || "#2563eb";
         
-        // --- NOVO: Capturar Horários ---
+        // --- CAPTURAR HORÁRIOS DA SEMANA ---
         const horarios = {};
         const diasSemana = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domingo"];
         
         diasSemana.forEach(dia => {
+            const inputAbre = document.querySelector(`input[name="abre_${dia}"]`);
+            const inputFecha = document.querySelector(`input[name="fecha_${dia}"]`);
+            const inputStatus = document.querySelector(`input[name="status_${dia}"]`);
+
             horarios[dia] = {
-                abre: document.querySelector(`input[name="abre_${dia}"]`).value,
-                fecha: document.querySelector(`input[name="fecha_${dia}"]`).value,
-                aberto: document.querySelector(`input[name="status_${dia}"]`).checked
+                abre: inputAbre ? inputAbre.value : "",
+                fecha: inputFecha ? inputFecha.value : "",
+                aberto: inputStatus ? inputStatus.checked : false
             };
         });
 
@@ -223,7 +228,7 @@ formPerfil?.addEventListener('submit', async (e) => {
             fotoPerfil: urlFotoFinal,
             fotoCapa: urlCapaFinal,
             corTema: corSelecionada,
-            horarios: horarios, // Salvando o objeto de horários
+            horarios: horarios, 
             configEntrega: {
                 tipo: tipoEntrega.value,
                 taxaFixa: parseFloat(taxaFixa.value) || 0,
@@ -341,4 +346,3 @@ const sair = async () => {
 };
 
 document.getElementById('btnSairDesktop')?.addEventListener('click', sair);
-
