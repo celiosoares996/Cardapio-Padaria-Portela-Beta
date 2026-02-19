@@ -97,7 +97,6 @@ onAuthStateChanged(auth, async (user) => {
         if (docSnap.exists()) {
             const d = docSnap.data();
             
-            // Se o Auth falhou em dar o e-mail, recuperamos o que foi salvo no banco
             if (!emailUsuarioLogado && d.email) {
                 emailUsuarioLogado = d.email;
             }
@@ -234,12 +233,10 @@ btnVincularSenha?.addEventListener('click', async () => {
     const user = auth.currentUser;
     const senha = novaSenhaAcesso.value;
     
-    // Busca profunda do e-mail (Objeto direto OR Provedor Google OR Variável Global)
     let emailFinal = user?.email || 
                      user?.providerData?.find(p => p.email)?.email || 
                      emailUsuarioLogado;
 
-    // Se ainda assim não achou, tenta o Firestore em tempo real
     if (!emailFinal && user) {
         try {
             const snap = await getDoc(doc(db, "usuarios", user.uid));
@@ -274,6 +271,8 @@ btnVincularSenha?.addEventListener('click', async () => {
         novaSenhaAcesso.value = "";
 
     } catch (err) {
+        console.error("ERRO FIREBASE:", err.code);
+
         if (err.code === 'auth/requires-recent-login') {
             const confirmacao = await Swal.fire({
                 title: 'Segurança',
@@ -295,7 +294,16 @@ btnVincularSenha?.addEventListener('click', async () => {
                 }
             }
         } else if (err.code === 'auth/credential-already-in-use') {
-            Swal.fire('Aviso', 'Este e-mail já possui uma senha.', 'warning');
+            Swal.fire('Aviso', 'Este e-mail já possui uma senha vinculada a outra conta.', 'warning');
+        } else if (err.code === 'auth/provider-already-linked') {
+            // TRATATIVA PARA USUÁRIO QUE JÁ TEM SENHA
+            Swal.fire({
+                icon: 'info',
+                title: 'Acesso já configurado',
+                text: 'Esta conta já possui uma senha definida. Se desejar alterá-la, use a função de recuperação de senha no login.',
+                confirmButtonColor: '#2563eb'
+            });
+            novaSenhaAcesso.value = "";
         } else {
             Swal.fire('Erro', `Falha: ${err.code}`, 'error');
         }
