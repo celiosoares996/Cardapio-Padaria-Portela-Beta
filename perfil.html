@@ -38,7 +38,6 @@
 
         i[data-lucide] { stroke-width: 2.5px; }
 
-        /* Estilos do Accordion de Horários */
         .horarios-content {
             max-height: 0;
             overflow: hidden;
@@ -51,7 +50,6 @@
         .seta-icon { transition: transform 0.3s ease; }
         .seta-icon.rotate { transform: rotate(180deg); }
 
-        /* Animação suave para troca de modo de frete */
         .fade-in-section { animation: fadeIn 0.3s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
     </style>
@@ -87,8 +85,8 @@
             </a>
         </nav>
 
-        <button id="btnSairDesktop" class="flex items-center gap-3 p-4 rounded-2xl text-red-500 hover:bg-red-50 font-bold transition-all mt-auto uppercase text-xs tracking-widest">
-            <i data-lucide="log-out" class="w-4 h-4"></i> Sair da Conta
+        <button id="btnSairDesktop" class="flex items-center gap-3 p-4 rounded-2xl text-red-500 hover:bg-red-50 font-bold transition-all mt-auto uppercase text-xs tracking-widest group">
+            <i data-lucide="log-out" class="w-4 h-4 group-hover:translate-x-1 transition-transform"></i> Sair da Conta
         </button>
     </aside>
 
@@ -99,6 +97,9 @@
             </div>
             <h2 id="mobileNomeNegocio" class="text-lg font-black text-slate-800 uppercase italic">Meu Perfil</h2>
         </div>
+        <button id="btnSairMobile" class="w-10 h-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center active:scale-90 transition-all">
+            <i data-lucide="log-out" class="w-5 h-5"></i>
+        </button>
     </nav>
 
     <main class="max-w-5xl mx-auto p-5 md:p-12">
@@ -361,6 +362,28 @@
             }
         };
     </script>
+
+    <script type="module">
+        import { auth } from './src/firebase-config.js';
+        import { signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        const logoutFunc = async () => {
+            const res = await Swal.fire({
+                title: 'Sair do Painel?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sair',
+                confirmButtonColor: '#ef4444'
+            });
+            if(res.isConfirmed) {
+                signOut(auth).then(() => window.location.href="index.html");
+            }
+        };
+
+        document.getElementById('btnSairDesktop')?.addEventListener('click', logoutFunc);
+        document.getElementById('btnSairMobile')?.addEventListener('click', logoutFunc);
+    </script>
+
     <script type="module" src="./src/perfil.js"></script>
 </body>
 </html>
