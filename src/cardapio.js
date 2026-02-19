@@ -98,10 +98,12 @@ async function buscarCEP(cep) {
         try {
             const geoUrl = `https://us1.locationiq.com/v1/search?key=${API_KEY_LOCATIONIQ}&postalcode=${cep}&country=Brazil&format=json&limit=1`;
             const geo = await fetch(geoUrl);
-            if (!geo.ok) throw new Error("Erro na API de Geocodificação");
+            if (!geo.ok) throw new Error("Erro na API");
             const geoData = await geo.json();
             
             if (geoData && geoData.length > 0 && configEntrega?.coords) {
+                // CORREÇÃO: parseFloat garante que trate como número, mesmo se for String no banco
+                // CORREÇÃO: Aceita lng ou log
                 const latLoja = parseFloat(configEntrega.coords.lat);
                 const lngLoja = parseFloat(configEntrega.coords.lng || configEntrega.coords.log);
                 const latCliente = parseFloat(geoData[0].lat);
@@ -109,11 +111,9 @@ async function buscarCEP(cep) {
 
                 distanciaCliente = calcularDistancia(latLoja, lngLoja, latCliente, lngCliente);
                 statusCEP.innerText = `✅ Entrega a ${distanciaCliente.toFixed(1)}km`;
-            } else {
-                throw new Error("Dados de localização incompletos");
             }
         } catch (mapError) {
-            console.warn("Caindo para taxa fixa:", mapError);
+            console.warn("Falha no mapa, usando fixo:", mapError);
             distanciaCliente = 0; 
             statusCEP.innerText = "✅ Frete padrão aplicado";
         }
@@ -124,10 +124,8 @@ async function buscarCEP(cep) {
             btnPgto.classList.replace('bg-slate-200', 'bg-brand');
         }
     } catch (e) { 
-        console.error("Erro crítico:", e);
-        statusCEP.innerText = "⚠️ CEP OK. Verifique o frete abaixo.";
+        statusCEP.innerText = "⚠️ CEP OK. Verifique o frete.";
         recalcularTaxa();
-        if(btnPgto) btnPgto.disabled = false;
     }
 }
 
@@ -143,12 +141,12 @@ function recalcularTaxa() {
     if (modoPedido === 'retirada') {
         taxaEntregaAtual = 0;
     } else {
-        // Normaliza o tipo para evitar erros de maiúsculas/minúsculas
         const tipoEntrega = configEntrega?.tipo?.toLowerCase();
         
         if (tipoEntrega === 'km' && distanciaCliente > 0) {
             const valorKm = parseFloat(configEntrega.valorKm) || 0;
-            taxaEntregaAtual = distanciaCliente * valorKm;
+            // Arredondamos para 2 casas decimais para evitar erros de soma
+            taxaEntregaAtual = Math.round((distanciaCliente * valorKm) * 100) / 100;
             console.log(`📡 KM Ativo: ${distanciaCliente.toFixed(2)}km x R$${valorKm}`);
         } else {
             taxaEntregaAtual = parseFloat(configEntrega?.taxaFixa) || 0;
