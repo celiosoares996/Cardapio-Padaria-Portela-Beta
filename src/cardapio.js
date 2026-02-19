@@ -70,7 +70,7 @@ window.mascaraCEP = (input) => {
     const cepLimpo = v.replace('-', '');
     if (cepLimpo.length === 8) {
         clearTimeout(timeoutCEP);
-        timeoutCEP = setTimeout(() => buscarCEP(cepLimpo), 600);
+        timeoutCEP = setTimeout(() => buscarCEP(cepLimpo), 800);
     }
 };
 
@@ -78,6 +78,9 @@ async function buscarCEP(cep) {
     const statusCEP = document.getElementById('statusCEP');
     const btnPgto = document.getElementById('btnProximo2');
     
+    // 🔑 IMPORTANTE: Substitua pela sua chave do LocationIQ (https://locationiq.com/)
+    const API_KEY_LOCATIONIQ = "SUA_CHAVE_AQUI"; 
+
     try {
         statusCEP.innerText = "⏳ Localizando endereço...";
         
@@ -95,16 +98,14 @@ async function buscarCEP(cep) {
         document.getElementById('textoEnderecoAuto').innerText = `${data.logradouro}, ${data.bairro}`;
         enderecoCompleto = { rua: data.logradouro, bairro: data.bairro, cidade: data.localidade, cep: cep };
 
-        // 2. Cálculo de Geocodificação com Fallback
+        // 2. Cálculo de Geocodificação (LocationIQ)
         statusCEP.innerText = "⏳ Calculando frete...";
         try {
-            // Adicionado User-Agent e Cache Busting para mitigar erros de CORS/Conexão
-            const geoUrl = `https://nominatim.openstreetmap.org/search?postalcode=${cep}&country=Brazil&format=json&limit=1&q=${Date.now()}`;
-            const geo = await fetch(geoUrl, {
-                headers: { 'Accept': 'application/json' }
-            });
-
-            if (!geo.ok) throw new Error("Falha na conexão com servidor de mapas");
+            // Usamos LocationIQ que possui suporte nativo a CORS e alta disponibilidade
+            const geoUrl = `https://us1.locationiq.com/v1/search?key=${API_KEY_LOCATIONIQ}&postalcode=${cep}&country=Brazil&format=json&limit=1`;
+            
+            const geo = await fetch(geoUrl);
+            if (!geo.ok) throw new Error("Erro na API de Mapas");
 
             const geoData = await geo.json();
             
@@ -120,8 +121,8 @@ async function buscarCEP(cep) {
                 throw new Error("Localização não mapeada");
             }
         } catch (mapError) {
-            console.warn("Aviso: Erro de mapa, usando frete padrão:", mapError);
-            distanciaCliente = 0; // Isso forçará o uso da taxa fixa no recalcularTaxa
+            console.warn("Aviso: Falha no mapa, usando frete padrão:", mapError);
+            distanciaCliente = 0; 
             statusCEP.innerText = "✅ Frete padrão aplicado";
         }
 
@@ -134,7 +135,7 @@ async function buscarCEP(cep) {
 
     } catch (e) { 
         console.error("Erro crítico:", e);
-        statusCEP.innerText = "⚠️ Erro ao calcular frete. Prossiga com taxa padrão.";
+        statusCEP.innerText = "⚠️ CEP validado. Verifique o total abaixo.";
         recalcularTaxa();
         if(btnPgto) btnPgto.disabled = false;
     }
@@ -155,7 +156,6 @@ function recalcularTaxa() {
         const valorKm = parseFloat(configEntrega.valorKm) || 0;
         taxaEntregaAtual = distanciaCliente * valorKm;
     } else {
-        // Fallback: se for tipo 'fixa' ou se a distância por km falhou (distanciaCliente = 0)
         taxaEntregaAtual = parseFloat(configEntrega?.taxaFixa) || 0;
     }
     renderizarCarrinho();
