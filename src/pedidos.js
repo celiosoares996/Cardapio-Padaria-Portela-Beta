@@ -56,17 +56,17 @@ async function carregarProdutosSelect(user) {
             produtosDisponiveis.push({ id: docSnap.id, ...p });
             
             const disabled = estoque <= 0 ? 'disabled' : '';
-            const textoEstoque = estoque <= 0 ? '(ESGOTADO)' : `(Qtd: ${estoque})`;
+            const textoEstoque = estoque <= 0 ? '(ESGOTADO)' : `(Estoque: ${estoque})`;
             
             selectProduto.innerHTML += `
                 <option value="${docSnap.id}" ${disabled}>
-                    ${p.nome} - ${formatador.format(p.preco || 0)} ${textoEstoque}
+                    ${p.nome} - ${formatador.format(p.preco)} ${textoEstoque}
                 </option>`;
         });
     } catch (e) { console.error("Erro ao carregar produtos:", e); }
 }
 
-// --- 3. LÓGICA DO CARRINHO (BALCÃO) ---
+// --- 3. LÓGICA DO CARRINHO ---
 selectProduto.onchange = (e) => {
     const produtoId = e.target.value;
     if (!produtoId) return;
@@ -76,7 +76,7 @@ selectProduto.onchange = (e) => {
     const qtdAtualNoCarrinho = itemNoCarrinho ? itemNoCarrinho.qtd : 0;
 
     if (produto.estoqueAtual <= qtdAtualNoCarrinho) {
-        Swal.fire({ icon: 'error', title: 'Estoque Insuficiente', text: `Limite de ${produto.nome} atingido.` });
+        Swal.fire("Estoque Insuficiente", `Você já adicionou o limite disponível de ${produto.nome}.`, "warning");
         e.target.value = "";
         return;
     }
@@ -84,12 +84,7 @@ selectProduto.onchange = (e) => {
     if (itemNoCarrinho) {
         itemNoCarrinho.qtd++;
     } else {
-        itensNoCarrinho.push({ 
-            id: produto.id, 
-            nome: produto.nome, 
-            preco: parseFloat(produto.preco) || 0, 
-            qtd: 1 
-        });
+        itensNoCarrinho.push({ id: produto.id, nome: produto.nome, preco: parseFloat(produto.preco), qtd: 1 });
     }
     
     e.target.value = "";
@@ -104,13 +99,13 @@ function renderizarCarrinho() {
         containerItens.innerHTML += `
             <div class="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-2">
                 <div class="flex items-center gap-3">
-                    <div class="bg-brand text-white px-2 py-1 rounded-lg font-black text-[10px]">${item.qtd}x</div>
+                    <div class="bg-brand text-white w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs">${item.qtd}x</div>
                     <div>
                         <p class="text-xs font-extrabold text-slate-700 uppercase">${item.nome}</p>
                         <p class="text-[10px] text-slate-400 font-bold">${formatador.format(item.preco)}</p>
                     </div>
                 </div>
-                <button type="button" onclick="removerItem(${index})" class="text-slate-300 hover:text-red-500 transition-colors">
+                <button type="button" onclick="removerItem(${index})" class="text-slate-300 hover:text-red-500 p-2">
                     <i data-lucide="trash-2" class="w-4 h-4"></i>
                 </button>
             </div>`;
@@ -124,10 +119,16 @@ window.removerItem = (index) => {
     renderizarCarrinho();
 };
 
-// --- 4. RENDERIZAÇÃO DE PEDIDOS (DASHBOARD) ---
+// --- 4. CARREGAR PEDIDOS (COM MENSAGENS DINÂMICAS) ---
 async function carregarPedidos() {
     const user = auth.currentUser;
     if (!user) return;
+
+    listaPedidos.innerHTML = `
+        <div class="col-span-full py-20 text-center">
+            <div class="w-12 h-12 border-4 border-slate-100 border-t-brand rounded-full animate-spin mx-auto mb-4"></div>
+            <p class="text-slate-400 font-bold italic">Sincronizando banco de dados...</p>
+        </div>`;
 
     try {
         const q = query(collection(db, "pedidos"), where("userId", "==", user.uid));
@@ -138,91 +139,55 @@ async function carregarPedidos() {
             pedidosArray.push({ id: docSnap.id, ...docSnap.data() });
         });
 
+        // Ordenar por data (mais recentes primeiro)
         pedidosArray.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
 
+        // Filtragem Logística
         if (filtroStatus !== "Todos") {
             pedidosArray = pedidosArray.filter(p => p.status === filtroStatus);
         }
 
         listaPedidos.innerHTML = "";
 
+        // Verificação de Lista Vazia com Mensagem Dinâmica
         if (pedidosArray.length === 0) {
+            let msg = "";
+            if (filtroStatus === "Todos") msg = "Nenhum pedido registrado ainda.";
+            else if (filtroStatus === "Pendente") msg = "Nenhum pedido pendente por aqui.";
+            else if (filtroStatus === "Concluído") msg = "Você ainda não possui vendas concluídas.";
+
             listaPedidos.innerHTML = `
-                <div class="col-span-full py-20 text-center">
+                <div class="col-span-full py-20 text-center animate-pulse">
                     <i data-lucide="inbox" class="w-12 h-12 text-slate-200 mx-auto mb-4"></i>
-                    <p class="text-slate-400 font-medium italic">Nenhum pedido encontrado nesta categoria.</p>
+                    <p class="text-slate-400 font-medium italic">${msg}</p>
                 </div>`;
             if (window.lucide) lucide.createIcons();
             return;
         }
 
+        // Renderização dos Cards
         pedidosArray.forEach(p => {
-            const itensHtml = p.itens ? p.itens.map(i => `
-                <div class="flex justify-between text-[11px] mb-1">
-                    <span class="font-medium text-slate-600">${i.qtd}x ${i.nome}</span>
-                    <span class="font-bold text-slate-800">${formatador.format((i.preco || 0) * i.qtd)}</span>
-                </div>
-            `).join('') : "Sem itens";
-
-            const statusConfig = {
-                "Pendente": "bg-amber-100 text-amber-700",
-                "Preparo": "bg-blue-100 text-blue-700",
-                "Entrega": "bg-purple-100 text-purple-700",
-                "Concluído": "bg-green-100 text-green-700"
-            };
-
-            const corStatus = statusConfig[p.status] || "bg-slate-100 text-slate-600";
-            const zapLink = p.clienteTelefone ? `https://wa.me/55${p.clienteTelefone.replace(/\D/g,'')}` : "#";
+            const itensHtml = p.itens ? p.itens.map(i => `<div class="flex justify-between text-[11px] mb-1"><span>${i.qtd}x ${i.nome}</span><span>${formatador.format(i.preco * i.qtd)}</span></div>`).join('') : "";
+            const badgeOrigem = p.origem === "Online" ? "bg-blue-50 text-blue-600" : "bg-purple-50 text-purple-600";
+            const badgeStatus = p.status === "Pendente" ? "bg-amber-50 text-amber-600 border-amber-100" : "bg-green-50 text-green-600 border-green-100";
 
             listaPedidos.innerHTML += `
-                <div class="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden flex flex-col group hover:shadow-xl transition-all duration-300">
-                    <div class="p-6 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
-                        <div>
-                            <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Status do Pedido</span>
-                            <select onchange="atualizarStatusPedido('${p.id}', this.value)" class="block mt-1 text-[10px] font-black uppercase px-3 py-1.5 rounded-full ${corStatus} border-none outline-none cursor-pointer">
-                                <option value="Pendente" ${p.status === 'Pendente' ? 'selected' : ''}>Pendente</option>
-                                <option value="Preparo" ${p.status === 'Preparo' ? 'selected' : ''}>Em Preparo</option>
-                                <option value="Entrega" ${p.status === 'Entrega' ? 'selected' : ''}>Saiu p/ Entrega</option>
-                                <option value="Concluído" ${p.status === 'Concluído' ? 'selected' : ''}>Concluído</option>
-                            </select>
+                <div class="bg-white p-7 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col hover:shadow-md transition-shadow">
+                    <div class="flex justify-between items-start mb-6">
+                        <div class="flex flex-col gap-2">
+                            <span class="text-[9px] font-black uppercase px-2.5 py-1 rounded-lg ${badgeOrigem}">${p.origem || 'Balcão'}</span>
+                            <span class="text-[9px] font-black uppercase px-2.5 py-1 rounded-lg border ${badgeStatus}">${p.status}</span>
                         </div>
-                        <div class="flex gap-2">
-                            ${p.clienteTelefone ? `<a href="${zapLink}" target="_blank" class="w-8 h-8 bg-green-500 text-white rounded-xl flex items-center justify-center hover:scale-110 transition-transform"><i data-lucide="phone" class="w-4 h-4"></i></a>` : ''}
-                            <button onclick="excluirPedido('${p.id}')" class="w-8 h-8 bg-slate-100 text-slate-400 rounded-xl flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-all"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        <div class="flex gap-1">
+                            ${p.status === 'Pendente' ? `<button onclick="finalizarPedido('${p.id}')" class="bg-green-500 text-white p-2.5 rounded-xl hover:bg-green-600 transition-colors"><i data-lucide="check" class="w-4 h-4"></i></button>` : ''}
+                            <button onclick="excluirPedido('${p.id}')" class="text-slate-300 hover:text-red-500 p-2.5 rounded-xl transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                         </div>
                     </div>
-
-                    <div class="p-6 space-y-4 flex-1">
-                        <div>
-                            <h4 class="font-black text-slate-800 text-lg leading-tight">${p.cliente || 'Consumidor Final'}</h4>
-                            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">${p.origem || 'Balcão'} • ${p.horaEntrega || '--:--'}</p>
-                        </div>
-
-                        <div class="bg-slate-50 rounded-2xl p-4 border border-slate-100/50">
-                            ${itensHtml}
-                            ${p.observacao ? `
-                                <div class="mt-3 p-2 bg-amber-50 border-l-4 border-amber-400 rounded-r-lg">
-                                    <p class="text-[10px] font-bold text-amber-700 uppercase italic">Obs: ${p.observacao}</p>
-                                </div>
-                            ` : ''}
-                        </div>
-
-                        ${p.tipo === 'delivery' ? `
-                            <div class="flex items-center gap-2 p-3 bg-blue-50/50 rounded-xl border border-blue-100/50">
-                                <i data-lucide="map-pin" class="w-3 h-3 text-blue-500"></i>
-                                <p class="text-[10px] font-medium text-blue-700 truncate">${p.endereco || 'Endereço não informado'}</p>
-                            </div>
-                        ` : ''}
-                    </div>
-
-                    <div class="p-6 pt-0 mt-auto">
-                        <div class="flex justify-between items-end border-t border-dashed border-slate-200 pt-4">
-                            <div>
-                                <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total</span>
-                                <p class="text-2xl font-black text-brand leading-none">${formatador.format(p.total || 0)}</p>
-                            </div>
-                            <span class="text-[9px] font-bold text-slate-300 uppercase">${p.pagamentoMetodo || 'A definir'}</span>
-                        </div>
+                    <h4 class="font-black text-slate-800 text-xl mb-1">${p.cliente || 'Consumidor Final'}</h4>
+                    <div class="bg-slate-50/50 p-5 rounded-[1.5rem] mb-6 flex-1 text-slate-500 border border-slate-100/50">${itensHtml}</div>
+                    <div class="flex justify-between items-center pt-5 border-t border-dashed border-slate-200">
+                        <span class="text-2xl font-black text-brand">${formatador.format(p.total)}</span>
+                        <span class="text-[10px] text-slate-300 font-bold uppercase">${p.horaEntrega || ''}</span>
                     </div>
                 </div>`;
         });
@@ -230,10 +195,76 @@ async function carregarPedidos() {
     } catch (e) { console.error("Erro ao listar pedidos:", e); }
 }
 
-// --- 5. AÇÕES ---
-window.atualizarStatusPedido = async (id, novoStatus) => {
+// --- 5. LÓGICA DE FILTROS ---
+function configurarFiltros() {
+    const containerFiltros = document.querySelector('.overflow-x-auto.pb-6');
+    if (!containerFiltros) return;
+
+    const botoes = containerFiltros.querySelectorAll('button');
+
+    botoes.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const texto = btn.innerText.trim();
+            
+            // Atualiza o filtro global
+            if (texto === "Todos") filtroStatus = "Todos";
+            else if (texto === "Pendentes") filtroStatus = "Pendente";
+            else if (texto === "Concluídos") filtroStatus = "Concluído";
+
+            // Reset visual dos botões
+            botoes.forEach(b => {
+                b.className = "px-8 py-3 bg-white text-slate-400 rounded-2xl text-xs font-black uppercase tracking-widest border border-slate-200 hover:bg-slate-50 transition-all";
+            });
+
+            // Ativa o botão selecionado
+            btn.className = "px-8 py-3 bg-brand text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-blue-500/20";
+
+            // Recarrega os dados com o novo filtro
+            carregarPedidos();
+        });
+    });
+}
+
+// --- 6. FINALIZAR VENDA BALCÃO ---
+form.onsubmit = async (e) => {
+    e.preventDefault();
+    if (itensNoCarrinho.length === 0) return;
+
+    const btnSubmit = form.querySelector('button[type="submit"]');
+    btnSubmit.disabled = true;
+
+    const totalVenda = itensNoCarrinho.reduce((acc, i) => acc + (i.preco * i.qtd), 0);
+    const novoPedido = {
+        cliente: document.getElementById('cliente').value || "Consumidor Balcão",
+        itens: itensNoCarrinho,
+        total: totalVenda,
+        userId: auth.currentUser.uid,
+        origem: "Balcão",
+        status: "Concluído",
+        createdAt: serverTimestamp(),
+        horaEntrega: new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})
+    };
+
     try {
-        await updateDoc(doc(db, "pedidos", id), { status: novoStatus });
+        await addDoc(collection(db, "pedidos"), novoPedido);
+        for (const item of itensNoCarrinho) {
+            await updateDoc(doc(db, "produtos", item.id), { estoqueAtual: increment(-item.qtd) });
+        }
+        fecharEPrincipal();
+        carregarPedidos();
+        carregarProdutosSelect(auth.currentUser);
+    } catch (e) { 
+        console.error(e);
+        Swal.fire("Erro", "Não foi possível registrar a venda.", "error");
+    } finally { 
+        btnSubmit.disabled = false; 
+    }
+};
+
+// --- AÇÕES DE ATUALIZAÇÃO ---
+window.finalizarPedido = async (id) => {
+    try {
+        await updateDoc(doc(db, "pedidos", id), { status: "Concluído" });
         carregarPedidos();
     } catch (e) { console.error(e); }
 };
@@ -241,11 +272,13 @@ window.atualizarStatusPedido = async (id, novoStatus) => {
 window.excluirPedido = async (id) => {
     const confirm = await Swal.fire({ 
         title: 'Excluir Pedido?', 
+        text: "Esta ação não pode ser desfeita!",
         icon: 'warning',
         showCancelButton: true, 
         confirmButtonColor: '#ef4444',
-        confirmButtonText: 'Confirmar Exclusão',
-        cancelButtonText: 'Voltar'
+        cancelButtonColor: '#cbd5e1',
+        confirmButtonText: 'Sim, excluir',
+        cancelButtonText: 'Cancelar'
     });
 
     if(confirm.isConfirmed) {
@@ -256,59 +289,21 @@ window.excluirPedido = async (id) => {
     }
 };
 
-// --- 6. FINALIZAR VENDA BALCÃO ---
-form.onsubmit = async (e) => {
-    e.preventDefault();
-    if (itensNoCarrinho.length === 0) return;
-
-    const totalVenda = itensNoCarrinho.reduce((acc, i) => acc + (i.preco * i.qtd), 0);
-    const novoPedido = {
-        cliente: document.getElementById('cliente').value || "Cliente Balcão",
-        itens: itensNoCarrinho,
-        total: totalVenda,
-        userId: auth.currentUser.uid,
-        origem: "Balcão",
-        status: "Concluído",
-        createdAt: serverTimestamp(),
-        horaEntrega: new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}),
-        pagamentoMetodo: "Dinheiro/Cartão"
-    };
-
-    try {
-        await addDoc(collection(db, "pedidos"), novoPedido);
-        for (const item of itensNoCarrinho) {
-            await updateDoc(doc(db, "produtos", item.id), { estoqueAtual: increment(-item.qtd) });
-        }
-        fecharModalEPrincipal();
-        carregarPedidos();
-        carregarProdutosSelect(auth.currentUser);
-        Swal.fire({ icon: 'success', title: 'Venda Realizada!', showConfirmButton: false, timer: 1500 });
-    } catch (e) { console.error(e); }
-};
-
-// --- CONFIGURAÇÃO DE FILTROS ---
-function configurarFiltros() {
-    const botoes = document.querySelectorAll('#containerFiltros button');
-    botoes.forEach(btn => {
-        btn.onclick = () => {
-            filtroStatus = btn.getAttribute('data-filter') === 'todos' ? 'Todos' : 
-                          btn.getAttribute('data-filter') === 'novo' ? 'Pendente' : 
-                          btn.getAttribute('data-filter') === 'preparo' ? 'Preparo' : 'Concluído';
-            
-            botoes.forEach(b => b.className = "px-6 py-3 bg-white text-slate-500 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-200 whitespace-nowrap");
-            btn.className = "px-6 py-3 bg-brand text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-500/20 whitespace-nowrap";
-            
-            carregarPedidos();
-        };
-    });
-}
-
-function fecharModalEPrincipal() {
+function fecharEPrincipal() {
     modal.classList.add('hidden');
     itensNoCarrinho = [];
     form.reset();
     renderizarCarrinho();
 }
+
+document.getElementById('abrirModalPedido').onclick = () => {
+    itensNoCarrinho = [];
+    renderizarCarrinho();
+    modal.classList.remove('hidden');
+};
+
+document.getElementById('fecharModalPedido').onclick = fecharEPrincipal;
+document.getElementById('btnSairDesktop')?.addEventListener('click', () => signOut(auth));
 
 // --- INICIALIZAÇÃO ---
 onAuthStateChanged(auth, (user) => {
@@ -321,3 +316,4 @@ onAuthStateChanged(auth, (user) => {
         window.location.href = "index.html";
     }
 });
+
