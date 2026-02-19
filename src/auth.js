@@ -1,65 +1,63 @@
 import { auth, db } from './firebase-config.js';
-import { signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { 
+    signInWithEmailAndPassword, 
+    signOut, 
+    GoogleAuthProvider, 
+    signInWithPopup 
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 /**
- * Função principal de Login
+ * Função de Login por E-mail
  */
 export const fazerLogin = async (email, senha) => {
     try {
         const userCredential = await signInWithEmailAndPassword(auth, email, senha);
-        const user = userCredential.user;
-
-        console.log("Usuário autenticado:", user.uid);
-
-        // BUSCA AS CONFIGURAÇÕES (Nome e Cor) para deixar o sistema replicável
-        const docRef = doc(db, "usuarios", user.uid);
-        const docSnap = await getDoc(docRef);
-
-        if (docSnap.exists()) {
-            const dados = docSnap.data();
-            // Salva a cor no localStorage para o sistema carregar instantaneamente
-            if (dados.corTema) {
-                localStorage.setItem('tema-cor', dados.corTema);
-            }
-        }
-
-        // Redireciona para a página principal (Estoque)
-        window.location.href = "estoque.html";
-
+        await carregarConfiguracoes(userCredential.user.uid);
+        window.location.href = "perfil.html"; // Centralizei para o perfil ou dashboard
     } catch (error) {
         console.error("Erro no login:", error.code);
-
-        // Mensagens amigáveis para sua madrinha
-        let mensagem = "Ocorreu um erro ao entrar.";
+        let mensagem = "E-mail ou senha incorretos.";
         
-        switch (error.code) {
-            case 'auth/invalid-credential':
-                mensagem = "E-mail ou senha incorretos. Verifique e tente de novo.";
-                break;
-            case 'auth/user-not-found':
-                mensagem = "Este usuário não foi encontrado.";
-                break;
-            case 'auth/wrong-password':
-                mensagem = "Senha incorreta.";
-                break;
-            case 'auth/too-many-requests':
-                mensagem = "Muitas tentativas falhas. Tente novamente mais tarde.";
-                break;
+        if (error.code === 'auth/invalid-credential') {
+            mensagem = "Dados de acesso inválidos. Verifique se digitou corretamente.";
         }
-
+        
         alert(mensagem);
-        throw error; // Lança o erro para o script.js resetar o botão
+        throw error;
     }
 };
 
 /**
- * Função para Sair do sistema
+ * Função de Login com Google
  */
+export const fazerLoginGoogle = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+        const result = await signInWithPopup(auth, provider);
+        await carregarConfiguracoes(result.user.uid);
+        window.location.href = "perfil.html";
+    } catch (error) {
+        console.error("Erro Google:", error);
+    }
+};
+
+/**
+ * Carrega o tema salvo para não dar "flash" de cor errada
+ */
+async function carregarConfiguracoes(uid) {
+    const docSnap = await getDoc(doc(db, "usuarios", uid));
+    if (docSnap.exists()) {
+        const dados = docSnap.data();
+        if (dados.corTema) localStorage.setItem('tema-cor', dados.corTema);
+        if (dados.nomeNegocio) localStorage.setItem('estab-nome', dados.nomeNegocio);
+    }
+}
+
 export const deslogar = async () => {
     try {
         await signOut(auth);
-        localStorage.removeItem('tema-cor'); // Limpa o tema ao sair
+        localStorage.clear(); 
         window.location.href = "index.html";
     } catch (error) {
         console.error("Erro ao sair:", error);
