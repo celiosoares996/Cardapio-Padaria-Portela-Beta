@@ -92,7 +92,7 @@
 
     <nav class="md:hidden bg-white/80 backdrop-blur-md sticky top-0 z-40 p-5 flex justify-between items-center border-b border-slate-100">
         <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500">
+            <div class="w-10 h-10 bg-brand rounded-xl flex items-center justify-center text-white">
                 <i data-lucide="settings" class="w-5 h-5"></i>
             </div>
             <h2 id="mobileNomeNegocio" class="text-lg font-black text-slate-800 uppercase italic">Meu Perfil</h2>
@@ -336,11 +336,11 @@
         document.getElementById('wrapperCapa').onclick = () => document.getElementById('fileCapa').click();
         document.getElementById('wrapperFoto').onclick = () => document.getElementById('fileInput').click();
 
-        // Preview de Imagem Capa
+        // Previews de Imagem
         document.getElementById('fileCapa').onchange = function() {
             if (this.files && this.files[0]) {
                 const reader = new FileReader();
-                reader.onload = function(e) {
+                reader.onload = (e) => {
                     document.getElementById('imgCapa').src = e.target.result;
                     document.getElementById('imgCapa').classList.remove('hidden');
                     document.getElementById('placeholderCapa').classList.add('opacity-0');
@@ -349,11 +349,10 @@
             }
         };
 
-        // Preview de Imagem Logo
         document.getElementById('fileInput').onchange = function() {
             if (this.files && this.files[0]) {
                 const reader = new FileReader();
-                reader.onload = function(e) {
+                reader.onload = (e) => {
                     document.getElementById('imgLogo').src = e.target.result;
                     document.getElementById('imgLogo').classList.remove('hidden');
                     document.getElementById('placeholderEmoji').classList.add('hidden');
@@ -383,7 +382,6 @@
         document.getElementById('btnSairDesktop')?.addEventListener('click', logoutFunc);
         document.getElementById('btnSairMobile')?.addEventListener('click', logoutFunc);
     </script>
-
     <script type="module" src="./src/perfil.js"></script>
 </body>
 </html>
