@@ -3,278 +3,204 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cardápio Digital Premium</title>
+    <title>Cardápio Digital</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         :root { --cor-primaria: #f59e0b; }
-        body { 
-            font-family: 'Plus Jakarta Sans', sans-serif; 
-            -webkit-tap-highlight-color: transparent;
-            background-color: #f8fafc;
-        }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
         .bg-brand { background-color: var(--cor-primaria) !important; }
         .text-brand { color: var(--cor-primaria) !important; }
         .border-brand { border-color: var(--cor-primaria) !important; }
-        
-        /* Glassmorphism Effects */
-        .glass-nav { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
-        .glass-card { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(8px); }
-        
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .category-tab.active { color: var(--cor-primaria); border-bottom: 3px solid var(--cor-primaria); }
+        .product-card:active { transform: scale(0.97); }
+        .ping-aberto { animation: pulse-green 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse-green { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+        #loading-overlay { transition: opacity 0.5s ease, visibility 0.5s; }
+        .loader-hidden { opacity: 0; visibility: hidden; }
+        html { scroll-behavior: smooth; }
+        .banner-overlay { background: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.4) 100%); }
+        .content-wrapper { padding-bottom: 120px; }
+        .step-content { display: none; animation: fadeIn 0.3s ease; }
+        .step-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
-        .category-tab.active { 
-            color: var(--cor-primaria); 
-            border-bottom: 3px solid var(--cor-primaria);
-            font-weight: 800;
-        }
-        
-        .product-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .product-card:active { transform: scale(0.96); }
-        
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.4s ease forwards; }
-        
-        .step-content { display: none; }
-        .step-content.active { display: block; animation: fadeIn 0.3s ease; }
-
-        #logoLoja { width: 100%; height: 100%; object-fit: cover; }
-        
-        /* Classe para esconder o loading suavemente */
-        .loader-hidden { opacity: 0; pointer-events: none; transition: opacity 0.5s ease; }
+        /* Ajuste para garantir que a foto preencha o círculo da logo */
+        #logoLoja:not(.hidden) + #emojiLoja { display: none; }
     </style>
 </head>
-<body class="min-h-screen text-slate-900">
+<body class="bg-slate-50 min-h-screen">
 
-    <div id="loading-overlay" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white transition-opacity duration-500">
-        <div class="relative flex items-center justify-center">
-            <div class="w-20 h-20 border-[6px] border-slate-100 border-t-brand rounded-full animate-spin"></div>
-            <div class="absolute font-bold text-2xl">🥐</div>
+    <div id="loading-overlay" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white/80 backdrop-blur-md">
+        <div class="relative">
+            <div class="w-16 h-16 border-4 border-slate-100 border-t-brand rounded-full animate-spin"></div>
+            <div class="absolute inset-0 flex items-center justify-center font-bold text-xl">🥐</div>
         </div>
-        <p class="mt-6 text-slate-400 font-black uppercase tracking-[0.4em] text-[10px] animate-pulse">Sincronizando</p>
+        <p class="mt-4 text-slate-500 font-black uppercase tracking-[0.3em] text-[10px] animate-pulse">Preparando Cardápio</p>
     </div>
 
-    <div class="content-wrapper pb-32">
-        <div id="bannerLoja" class="relative h-52 bg-slate-200 w-full bg-center bg-cover shadow-inner">
-            <div class="absolute inset-0 bg-gradient-to-t from-slate-900/70 via-slate-900/20 to-transparent"></div>
-            
-            <div class="absolute -bottom-12 left-1/2 -translate-x-1/2 z-10">
-                <div class="w-28 h-28 bg-white rounded-[2.5rem] shadow-[0_20px_40px_rgba(0,0,0,0.15)] p-1.5 border border-white/50">
-                    <div id="wrapperLogo" class="w-full h-full bg-slate-100 rounded-[2.2rem] flex items-center justify-center overflow-hidden relative ring-4 ring-white/20">
-                        <img id="logoLoja" class="hidden z-20" alt="Logo">
-                        <span id="emojiLoja" class="text-5xl z-10">🍞</span>
+    <div class="content-wrapper">
+        <div id="bannerLoja" class="relative h-44 bg-slate-200 w-full bg-center bg-cover transition-all duration-700">
+            <div class="absolute inset-0 banner-overlay"></div>
+            <div class="absolute -bottom-10 left-1/2 -translate-x-1/2 z-10">
+                <div class="w-24 h-24 bg-white rounded-3xl shadow-xl p-1.5">
+                    <div id="wrapperLogo" class="w-full h-full bg-slate-200 rounded-[1.4rem] flex items-center justify-center overflow-hidden relative">
+                        <img id="logoLoja" class="hidden w-full h-full object-cover z-20">
+                        <span id="emojiLoja" class="text-4xl z-10">🍞</span>
                     </div>
                 </div>
             </div>
         </div>
 
-        <section class="mt-16 px-6 text-center">
-            <h1 id="nomeLoja" class="text-3xl font-black text-slate-800 tracking-tighter uppercase italic">Carregando...</h1>
-            <div id="horarioLoja" class="inline-flex items-center gap-2 mt-3 px-4 py-1.5 bg-white rounded-full shadow-sm border border-slate-100">
-                <span id="dotStatus" class="w-2.5 h-2.5 rounded-full bg-slate-300"></span>
-                <p id="labelStatus" class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Verificando...</p>
+        <section class="mt-14 px-6 text-center">
+            <h1 id="nomeLoja" class="text-2xl font-extrabold text-slate-800 tracking-tight leading-tight uppercase italic text-brand">Carregando...</h1>
+            <div id="horarioLoja" class="flex items-center justify-center gap-2 mt-2">
+                <span id="dotStatus" class="w-2 h-2 rounded-full bg-slate-300"></span>
+                <p id="labelStatus" class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Verificando...</p>
             </div>
         </section>
 
-        <nav class="sticky top-0 z-50 glass-nav border-b border-slate-100/50 mt-8 overflow-x-auto no-scrollbar flex items-center px-4">
-            <div id="navCategorias" class="flex gap-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">
-                </div>
+        <nav class="sticky top-0 z-50 bg-white/90 backdrop-blur-lg border-b border-slate-100 mt-6 overflow-x-auto no-scrollbar flex items-center px-4 shadow-sm">
+            <div id="navCategorias" class="flex gap-8 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest"></div>
         </nav>
 
-        <main id="mainContainer" class="p-4 space-y-10 mt-4"></main>
+        <main id="mainContainer" class="p-4 space-y-8"></main>
     </div>
 
-    <div id="btnCarrinho" class="fixed bottom-10 left-0 right-0 px-6 z-50 hidden">
-        <button onclick="abrirCarrinho()" class="w-full bg-brand text-white h-16 rounded-[2.2rem] shadow-[0_20px_50px_rgba(245,158,11,0.4)] flex items-center justify-between px-8 active:scale-95 transition-all">
-            <div class="flex items-center gap-4">
-                <div class="relative">
-                    <i data-lucide="shopping-bag" class="w-6 h-6"></i>
-                    <span id="qtdItensCarrinho" class="absolute -top-2 -right-2 bg-white text-brand font-black w-5 h-5 rounded-full text-[10px] flex items-center justify-center shadow-md">0</span>
-                </div>
-                <span class="font-black uppercase tracking-widest text-xs">Ver Sacola</span>
+    <div id="btnCarrinho" class="fixed bottom-16 left-0 right-0 px-6 z-50 hidden">
+        <button onclick="abrirCarrinho()" class="w-full bg-brand text-white h-14 rounded-2xl shadow-2xl flex items-center justify-between px-6 active:scale-95 transition-all">
+            <div class="flex items-center gap-3">
+                <span class="font-black uppercase tracking-widest text-[10px]">Revisar Pedido</span>
             </div>
-            <span id="valorTotalCarrinho" class="text-sm font-black tracking-tighter bg-black/10 px-4 py-1.5 rounded-full">R$ 0,00</span>
+            <span id="qtdItensCarrinho" class="bg-white text-brand font-black px-2.5 py-0.5 rounded-full text-[10px]">0</span>
         </button>
     </div>
 
-    <div id="modalCarrinho" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[70] hidden flex items-end md:items-center justify-center">
-        <div class="bg-white w-full max-w-lg rounded-t-[3rem] md:rounded-[3rem] p-8 shadow-2xl max-h-[92vh] flex flex-col transition-all border-t border-white/20">
+    <div id="modalCarrinho" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] hidden flex items-end md:items-center justify-center">
+        <div class="bg-white w-full max-w-lg rounded-t-[2.5rem] md:rounded-[2.5rem] p-6 shadow-2xl max-h-[90vh] flex flex-col transition-all">
             
-            <div class="flex justify-between items-center mb-8">
+            <div class="flex justify-between items-center mb-6">
                 <div>
-                    <h2 class="text-xl font-black text-slate-800 uppercase italic">Minha Sacola</h2>
-                    <p id="subtituloModal" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Identificação • Passo 1</p>
+                    <h2 class="text-lg font-black text-slate-800 uppercase italic leading-none">Minha Sacola</h2>
+                    <p id="subtituloModal" class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Passo 1 de 3</p>
                 </div>
-                <button onclick="fecharCarrinho()" class="bg-slate-100 text-slate-500 w-10 h-10 rounded-full flex items-center justify-center hover:bg-slate-200">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
+                <button onclick="fecharCarrinho()" class="bg-slate-100 text-slate-400 w-8 h-8 rounded-full flex items-center justify-center font-bold">✕</button>
             </div>
 
             <div id="passo1" class="step-content active flex-1 overflow-y-auto no-scrollbar">
-                <div class="space-y-4 mb-8">
-                    <div class="bg-slate-50 p-4 rounded-[1.8rem] border border-slate-100 focus-within:border-brand transition-all">
-                        <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Nome Completo</label>
-                        <input type="text" id="inputNome" placeholder="Como te chamamos?" class="w-full bg-transparent p-1 text-sm font-bold outline-none text-slate-700">
-                    </div>
-                    <div class="bg-slate-50 p-4 rounded-[1.8rem] border border-slate-100 focus-within:border-brand transition-all">
-                        <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">WhatsApp</label>
-                        <input type="tel" id="inputWhatsApp" onblur="window.verificarCliente ? window.verificarCliente(this.value) : null" placeholder="(00) 00000-0000" class="w-full bg-transparent p-1 text-sm font-bold outline-none text-slate-700">
-                        <div id="statusCliente" class="text-[8px] mt-1 uppercase font-black text-slate-300 tracking-tighter"></div>
-                    </div>
+                <div class="bg-slate-50 p-4 rounded-2xl mb-4 border border-slate-100 space-y-3">
+                    <input type="text" id="inputNome" placeholder="Seu Nome Completo" class="w-full p-3 rounded-xl border border-slate-200 text-sm font-bold outline-brand">
+                    <input type="tel" id="inputWhatsApp" onblur="window.verificarCliente(this.value)" placeholder="WhatsApp (DDD) 00000-0000" class="w-full p-3 rounded-xl border border-slate-200 text-sm font-bold outline-brand">
+                    <div id="statusCliente" class="text-[9px] px-1 uppercase font-bold text-slate-400"></div>
                 </div>
 
-                <div id="listaItensCarrinho" class="space-y-4 mb-8"></div>
+                <div id="listaItensCarrinho" class="space-y-3 mb-6"></div>
                 
-                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 px-2">Como deseja receber?</p>
-                <div class="grid grid-cols-2 gap-4 mb-6">
-                    <button onclick="definirModo('entrega')" id="optEntrega" class="flex flex-col items-center justify-center p-6 rounded-[2rem] border-2 border-slate-100 bg-slate-50 gap-3 transition-all">
-                        <span class="text-2xl">🛵</span>
-                        <span class="text-[10px] font-black uppercase tracking-wider">Entrega</span>
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Como deseja receber?</p>
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <button onclick="definirModo('entrega')" id="optEntrega" class="flex flex-col items-center justify-center p-4 rounded-2xl border-2 border-slate-100 bg-slate-50 gap-2 transition-all">
+                        <span class="text-xl">🛵</span>
+                        <span class="text-[10px] font-black uppercase">Entrega</span>
                     </button>
-                    <button onclick="definirModo('retirada')" id="optRetirada" class="flex flex-col items-center justify-center p-6 rounded-[2rem] border-2 border-slate-100 bg-slate-50 gap-3 transition-all">
-                        <span class="text-2xl">🛍️</span>
-                        <span class="text-[10px] font-black uppercase tracking-wider">Retirada</span>
+                    <button onclick="definirModo('retirada')" id="optRetirada" class="flex flex-col items-center justify-center p-4 rounded-2xl border-2 border-slate-100 bg-slate-50 gap-2 transition-all">
+                        <span class="text-xl">🛍️</span>
+                        <span class="text-[10px] font-black uppercase">Retirada</span>
                     </button>
                 </div>
-                <button onclick="irParaPasso(2)" id="btnProximo1" disabled class="w-full bg-slate-200 text-white py-5 rounded-[2rem] font-black uppercase text-xs transition-all shadow-lg">Continuar</button>
+                <div id="totalPasso1" class="mb-4"></div>
+                <button onclick="irParaPasso(2)" id="btnProximo1" disabled class="w-full bg-slate-200 text-white py-4 rounded-2xl font-black uppercase text-[11px] transition-all">Continuar</button>
             </div>
 
             <div id="passo2" class="step-content flex-1 overflow-y-auto no-scrollbar">
-                <div id="blocoEntrega" class="space-y-6">
-                    <div class="bg-slate-50 p-6 rounded-[2.5rem] border border-slate-100">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-3 text-center">Informe seu CEP</label>
-                        <input type="text" id="inputCEP" maxlength="9" oninput="window.mascaraCEP ? window.mascaraCEP(this) : null" placeholder="00000-000" 
-                               class="w-full p-5 rounded-2xl bg-white text-lg border border-slate-200 outline-brand font-black text-center tracking-widest text-slate-700 shadow-inner">
-                        <div id="statusCEP" class="mt-3 text-[10px] font-bold text-center text-red-500"></div>
-                        
-                        <div id="camposEndereco" class="hidden space-y-4 mt-6">
-                            <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm">
-                                <p id="textoEnderecoAuto" class="text-xs font-extrabold text-slate-600 leading-relaxed"></p>
+                <div id="blocoEntrega" class="space-y-4">
+                    <div class="bg-slate-50 p-5 rounded-3xl border border-slate-100">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2 px-1">Seu CEP</label>
+                        <input type="text" id="inputCEP" maxlength="9" oninput="window.mascaraCEP(this)" placeholder="00000-000" 
+                               class="w-full p-4 rounded-xl bg-white text-sm border border-slate-200 outline-brand font-bold text-center">
+                        <div id="statusCEP" class="mt-2 text-[10px] font-bold px-1 text-red-500"></div>
+                        <div id="camposEndereco" class="hidden space-y-3 mt-4">
+                            <div class="p-4 bg-white rounded-xl border border-slate-200">
+                                <p id="textoEnderecoAuto" class="text-xs font-bold text-slate-700"></p>
                             </div>
-                            <input type="text" id="inputNumero" placeholder="Nº / Complemento / Referência" 
-                                   class="w-full p-5 rounded-2xl bg-white text-sm border border-slate-200 outline-brand font-black shadow-sm">
+                            <input type="text" id="inputNumero" placeholder="Número / Apto / Complemento" 
+                                   class="w-full p-4 rounded-xl bg-white text-sm border border-slate-200 outline-brand font-bold">
                         </div>
                     </div>
                 </div>
-                <div id="blocoRetirada" class="hidden text-center py-12">
-                    <div class="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <span class="text-4xl">🏠</span>
-                    </div>
-                    <p class="font-black text-slate-800 uppercase tracking-tighter">Retirada no Balcão</p>
-                    <p class="text-xs text-slate-400 font-medium mt-1">Seu pedido estará pronto em breve!</p>
+                <div id="blocoRetirada" class="hidden text-center py-10">
+                    <div class="text-4xl mb-4">🏠</div>
+                    <p class="font-bold text-slate-700">Tudo pronto para retirada!</p>
                 </div>
-                <div class="flex gap-4 mt-8">
-                    <button onclick="irParaPasso(1)" class="w-1/3 bg-slate-100 text-slate-500 py-5 rounded-[2rem] font-black uppercase text-[10px]">Voltar</button>
-                    <button onclick="irParaPasso(3)" id="btnProximo2" disabled class="w-2/3 bg-slate-200 text-white py-5 rounded-[2rem] font-black uppercase text-xs shadow-lg">Pagamento</button>
+                <div class="flex gap-3 mt-6">
+                    <button onclick="irParaPasso(1)" class="w-1/3 bg-slate-100 text-slate-500 py-4 rounded-2xl font-black uppercase text-[10px]">Voltar</button>
+                    <button onclick="irParaPasso(3)" id="btnProximo2" disabled class="w-2/3 bg-slate-200 text-white py-4 rounded-2xl font-black uppercase text-[11px]">Pagamento</button>
                 </div>
             </div>
 
             <div id="passo3" class="step-content flex-1 overflow-y-auto no-scrollbar">
-                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 px-2">Meio de Pagamento</p>
-                <div class="space-y-3 mb-8">
-                    <label class="flex items-center gap-4 p-5 bg-slate-50 rounded-[2rem] border border-slate-100 cursor-pointer hover:bg-white transition-all group">
-                        <input type="radio" name="pagamento" value="Pix" class="w-5 h-5 accent-brand">
-                        <span class="text-sm font-black text-slate-700 uppercase tracking-tighter">⚡ Pix</span>
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 px-1">Escolha como pagar</p>
+                <div class="space-y-3 mb-6">
+                    <label class="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100 cursor-pointer">
+                        <input type="radio" name="pagamento" value="Pix" class="w-4 h-4 accent-brand">
+                        <span class="text-sm font-bold text-slate-700">PIX</span>
                     </label>
-                    <label class="flex items-center gap-4 p-5 bg-slate-50 rounded-[2rem] border border-slate-100 cursor-pointer hover:bg-white transition-all group">
-                        <input type="radio" name="pagamento" value="Cartão" class="w-5 h-5 accent-brand">
-                        <span class="text-sm font-black text-slate-700 uppercase tracking-tighter">💳 Cartão na Entrega</span>
+                    <label class="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100 cursor-pointer">
+                        <input type="radio" name="pagamento" value="Cartão" class="w-4 h-4 accent-brand">
+                        <span class="text-sm font-bold text-slate-700">Cartão na Entrega</span>
                     </label>
-                    <label class="flex items-center gap-4 p-5 bg-slate-50 rounded-[2rem] border border-slate-100 cursor-pointer hover:bg-white transition-all group">
-                        <input type="radio" name="pagamento" value="Dinheiro" class="w-5 h-5 accent-brand">
-                        <span class="text-sm font-black text-slate-700 uppercase tracking-tighter">💵 Dinheiro</span>
+                    <label class="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100 cursor-pointer">
+                        <input type="radio" name="pagamento" value="Dinheiro" class="w-4 h-4 accent-brand">
+                        <span class="text-sm font-bold text-slate-700">Dinheiro</span>
                     </label>
                 </div>
-                <div id="resumoFinal" class="bg-slate-900 text-white p-6 rounded-[2.5rem] mb-8 shadow-xl"></div>
-                <div class="flex gap-4">
-                    <button onclick="irParaPasso(2)" class="w-1/3 bg-slate-100 text-slate-500 py-5 rounded-[2rem] font-black uppercase text-[10px]">Voltar</button>
-                    <button onclick="window.enviarWhatsApp ? window.enviarWhatsApp() : alert('Erro ao carregar script de envio.')" class="w-2/3 bg-brand text-white py-5 rounded-[2rem] font-black uppercase text-xs shadow-[0_15px_30px_rgba(245,158,11,0.3)]">Finalizar Agora</button>
+                <div id="resumoFinal" class="bg-slate-900 text-white p-5 rounded-3xl mb-6 shadow-xl"></div>
+                <div class="flex gap-3">
+                    <button onclick="irParaPasso(2)" class="w-1/3 bg-slate-100 text-slate-500 py-4 rounded-2xl font-black uppercase text-[10px]">Voltar</button>
+                    <button onclick="window.enviarWhatsApp()" class="w-2/3 bg-brand text-white py-4 rounded-2xl font-black uppercase text-[11px] shadow-xl">Finalizar Pedido</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <footer class="fixed bottom-0 left-0 right-0 z-40 bg-white/60 backdrop-blur-md py-4 px-6 text-center border-t border-slate-100">
-        <p class="text-[8px] font-black text-slate-400 uppercase tracking-[0.3em]">Powered by <span class="text-brand">Vacy Sistemas</span></p>
+    <footer class="fixed bottom-0 left-0 right-0 z-40 bg-white py-3 px-6 text-center border-t border-slate-100">
+        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Desenvolvido por <span class="text-brand">Vacy Sistemas</span></p>
+        <p class="text-[8px] font-bold text-slate-300 mt-0.5">© <span id="anoAtual"></span> <span id="nomeLojaRodape"></span></p>
     </footer>
 
     <script>
         let modoEscolhido = null;
 
-        // Inicializar ícones
-        document.addEventListener('DOMContentLoaded', () => {
-            if (window.lucide) lucide.createIcons();
-        });
-
         window.definirModo = (modo) => {
             modoEscolhido = modo;
-            const optE = document.getElementById('optEntrega');
-            const optR = document.getElementById('optRetirada');
-            
-            if (modo === 'entrega') {
-                optE.className = 'flex flex-col items-center justify-center p-6 rounded-[2rem] border-2 border-brand bg-amber-50 gap-3 transition-all scale-105 shadow-md';
-                optR.className = 'flex flex-col items-center justify-center p-6 rounded-[2rem] border-2 border-slate-100 bg-slate-50 gap-3 transition-all opacity-60';
-            } else {
-                optR.className = 'flex flex-col items-center justify-center p-6 rounded-[2rem] border-2 border-brand bg-amber-50 gap-3 transition-all scale-105 shadow-md';
-                optE.className = 'flex flex-col items-center justify-center p-6 rounded-[2rem] border-2 border-slate-100 bg-slate-50 gap-3 transition-all opacity-60';
-            }
-
+            document.getElementById('optEntrega').classList.toggle('border-brand', modo === 'entrega');
+            document.getElementById('optRetirada').classList.toggle('border-brand', modo === 'retirada');
             const btnProx = document.getElementById('btnProximo1');
             btnProx.disabled = false;
             btnProx.classList.replace('bg-slate-200', 'bg-brand');
-            
             if(window.atualizarModoPedidoJS) window.atualizarModoPedidoJS(modo);
         };
 
         window.irParaPasso = (n) => {
             document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
             document.getElementById(`passo${n}`).classList.add('active');
-            
-            const subtitulos = {
-                1: "Identificação • Passo 1",
-                2: "Onde entregar? • Passo 2",
-                3: "Concluir • Passo 3"
-            };
-            document.getElementById('subtituloModal').innerText = subtitulos[n];
-            
+            document.getElementById('subtituloModal').innerText = `Passo ${n} de 3`;
             if(n === 2) {
-                const isRet = modoEscolhido === 'retirada';
-                document.getElementById('blocoRetirada').classList.toggle('hidden', !isRet);
-                document.getElementById('blocoEntrega').classList.toggle('hidden', isRet);
-                if(isRet) {
+                const isRetirada = modoEscolhido === 'retirada';
+                document.getElementById('blocoRetirada').classList.toggle('hidden', !isRetirada);
+                document.getElementById('blocoEntrega').classList.toggle('hidden', isRetirada);
+                if(isRetirada) {
                     const b = document.getElementById('btnProximo2');
-                    b.disabled = false; 
-                    b.classList.replace('bg-slate-200', 'bg-brand');
+                    b.disabled = false; b.classList.replace('bg-slate-200', 'bg-brand');
                 }
             }
-            if (window.lucide) lucide.createIcons();
         };
 
-        window.fecharCarrinho = () => { 
-            document.getElementById('modalCarrinho').classList.add('hidden');
-            document.body.style.overflow = 'auto';
-        };
-        
-        window.abrirCarrinho = () => {
-            document.getElementById('modalCarrinho').classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
-            if (window.lucide) lucide.createIcons();
-        };
-
-        // Segurança para destravar a tela caso o Firebase falhe ou o ID não seja passado
-        setTimeout(() => {
-            const loader = document.getElementById('loading-overlay');
-            if (loader && !loader.classList.contains('loader-hidden')) {
-                console.warn("Sincronização demorou demais. Verifique o ID na URL ou conexão.");
-                // loader.classList.add('loader-hidden'); // Descomente para forçar a entrada
-            }
-        }, 10000);
-
+        window.fecharCarrinho = () => { document.getElementById('modalCarrinho').classList.add('hidden'); };
+        document.getElementById('anoAtual').innerText = new Date().getFullYear();
         window.onclick = function(e) { if (e.target.id == 'modalCarrinho') fecharCarrinho(); }
     </script>
-
-    <script type="module" src="cardapio.js"></script>
+    <script type="module" src="src/cardapio.js"></script>
 </body>
 </html>
